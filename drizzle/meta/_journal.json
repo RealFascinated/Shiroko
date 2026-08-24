@@ -15,6 +15,20 @@
       "when": 1787535209781,
       "tag": "0001_wooden_mulholland_black",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787604428247,
+      "tag": "0002_add_interactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787604437955,
+      "tag": "0003_drop_interaction_profiles",
+      "breakpoints": true
     }
   ]
 }

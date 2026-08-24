@@ -3,6 +3,9 @@ import Command, { type ExecuteContext } from "../../../../command/command";
 import { userOption } from "../../../../command/option";
 import { getGif } from "../../../../lib/anime";
 import { pluralize } from "../../../../lib/utils";
+import { incrementInteraction } from "../../interactions";
+import GlobalUsersManager from "../../../../user/global-users-manager";
+
 export default class KissCommand extends Command {
   constructor() {
     super("kiss", " Kiss someone");
@@ -17,11 +20,8 @@ export default class KissCommand extends Command {
     if (target.id === globalUser.discordUser.id) {
       return ctx.reply("You can't kiss yourself! :(");
     }
-    const interactionProfile = await globalUser.getInteractionsProfile();
-    interactionProfile.kisses.set(target.id, (interactionProfile.kisses.get(target.id) ?? 0) + 1);
-    interactionProfile.markDirty();
-
-    const count = interactionProfile.kisses.get(target.id) ?? 0;
+    const targetUser = await GlobalUsersManager.getUser(target);
+    const count = await incrementInteraction(globalUser.id, targetUser.id, "kiss");
     const gif = await getGif("kiss");
     const embed = baseEmbed()
       .setDescription(

@@ -3,6 +3,9 @@ import Command, { type ExecuteContext } from "../../../../command/command";
 import { userOption } from "../../../../command/option";
 import { getGif } from "../../../../lib/anime";
 import { pluralize } from "../../../../lib/utils";
+import { incrementInteraction } from "../../interactions";
+import GlobalUsersManager from "../../../../user/global-users-manager";
+
 export default class HugCommand extends Command {
   constructor() {
     super("hug", "Give someone a big hug");
@@ -17,11 +20,8 @@ export default class HugCommand extends Command {
     if (target.id === globalUser.discordUser.id) {
       return ctx.reply("You can't hug yourself! :(");
     }
-    const interactionProfile = await globalUser.getInteractionsProfile();
-    interactionProfile.hugs.set(target.id, (interactionProfile.hugs.get(target.id) ?? 0) + 1);
-    interactionProfile.markDirty();
-
-    const count = interactionProfile.hugs.get(target.id) ?? 0;
+    const targetUser = await GlobalUsersManager.getUser(target);
+    const count = await incrementInteraction(globalUser.id, targetUser.id, "hug");
     const gif = await getGif("hug");
     const embed = baseEmbed()
       .setDescription(

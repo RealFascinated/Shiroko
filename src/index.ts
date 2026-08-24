@@ -6,7 +6,6 @@ import { db } from "./db";
 import CommandManager from "./command/command-manager";
 import AppCommandManager from "./command/app-command-manager";
 import AvatarCommand from "./feature/interaction/command/app/avatar.command";
-import GlobalUsersManager from "./user/global-users-manager";
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");
@@ -14,8 +13,6 @@ console.log("Migrations complete");
 export const discordClient = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
-
-new GlobalUsersManager();
 
 const commands = new CommandManager();
 commands.registerHandlers(discordClient);
@@ -47,9 +44,7 @@ discordClient.once(Events.ClientReady, async (readyClient) => {
 
 discordClient.login(env.DISCORD_BOT_TOKEN);
 
-async function shutdown(): Promise<void> {
-  console.log("Shutting down — saving accounts and profiles...");
-  await GlobalUsersManager.saveAllProfiles();
+function shutdown(): void {
   process.exit(0);
 }
 

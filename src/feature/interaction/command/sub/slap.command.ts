@@ -3,6 +3,9 @@ import Command, { type ExecuteContext } from "../../../../command/command";
 import { userOption } from "../../../../command/option";
 import { getGif } from "../../../../lib/anime";
 import { pluralize } from "../../../../lib/utils";
+import { incrementInteraction } from "../../interactions";
+import GlobalUsersManager from "../../../../user/global-users-manager";
+
 export default class SlapCommand extends Command {
   constructor() {
     super("slap", "Slap someone");
@@ -17,11 +20,8 @@ export default class SlapCommand extends Command {
     if (target.id === globalUser.discordUser.id) {
       return ctx.reply("You can't slap yourself! :(");
     }
-    const interactionProfile = await globalUser.getInteractionsProfile();
-    interactionProfile.slaps.set(target.id, (interactionProfile.slaps.get(target.id) ?? 0) + 1);
-    interactionProfile.markDirty();
-
-    const count = interactionProfile.slaps.get(target.id) ?? 0;
+    const targetUser = await GlobalUsersManager.getUser(target);
+    const count = await incrementInteraction(globalUser.id, targetUser.id, "slap");
     const gif = await getGif("slap");
     const embed = baseEmbed()
       .setDescription(

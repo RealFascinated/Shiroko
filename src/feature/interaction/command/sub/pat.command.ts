@@ -3,6 +3,9 @@ import Command, { type ExecuteContext } from "../../../../command/command";
 import { userOption } from "../../../../command/option";
 import { getGif } from "../../../../lib/anime";
 import { pluralize } from "../../../../lib/utils";
+import { incrementInteraction } from "../../interactions";
+import GlobalUsersManager from "../../../../user/global-users-manager";
+
 export default class PatCommand extends Command {
   constructor() {
     super("pat", "Pat someone");
@@ -17,11 +20,8 @@ export default class PatCommand extends Command {
     if (target.id === globalUser.discordUser.id) {
       return ctx.reply("You can't pat yourself! :(");
     }
-    const interactionProfile = await globalUser.getInteractionsProfile();
-    interactionProfile.pats.set(target.id, (interactionProfile.pats.get(target.id) ?? 0) + 1);
-    interactionProfile.markDirty();
-
-    const count = interactionProfile.pats.get(target.id) ?? 0;
+    const targetUser = await GlobalUsersManager.getUser(target);
+    const count = await incrementInteraction(globalUser.id, targetUser.id, "pat");
     const gif = await getGif("pat");
     const embed = baseEmbed()
       .setDescription(
