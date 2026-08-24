@@ -7,4 +7,5 @@ export default class DanceCommand extends PairInteractionCommand {
   protected readonly interactionType = "dance";
   protected readonly gifCategory = "dance";
   protected readonly verb = "dances with";
+  protected readonly pastParticiple = "danced with";
 }

@@ -11,13 +11,14 @@ import { incrementInteraction, type InteractionType } from "../interactions";
  * interaction counter, and reply with a matching GIF from nekos.best.
  *
  * Subclasses only supply their id, description, interaction type, GIF category,
- * and the display verb used in the reply text.
+ * and the display verb and past participle used in the reply text.
  */
 export default abstract class PairInteractionCommand extends Command {
   
   protected abstract readonly interactionType: InteractionType;
   protected abstract readonly gifCategory: Parameters<typeof getGif>[0];
   protected abstract readonly verb: string;
+  protected abstract readonly pastParticiple: string;
 
   constructor(id: string, displayName: string) {
     super(id, displayName);
@@ -38,7 +39,7 @@ export default abstract class PairInteractionCommand extends Command {
     const embed = baseEmbed()
       .setDescription(
         `**${globalUser.discordUser.displayName}** ${this.verb} **${target.displayName}**!
-        ***${target.displayName}** has been **${this.interactionType}** by **${globalUser.discordUser.displayName}** **${pluralize("time", count)}**.*`
+        ***${target.displayName}** has been **${this.pastParticiple}** by **${globalUser.discordUser.displayName}** **${pluralize("time", count)}**.*`
       )
       .setImage(gif.url);
 

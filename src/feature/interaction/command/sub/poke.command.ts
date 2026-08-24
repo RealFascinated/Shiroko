@@ -7,4 +7,5 @@ export default class PokeCommand extends PairInteractionCommand {
   protected readonly interactionType = "poke";
   protected readonly gifCategory = "poke";
   protected readonly verb = "pokes";
+  protected readonly pastParticiple = "poked";
 }
