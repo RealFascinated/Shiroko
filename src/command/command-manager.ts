@@ -3,7 +3,7 @@ import type { Client } from "discord.js";
 import type Command from "./command";
 import ParsedArguments from "./parsed-arguments";
 import TestCommand from "../feature/interaction/command/interaction.command";
-import EightBallCommand from "./commands/8ball.command";
+import PingCommand from "./commands/ping.command";
 import GlobalUsersManager from "../user/global-users-manager";
 
 export default class CommandManager {
@@ -11,8 +11,7 @@ export default class CommandManager {
 
   constructor() {
     this.registerCommand(new TestCommand());
-    this.registerCommand(new EightBallCommand());
-
+    this.registerCommand(new PingCommand());
     console.log(`Registered commands: ${this.commands.size}`);
   }
 
