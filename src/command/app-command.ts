@@ -58,7 +58,7 @@ export default abstract class AppCommand {
    */
   public build(): UserApplicationCommandData | MessageApplicationCommandData {
     const base: UserApplicationCommandData | MessageApplicationCommandData = {
-      name: this.id,
+      name: this.registeredName,
       type: this.commandType,
     };
 
@@ -75,6 +75,15 @@ export default abstract class AppCommand {
     }
 
     return base;
+  }
+
+  /**
+   * The name this command is registered under in Discord, suffixed so context
+   * menu command names can never collide with slash command names.
+   */
+  public get registeredName(): string {
+    const suffix = this.commandType === ApplicationCommandType.User ? "user" : "message";
+    return `${this.id}-${suffix}-command`;
   }
 
   /**

@@ -91,7 +91,17 @@ export default abstract class Command {
   constructor(id: string, displayName: string) {
     this.id = id;
     this.displayName = displayName;
-    this.slashCommand = new SlashCommandBuilder().setName(id).setDescription(displayName);
+    this.slashCommand = new SlashCommandBuilder()
+      .setName(this.registeredName)
+      .setDescription(displayName);
+  }
+
+  /**
+   * The name this command is registered under in Discord, suffixed so slash
+   * command names can never collide with context menu command names.
+   */
+  public get registeredName(): string {
+    return `${this.id}-command`;
   }
 
   public get options(): CommandOptionBuilder[] {

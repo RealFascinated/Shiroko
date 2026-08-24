@@ -40,8 +40,18 @@ export default class CommandManager {
       }
     }
 
-    // Register/update all local commands.
-    await commands.set(local);
+    // Register/update all local commands without touching other managers' commands.
+    for (const commandData of local) {
+      const existing = remote.find(
+        (command) =>
+          command.name === commandData.name && command.type === ApplicationCommandType.ChatInput
+      );
+      if (existing) {
+        await existing.edit(commandData);
+      } else {
+        await commands.create(commandData);
+      }
+    }
     console.log(`Synced ${this.commands.size} command(s)`);
   }
 
@@ -77,7 +87,7 @@ export default class CommandManager {
   }
 
   private registerCommand(command: Command) {
-    this.commands.set(command.slashCommand.name, command);
+    this.commands.set(command.registeredName, command);
     console.log(`Registered command: ${command.id} - ${command.displayName}`);
   }
 }

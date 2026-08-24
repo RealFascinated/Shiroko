@@ -44,7 +44,17 @@ export default class AppCommandManager {
       }
     }
 
-    await commands.set(local);
+    // Register/update all local commands without touching other managers' commands.
+    for (const commandData of local) {
+      const existing = remote.find(
+        (command) => command.name === commandData.name && command.type === commandData.type
+      );
+      if (existing) {
+        await existing.edit(commandData);
+      } else {
+        await commands.create(commandData);
+      }
+    }
     console.log(`Synced ${this.commands.size} app command(s)`);
   }
 
@@ -75,7 +85,7 @@ export default class AppCommandManager {
   }
 
   private registerCommand(command: AppCommand) {
-    this.commands.set(command.id, command);
+    this.commands.set(command.registeredName, command);
     console.log(`Registered app command: ${command.id} - ${command.displayName}`);
   }
 }
