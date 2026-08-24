@@ -1,4 +1,4 @@
-import { Events } from "discord.js";
+import { ApplicationCommandType, Events } from "discord.js";
 import type { Client } from "discord.js";
 import type Command from "./command";
 import ParsedArguments from "./parsed-arguments";
@@ -30,6 +30,10 @@ export default class CommandManager {
     // Delete Discord commands that no longer exist locally.
     const remote = await commands.fetch();
     for (const remoteCommand of remote.values()) {
+      // Only manage chat-input slash commands, not context menu commands
+      if (remoteCommand.type !== ApplicationCommandType.ChatInput) {
+        continue;
+      }
       if (!this.commands.has(remoteCommand.name)) {
         await remoteCommand.delete();
         console.log(`Deleted stale command: ${remoteCommand.name}`);
