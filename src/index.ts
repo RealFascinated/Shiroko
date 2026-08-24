@@ -38,3 +38,12 @@ discordClient.once(Events.ClientReady, async (readyClient) => {
 });
 
 discordClient.login(env.DISCORD_BOT_TOKEN);
+
+async function shutdown(): Promise<void> {
+  console.log("Shutting down — saving accounts and profiles...");
+  await GlobalUsersManager.saveAllProfiles();
+  process.exit(0);
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

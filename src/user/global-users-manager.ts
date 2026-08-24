@@ -8,19 +8,29 @@ export default class GlobalUsersManager {
   private static users: Map<string, GlobalUser> = new Map();
 
   constructor() {
-    setInterval(async () => {
-      let savedCount = 0;
-      for (const user of GlobalUsersManager.users.values()) {
-        try {
-          savedCount += await user.saveProfiles();
-        } catch (err) {
-          console.error(`Failed to save profiles for global user ${user.id}:`, err);
-        }
-      }
-      if (savedCount > 0) {
-        console.log(`Saved profiles for ${savedCount} global users.`);
-      }
+    setInterval(() => {
+      void GlobalUsersManager.saveAllProfiles();
     }, 60_000);
+  }
+
+  /**
+   * Persist every cached user's profiles, awaiting each save before returning.
+   *
+   * Blocks until all saves settle (or error), so callers can await it on
+   * graceful shutdown to avoid losing in-memory changes.
+   */
+  public static async saveAllProfiles(): Promise<void> {
+    let savedCount = 0;
+    for (const user of GlobalUsersManager.users.values()) {
+      try {
+        savedCount += await user.saveProfiles();
+      } catch (err) {
+        console.error(`Failed to save profiles for global user ${user.id}:`, err);
+      }
+    }
+    if (savedCount > 0) {
+      console.log(`Saved profiles for ${savedCount} global users.`);
+    }
   }
 
   /**
