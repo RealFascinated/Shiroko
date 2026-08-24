@@ -1,7 +1,5 @@
-import { EmbedBuilder } from "discord.js";
-import Command from "../command";
-import type { ExecuteContext } from "../command";
-import { Constants } from "../../constants";
+import { baseEmbed } from "../../lib/embed";
+import Command, { type ExecuteContext } from "../command";
 
 export default class PingCommand extends Command {
   constructor() {
@@ -11,9 +9,8 @@ export default class PingCommand extends Command {
   protected override async onExecuteSlash({ ctx }: ExecuteContext) {
     return ctx.reply({
       embeds: [
-        new EmbedBuilder()
+        baseEmbed()
           .setTitle("🏓 Pong!")
-          .setColor(Constants.mainColor)
           .addFields(
             {
               name: "API Latency",

@@ -1,8 +1,7 @@
+import { baseEmbed } from "../../../../lib/embed";
 import Command, { type ExecuteContext } from "../../../../command/command";
-import { EmbedBuilder } from "discord.js";
 import { userOption } from "../../../../command/option";
 import { getGif } from "../../../../lib/anime";
-import { Constants } from "../../../../constants";
 import { pluralize } from "../../../../lib/utils";
 export default class PatCommand extends Command {
   constructor() {
@@ -24,13 +23,12 @@ export default class PatCommand extends Command {
 
     const count = interactionProfile.pats.get(target.id) ?? 0;
     const gif = await getGif("pat");
-    const embed = new EmbedBuilder()
+    const embed = baseEmbed()
       .setDescription(
         `**${globalUser.discordUser.displayName}** pats **${target.displayName}**!
         ***${target.displayName}** has been **patted** by **${globalUser.discordUser.displayName}** **${pluralize("time", count)}**.*`
       )
-      .setImage(gif.url)
-      .setColor(Constants.mainColor);
+      .setImage(gif.url);
 
     if (gif.anime_name) {
       embed.setFooter({ text: `Anime: ${gif.anime_name}` });

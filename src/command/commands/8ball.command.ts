@@ -1,8 +1,7 @@
-import { EmbedBuilder } from "discord.js";
+import { baseEmbed } from "../../lib/embed";
 import Command, { type ExecuteContext } from "../command";
 import type { CommandOptionBuilder } from "../option";
 import { stringOption } from "../option";
-import { Constants } from "../../constants";
 
 const ANSWERS = [
   "Yes",
@@ -32,7 +31,9 @@ export default class EightBallCommand extends Command {
     const question = ctx.options.getString("question", true)!;
     const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
     return ctx.reply({
-      embeds: [new EmbedBuilder().setTitle("🎱 Magic 8-ball").setDescription(`> ${question}\n\n**${answer}**`).setColor(Constants.mainColor)],
+      embeds: [
+        baseEmbed().setTitle("🎱 Magic 8-ball").setDescription(`> ${question}\n\n**${answer}**`),
+      ],
     });
   }
 }
