@@ -49,6 +49,7 @@ export default class GlobalUsersManager {
         .insert(globalUsers)
         .values({ id: user.id })
         .onConflictDoNothing({ target: globalUsers.id });
+      console.log(`Created new global user for ${user.tag} (${user.id})`);
     }
 
     const globalUser = new GlobalUser(user.id, user);
