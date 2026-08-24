@@ -22,19 +22,19 @@ discordClient.once(Events.ClientReady, async (readyClient) => {
 
   await commands.sync(readyClient);
 
-  // try {
-  //   const channel = await readyClient.channels.fetch("1446633266160603268");
-  //   if (channel?.isVoiceBased()) {
-  //     joinVoiceChannel({
-  //       channelId: channel.id,
-  //       guildId: channel.guild.id,
-  //       adapterCreator: channel.guild.voiceAdapterCreator,
-  //       selfMute: true,
-  //     });
-  //   }
-  // } catch (error) {
-  //   console.error(error);
-  // }
+  try {
+    const channel = await readyClient.channels.fetch("1446633266160603268");
+    if (channel?.isVoiceBased()) {
+      joinVoiceChannel({
+        channelId: channel.id,
+        guildId: channel.guild.id,
+        adapterCreator: channel.guild.voiceAdapterCreator,
+        selfMute: true,
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
 });
 
 discordClient.login(env.DISCORD_BOT_TOKEN);
