@@ -3,7 +3,7 @@ import { stringOption } from "../../../command/option";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, errorEmbed, runes } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
-import { pick } from "../../../lib/utils";
+import { pick, pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
 import { runesService } from "../runes.service";
@@ -145,7 +145,7 @@ export default class WorkCommand extends Command {
       return ctx.reply({
         embeds: [
           errorEmbed(commandName).setDescription(
-            `You're still on shift cooldown. Come back in ${mins} minute${mins === 1 ? "" : "s"}.`
+            `You're still on shift cooldown. Come back in ${pluralize("minute", mins)}.`
           ),
         ],
       });

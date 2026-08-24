@@ -2,6 +2,7 @@ import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, errorEmbed } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
+import { pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
 import { runesService } from "../runes.service";
@@ -49,7 +50,7 @@ export default class BegCommand extends Command {
       return ctx.reply({
         embeds: [
           errorEmbed(commandName).setDescription(
-            `You're begging too fast. Wait ${secs} second${secs === 1 ? "" : "s"}.`
+            `You're begging too fast. Wait ${pluralize("second", secs)}.`
           ),
         ],
       });

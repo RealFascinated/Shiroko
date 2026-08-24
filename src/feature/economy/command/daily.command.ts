@@ -2,6 +2,7 @@ import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, errorEmbed } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
+import { pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
 import { runesService } from "../runes.service";
@@ -25,7 +26,7 @@ export default class DailyCommand extends Command {
       return ctx.reply({
         embeds: [
           errorEmbed(commandName).setDescription(
-            `You already claimed today. Come back in ${mins} minute${mins === 1 ? "" : "s"}.`
+            `You already claimed today. Come back in ${pluralize("minute", mins)}.`
           ),
         ],
       });
@@ -37,7 +38,7 @@ export default class DailyCommand extends Command {
       .setDescription(`You claimed **${amount.toLocaleString()} runes**!`)
       .addFields({
         name: "Streak",
-        value: `${streak} day${streak === 1 ? "" : "s"}`,
+        value: pluralize("day", streak).replace(/(^|\s)(\d+)/, "$1$2"),
         inline: true,
       });
 
