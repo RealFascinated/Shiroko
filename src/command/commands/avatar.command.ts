@@ -11,18 +11,22 @@ export default class AvatarCommand extends Command {
     return true;
   }
 
+  public override get embedTitle(): string {
+    return "🖼️ Avatar";
+  }
+
   public override get options() {
     return [userOption(false, "user", "Whose avatar to show")];
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx, args }: ExecuteContext) {
+  protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
     const target = args.user("user") ?? globalUser.discordUser;
     const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
 
-    const embed = baseEmbed()
-      .setTitle(`${target.displayName}'s avatar`)
+    const embed = baseEmbed(commandName)
+      .setTitle(`${target.displayName}'s Avatar`)
       .setImage(avatarUrl)
-      .setFooter({ text: `User ID: ${target.id}` });
+      .addFields({ name: "User ID", value: `\`${target.id}\``, inline: true });
 
     return ctx.reply({ embeds: [embed] });
   }

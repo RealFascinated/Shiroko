@@ -14,7 +14,6 @@ import { incrementInteraction, type InteractionType } from "../interactions";
  * and the display verb and past participle used in the reply text.
  */
 export default abstract class PairInteractionCommand extends Command {
-  
   protected abstract readonly interactionType: InteractionType;
   protected abstract readonly gifCategory: Parameters<typeof getGif>[0];
   protected abstract readonly verb: string;
@@ -28,7 +27,14 @@ export default abstract class PairInteractionCommand extends Command {
     return [userOption(true, "target", `Who to ${this.interactionType}`)];
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx, args }: ExecuteContext) {
+  /**
+   * Result-card title for the pair interaction embed.
+   */
+  public override get embedTitle(): string {
+    return this.interactionType.charAt(0).toUpperCase() + this.interactionType.slice(1);
+  }
+
+  protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
     const target = args.user("target")!;
     if (target.id === globalUser.discordUser.id) {
       return ctx.reply(`You can't ${this.verb} yourself! :(`);
@@ -36,15 +42,17 @@ export default abstract class PairInteractionCommand extends Command {
     const targetUser = await GlobalUsersManager.getUser(target);
     const count = await incrementInteraction(globalUser.id, targetUser.id, this.interactionType);
     const gif = await getGif(this.gifCategory);
-    const embed = baseEmbed()
+    const embed = baseEmbed(commandName)
+      .setTitle(`🤝 ${this.embedTitle}`)
       .setDescription(
-        `**${globalUser.discordUser.displayName}** ${this.verb} **${target.displayName}**!
-        ***${target.displayName}** has been **${this.pastParticiple}** by **${globalUser.discordUser.displayName}** **${pluralize("time", count)}**.*`
+        `**${globalUser.discordUser.displayName}** ${this.verb} **${target.displayName}**!` +
+          `\n\n*${target.displayName} has been **${this.pastParticiple}** by ` +
+          `**${globalUser.discordUser.displayName}** **${pluralize("time", count)}**.*`
       )
       .setImage(gif.url);
 
     if (gif.anime_name) {
-      embed.setFooter({ text: `Anime: ${gif.anime_name}` });
+      embed.addFields({ name: "Anime", value: gif.anime_name, inline: true });
     }
 
     return ctx.reply({ embeds: [embed] });

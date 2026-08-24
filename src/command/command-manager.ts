@@ -68,7 +68,13 @@ export default class CommandManager {
       try {
         const user = await GlobalUsersManager.getUser(interaction.user);
         const args = new ParsedArguments(interaction.options);
-        await command.executeSlash({ globalUser: user, guild: guild, ctx: interaction, args });
+        await command.executeSlash({
+          globalUser: user,
+          guild: guild,
+          ctx: interaction,
+          args,
+          commandName: command.id,
+        });
       } catch (error) {
         console.error(`Error executing command "${commandName}":`, error);
       }

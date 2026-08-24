@@ -6,10 +6,10 @@ export default class PingCommand extends Command {
     super("ping", "Check bot latency");
   }
 
-  protected override async onExecuteSlash({ ctx }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     return ctx.reply({
       embeds: [
-        baseEmbed()
+        baseEmbed(commandName)
           .setTitle("🏓 Pong!")
           .addFields(
             {

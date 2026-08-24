@@ -27,11 +27,15 @@ export default class EightBallCommand extends Command {
     return true;
   }
 
-  protected override async onExecuteSlash({ ctx }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const question = ctx.options.getString("question", true)!;
     const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
     return ctx.reply({
-      embeds: [baseEmbed().setTitle("🎱 Magic 8-ball").setDescription(`> ${question}\n\n**${answer}**`)],
+      embeds: [
+        baseEmbed(commandName)
+          .setTitle("🎱 The 8-Ball Says…")
+          .setDescription(`> ${question}\n\n**${answer}**`),
+      ],
     });
   }
 }

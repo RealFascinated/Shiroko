@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
-import { baseEmbed } from "../../../lib/embed";
+import { baseEmbed, errorEmbed } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
@@ -18,19 +18,28 @@ export default class DailyCommand extends Command {
     return true;
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx }: ExecuteContext) {
+  protected override async onExecuteSlash({ globalUser, ctx, commandName }: ExecuteContext) {
     const cd = await startEconomyCooldown(globalUser.id, "daily", economyConfig.dailyCooldownMs);
     if (!cd.ok) {
       const mins = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Minute, 1));
-      return ctx.reply(`You already claimed today. Come back in ${mins} minute${mins === 1 ? "" : "s"}.`);
+      return ctx.reply({
+        embeds: [
+          errorEmbed(commandName).setDescription(
+            `You already claimed today. Come back in ${mins} minute${mins === 1 ? "" : "s"}.`
+          ),
+        ],
+      });
     }
 
     const { amount, streak } = await runesService.claimDaily(globalUser.id);
-    const embed = baseEmbed()
-      .setTitle("Daily Runes")
-      .setDescription(
-        `You claimed **${amount} runes**!\nCurrent streak: **${streak} day${streak === 1 ? "" : "s"}**`
-      );
+    const embed = baseEmbed(commandName)
+      .setTitle("🍩 Daily Runes")
+      .setDescription(`You claimed **${amount.toLocaleString()} runes**!`)
+      .addFields({
+        name: "Streak",
+        value: `${streak} day${streak === 1 ? "" : "s"}`,
+        inline: true,
+      });
 
     return ctx.reply({ embeds: [embed] });
   }

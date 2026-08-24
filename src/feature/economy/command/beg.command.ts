@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
-import { baseEmbed } from "../../../lib/embed";
+import { baseEmbed, errorEmbed } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
@@ -42,11 +42,17 @@ export default class BegCommand extends Command {
     return true;
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx }: ExecuteContext) {
+  protected override async onExecuteSlash({ globalUser, ctx, commandName }: ExecuteContext) {
     const cd = await startEconomyCooldown(globalUser.id, "beg", economyConfig.begCooldownMs);
     if (!cd.ok) {
       const secs = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Second, 1));
-      return ctx.reply(`You're begging too fast. Wait ${secs} second${secs === 1 ? "" : "s"}.`);
+      return ctx.reply({
+        embeds: [
+          errorEmbed(commandName).setDescription(
+            `You're begging too fast. Wait ${secs} second${secs === 1 ? "" : "s"}.`
+          ),
+        ],
+      });
     }
 
     const roll = Math.random();
@@ -60,10 +66,10 @@ export default class BegCommand extends Command {
           "Arona's moody side eyed you, but you have nothing to lose... and nothing to give. You walk away shaken."
         );
       }
-      const embed = baseEmbed()
-        .setTitle("Beg")
+      const embed = baseEmbed(commandName)
+        .setTitle("💸 Beg")
         .setDescription(
-          `Arona's moody side stirs and snatches **${loss} runes** from your wallet. "Don't tell her."`
+          `You begged, but Arona's moody side stirs and snatches **${loss} runes** from your wallet.\n\n*"Don't tell her."*`
         );
       return ctx.reply({ embeds: [embed] });
     }
@@ -80,16 +86,18 @@ export default class BegCommand extends Command {
       }
     }
     if (!patron) {
-      return ctx.reply("No one is home right now. Try again later.");
+      return ctx.reply({
+        embeds: [errorEmbed(commandName).setDescription("No one is home right now. Try again later.")],
+      });
     }
 
     const amountRange: [number, number] = patron.name === "Hifumi" ? [100, 500] : [1, 20];
     const amount = amountRange[0] + Math.floor(Math.random() * (amountRange[1] - amountRange[0] + 1));
     await runesService.addMoney(globalUser.id, amount, "wallet");
 
-    const embed = baseEmbed()
-      .setTitle("Beg")
-      .setDescription(`**${patron.name}** ${patron.says(amount)}`);
+    const embed = baseEmbed(commandName)
+      .setTitle("💸 Beg")
+      .setDescription(`You beg, and **${patron.name}** answers.\n\n*${patron.says(amount)}*`);
     return ctx.reply({ embeds: [embed] });
   }
 }

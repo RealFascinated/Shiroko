@@ -16,9 +16,9 @@ export default class AvatarCommand extends ContextMenuCommand {
     const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
 
     const embed = baseEmbed()
-      .setTitle(`${target.displayName}'s avatar`)
+      .setTitle(`${target.displayName}'s Avatar`)
       .setImage(avatarUrl)
-      .setFooter({ text: `User ID: ${target.id}` });
+      .addFields({ name: "User ID", value: `\`${target.id}\``, inline: true });
 
     await ctx.reply({ embeds: [embed] });
   }

@@ -5,6 +5,7 @@ import {
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
+  type EmbedBuilder,
   type Guild,
   type InteractionResponse,
   type SlashCommandAttachmentOption,
@@ -26,6 +27,8 @@ export interface ExecuteContext {
   guild: Guild | null;
   ctx: ChatInputCommandInteraction;
   args: ParsedArguments;
+  /** Top-level command id, e.g. `"bank"` for `/bank deposit`. Used for the embed footer. */
+  commandName: string;
 }
 
 type OptionSubBuilder =
@@ -72,6 +75,12 @@ interface OptionHolder {
   ): unknown;
 }
 
+type FollowUp =
+  | { type: "string"; value: string }
+  | { type: "embed"; value: EmbedBuilder }
+  | { type: "error"; value: EmbedBuilder };
+type FollowUpReturn = InteractionResponse<boolean> | FollowUp;
+
 export default abstract class Command {
   public readonly id: string;
   public readonly displayName: string;
@@ -87,6 +96,15 @@ export default abstract class Command {
 
   public get options(): CommandOptionBuilder[] {
     return [];
+  }
+
+  /**
+   * Result-card title for this command's embeds, e.g. "💰 Balance".
+   * Overridden by subclasses that need a fixed title; commands that build
+   * their own title at runtime can ignore it.
+   */
+  public get embedTitle(): string {
+    return this.id;
   }
 
   /**
@@ -136,7 +154,7 @@ export default abstract class Command {
     return this.slashCommand;
   }
 
-  public async executeSlash(context: ExecuteContext): Promise<InteractionResponse<boolean>> {
+  public async executeSlash(context: ExecuteContext): Promise<FollowUpReturn> {
     const { ctx } = context;
     const subCommandName = ctx.options.getSubcommand(false);
     if (subCommandName) {
@@ -145,10 +163,22 @@ export default abstract class Command {
         return subCommand.executeSlash(context);
       }
     }
-    return this.onExecuteSlash(context);
+    const reply = await this.onExecuteSlash(context);
+    if (isFollowUp(reply)) {
+      return finishFollowUp(context, reply);
+    }
+    return reply;
   }
 
-  protected abstract onExecuteSlash(context: ExecuteContext): Promise<InteractionResponse<boolean>>;
+  /**
+   * A per-reply layout override for {@link onExecuteSlash} (e.g. a fixed
+   * title that can't be computed from `this.id`). See {@link FollowUpType}.
+   */
+  public get followUp(): FollowUpType | null {
+    return null;
+  }
+
+  protected abstract onExecuteSlash(context: ExecuteContext): Promise<FollowUpReturn>;
 
   private addOption(builder: OptionHolder, option: CommandOptionBuilder): void {
     switch (option.type) {
@@ -195,12 +225,46 @@ export default abstract class Command {
       );
       if (entries.length > 0) {
         // `choices` maps value -> label, so Discord must receive { name: label, value: key }.
-        addChoices.call(
-          builder,
-          ...entries.map(([key, label]) => ({ name: String(label), value: key }))
-        );
+        addChoices.call(builder, ...entries.map(([key, label]) => ({ name: String(label), value: key })));
       }
     }
     return builder;
   }
+}
+
+/**
+ * An embed-layout override for a single reply. See `DESIGN.md`.
+ *
+ * A command's `followUp` getter can return this to switch layout details for
+ * every one of its embeds — used by commands whose embed title is computed
+ * from a base class (`PairInteractionCommand`) rather than a fixed string.
+ */
+export interface FollowUpType {
+  commandName?: string;
+  title?: string;
+}
+
+/**
+ * Return a plain `ctx.reply(...)` result untouched, or hand `{ value, type }`
+ * follow-ups off to `finishFollowUp` so the command's reply is still sent.
+ */
+function isFollowUp(reply: FollowUpReturn): reply is FollowUp {
+  return typeof reply === "object" && !("content" in reply);
+}
+
+/**
+ * Send a follow-up: a plain string, a styled embed, or an error embed.
+ */
+async function finishFollowUp(
+  context: ExecuteContext,
+  reply: FollowUp
+): Promise<InteractionResponse<boolean>> {
+  if (reply.type === "string") {
+    return context.ctx.reply(reply.value);
+  }
+  if (reply.type === "embed") {
+    const embed = context.commandName === "interact" ? reply.value.setTitle("🤝 Interact") : reply.value;
+    return context.ctx.reply({ embeds: [embed] });
+  }
+  return context.ctx.reply({ embeds: [reply.value] });
 }

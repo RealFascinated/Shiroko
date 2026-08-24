@@ -1,7 +1,7 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { stringOption } from "../../../command/option";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
-import { baseEmbed } from "../../../lib/embed";
+import { baseEmbed, errorEmbed, runes } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
 import { pick } from "../../../lib/utils";
 import { economyConfig } from "../config";
@@ -138,19 +138,25 @@ export default class WorkCommand extends Command {
     ];
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx, args }: ExecuteContext) {
+  protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
     const cd = await startEconomyCooldown(globalUser.id, "work", economyConfig.workCooldownMs);
     if (!cd.ok) {
       const mins = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Minute, 1));
-      return ctx.reply(
-        `You're still on shift cooldown. Come back in ${mins} minute${mins === 1 ? "" : "s"}.`
-      );
+      return ctx.reply({
+        embeds: [
+          errorEmbed(commandName).setDescription(
+            `You're still on shift cooldown. Come back in ${mins} minute${mins === 1 ? "" : "s"}.`
+          ),
+        ],
+      });
     }
 
     const jobName = args.string("job")!;
     const job = economyConfig.workJobs[jobName];
     if (!job) {
-      return ctx.reply("That's not a real job at the Summit.");
+      return ctx.reply({
+        embeds: [errorEmbed(commandName).setDescription("That's not a real job at the Summit.")],
+      });
     }
 
     let pay: number;
@@ -169,13 +175,15 @@ export default class WorkCommand extends Command {
     const total = pay + bonus;
     await runesService.addMoney(globalUser.id, total, "wallet");
 
-    const resultLines = JOB_RESULTS[jobName] ?? [pay => `You earn **${pay} runes**.`];
+    const resultLines = JOB_RESULTS[jobName] ?? [pay => `You earn ${runes(pay)}.`];
     const lines = [pick(resultLines)(pay)];
     if (bonus > 0) {
       lines.push(pick(BONUS_LINES)(bonus));
     }
 
-    const embed = baseEmbed().setTitle("Work at the Summit").setDescription(lines.join("\n"));
+    const embed = baseEmbed(commandName)
+      .setTitle("💼 Work")
+      .setDescription(`You earned **${total.toLocaleString()} runes**.\n\n*${lines.join(" ")}*`);
     return ctx.reply({ embeds: [embed] });
   }
 }

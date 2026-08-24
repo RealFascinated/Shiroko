@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { integerOption, stringOption } from "../../../command/option";
-import { baseEmbed } from "../../../lib/embed";
+import { baseEmbed, errorEmbed, runes } from "../../../lib/embed";
 import { economyConfig } from "../config";
 import { runesService } from "../runes.service";
 
@@ -34,10 +34,14 @@ export default class GambleCommand extends Command {
     ];
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx, args }: ExecuteContext) {
+  protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
     const amount = args.integer("amount")!;
     if (amount < 1 || amount > economyConfig.gambleMaxWager) {
-      return ctx.reply(`Wager a number from 1 to ${economyConfig.gambleMaxWager}.`);
+      return ctx.reply({
+        embeds: [
+          errorEmbed(commandName).setDescription(`Wager a number from 1 to ${economyConfig.gambleMaxWager}.`),
+        ],
+      });
     }
 
     const game = args.string("game")!;
@@ -51,7 +55,11 @@ export default class GambleCommand extends Command {
       case "2x": {
         const chosen = (pick ?? "heads").toLowerCase();
         if (chosen !== "heads" && chosen !== "tails") {
-          return ctx.reply("Pick `heads` or `tails` for Double or Nothing.");
+          return ctx.reply({
+            embeds: [
+              errorEmbed(commandName).setDescription("Pick `heads` or `tails` for Double or Nothing."),
+            ],
+          });
         }
         win = Math.random() < 0.5;
         multiplier = 2;
@@ -61,7 +69,11 @@ export default class GambleCommand extends Command {
       case "4x": {
         const chosen = pick ? parseInt(pick, 10) : NaN;
         if (!Number.isInteger(chosen) || chosen < 1 || chosen > 8) {
-          return ctx.reply("Pick a number from 1 to 8 for Quadruple or Bust.");
+          return ctx.reply({
+            embeds: [
+              errorEmbed(commandName).setDescription("Pick a number from 1 to 8 for Quadruple or Bust."),
+            ],
+          });
         }
         const rolled = 1 + Math.floor(Math.random() * 8);
         win = rolled === chosen;
@@ -82,17 +94,25 @@ export default class GambleCommand extends Command {
     const result = await runesService.gamble(globalUser.id, amount, multiplier, win);
     if (!result) {
       const bal = await runesService.getBalance(globalUser.id);
-      return ctx.reply(
-        `You only have **${bal.wallet} runes** in your wallet. Deposit some or earn more first.`
-      );
+      return ctx.reply({
+        embeds: [
+          errorEmbed(commandName).setDescription(
+            `You only have ${runes(bal.wallet)} in your wallet. Deposit some or earn more first.`
+          ),
+        ],
+      });
     }
 
-    const embed = baseEmbed()
-      .setTitle("Gamble")
+    const embed = baseEmbed(commandName)
+      .setTitle("🎰 Gamble")
       .setDescription(
         win
-          ? `${outcomeLine}\nYou won **${result.payout} runes**! Wallet: **${result.wallet}**`
-          : `${outcomeLine}\nYou lost **${amount} runes**. Wallet: **${result.wallet}**`
+          ? `You won **${result.payout.toLocaleString()} runes**!`
+          : `You lost **${amount.toLocaleString()} runes**.`
+      )
+      .addFields(
+        { name: "Result", value: outcomeLine, inline: true },
+        { name: "Wallet", value: runes(result.wallet), inline: true }
       );
     return ctx.reply({ embeds: [embed] });
   }

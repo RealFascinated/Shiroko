@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { stringOption } from "../../../command/option";
-import { baseEmbed } from "../../../lib/embed";
+import { baseEmbed, errorEmbed, runes } from "../../../lib/embed";
 import { economyConfig } from "../config";
 import { runesService } from "../runes.service";
 
@@ -34,27 +34,35 @@ export class BankDepositCommand extends Command {
     return [stringOption(true, "amount", "How many runes to deposit (or 'all' / 'half')")];
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx, args }: ExecuteContext) {
+  protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
     const amountRaw = args.string("amount")!;
     const bal = await runesService.getBalance(globalUser.id);
 
     const amount = resolveAmount(amountRaw, bal.wallet);
     if (amount === null) {
-      return ctx.reply("Say a number, or `all` / `half`.");
+      return ctx.reply({
+        embeds: [errorEmbed(commandName).setDescription("Say a number, or `all` / `half`.")],
+      });
     }
     if (amount <= 0) {
-      return ctx.reply("You have nothing to deposit.");
+      return ctx.reply({ embeds: [errorEmbed(commandName).setDescription("You have nothing to deposit.")] });
     }
 
     const result = await runesService.transfer(globalUser.id, amount, "bank", economyConfig.bankTransferCap);
     if (!result.ok) {
-      return ctx.reply("You don't have enough runes in your wallet for that.");
+      return ctx.reply({
+        embeds: [
+          errorEmbed(commandName).setDescription("You don't have enough runes in your wallet for that."),
+        ],
+      });
     }
 
-    const embed = baseEmbed()
-      .setTitle("Bank Deposit")
-      .setDescription(
-        `Deposited **${amount} runes**.\nWallet: **${result.balance.wallet}** · Bank: **${result.balance.bank}**`
+    const embed = baseEmbed(commandName)
+      .setTitle("💰 Bank Deposit")
+      .setDescription(`Deposited **${amount.toLocaleString()} runes**.`)
+      .addFields(
+        { name: "Wallet", value: runes(result.balance.wallet), inline: true },
+        { name: "Bank", value: runes(result.balance.bank), inline: true }
       );
     return ctx.reply({ embeds: [embed] });
   }
@@ -72,16 +80,18 @@ export class BankWithdrawCommand extends Command {
     return [stringOption(true, "amount", "How many runes to withdraw (or 'all' / 'half')")];
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx, args }: ExecuteContext) {
+  protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
     const amountRaw = args.string("amount")!;
     const bal = await runesService.getBalance(globalUser.id);
 
     const amount = resolveAmount(amountRaw, bal.bank);
     if (amount === null) {
-      return ctx.reply("Say a number, or `all` / `half`.");
+      return ctx.reply({
+        embeds: [errorEmbed(commandName).setDescription("Say a number, or `all` / `half`.")],
+      });
     }
     if (amount <= 0) {
-      return ctx.reply("Your bank is empty.");
+      return ctx.reply({ embeds: [errorEmbed(commandName).setDescription("Your bank is empty.")] });
     }
 
     const result = await runesService.transfer(
@@ -91,13 +101,19 @@ export class BankWithdrawCommand extends Command {
       economyConfig.bankTransferCap
     );
     if (!result.ok) {
-      return ctx.reply("You don't have enough runes in your bank for that.");
+      return ctx.reply({
+        embeds: [
+          errorEmbed(commandName).setDescription("You don't have enough runes in your bank for that."),
+        ],
+      });
     }
 
-    const embed = baseEmbed()
-      .setTitle("Bank Withdraw")
-      .setDescription(
-        `Withdrew **${amount} runes**.\nWallet: **${result.balance.wallet}** · Bank: **${result.balance.bank}**`
+    const embed = baseEmbed(commandName)
+      .setTitle("💰 Bank Withdraw")
+      .setDescription(`Withdrew **${amount.toLocaleString()} runes**.`)
+      .addFields(
+        { name: "Wallet", value: runes(result.balance.wallet), inline: true },
+        { name: "Bank", value: runes(result.balance.bank), inline: true }
       );
     return ctx.reply({ embeds: [embed] });
   }

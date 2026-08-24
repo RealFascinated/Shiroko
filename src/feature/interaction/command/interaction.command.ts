@@ -1,4 +1,5 @@
 import Command, { type ExecuteContext } from "../../../command/command";
+import { baseEmbed } from "../../../lib/embed";
 import CuddleCommand from "./sub/cuddle.command";
 import DanceCommand from "./sub/dance.command";
 import FeedCommand from "./sub/feed.command";
@@ -30,7 +31,11 @@ export default class InteractionCommand extends Command {
     return true;
   }
 
-  protected override async onExecuteSlash({ ctx }: ExecuteContext) {
-    return ctx.reply("Choose a subcommand: /interact hug");
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
+    return ctx.reply({
+      embeds: [
+        baseEmbed(commandName).setTitle("🤝 Interact").setDescription("Choose a subcommand: `/interact hug`"),
+      ],
+    });
   }
 }

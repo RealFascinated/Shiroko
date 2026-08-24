@@ -23,7 +23,7 @@ export default class RichCommand extends Command {
     return true;
   }
 
-  protected override async onExecuteSlash({ ctx }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const top = await db
       .select({
         userId: userEconomy.userId,
@@ -39,10 +39,10 @@ export default class RichCommand extends Command {
 
     const lines = top.map((row, i) => {
       const prefix = RANK_PREFIXES[i] ?? `${i + 1}.`;
-      return `${prefix} <@${row.userId}> — **${row.total} runes**`;
+      return `${prefix} <@${row.userId}> — **${row.total.toLocaleString()} runes**`;
     });
 
-    const embed = baseEmbed().setTitle("Richest Rune Holders").setDescription(lines.join("\n"));
+    const embed = baseEmbed(commandName).setTitle("🏆 Richest Rune Holders").setDescription(lines.join("\n"));
     return ctx.reply({ embeds: [embed] });
   }
 }
