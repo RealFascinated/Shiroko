@@ -3,7 +3,7 @@ import { EmbedBuilder } from "discord.js";
 import { userOption } from "../../../../command/option";
 import { getGif } from "../../../../lib/anime";
 import { Constants } from "../../../../constants";
-
+import { pluralize } from "../../../../lib/utils";
 export default class HugCommand extends Command {
   constructor() {
     super("hug", "Give someone a big hug");
@@ -27,7 +27,7 @@ export default class HugCommand extends Command {
     const embed = new EmbedBuilder()
       .setDescription(
         `**${globalUser.discordUser.displayName}** hugs **${target.displayName}**!
-        ***${target.displayName}** has been **hugged** by **${globalUser.discordUser.displayName}** **${count} times**.*`
+        ***${target.displayName}** has been **hugged** by **${globalUser.discordUser.displayName}** **${pluralize("time", count)}**.*`
       )
       .setImage(gif.url)
       .setColor(Constants.mainColor);
