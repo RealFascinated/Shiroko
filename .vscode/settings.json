@@ -1,0 +1,10 @@
+{
+  "pendant.showThinking": true,
+  "pendant.thinkingDisplayMode": "collapseWhenDone",
+  "pendant.thinkingLevel": "max",
+  "pendant.context.autoAttach": false,
+  "pendant.notifications.playSound": false,
+  "editor.indentSize": 2,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2
+}

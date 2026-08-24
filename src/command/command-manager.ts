@@ -1,15 +1,19 @@
 import { Events } from "discord.js";
 import type { Client } from "discord.js";
 import type Command from "./command";
-import TestCommand from "./impl/test.command";
+import ParsedArguments from "./parsed-arguments";
+import TestCommand from "../feature/interaction/command/interaction.command";
+import EightBallCommand from "./commands/8ball.command";
+import GlobalUsersManager from "../user/global-users-manager";
 
 export default class CommandManager {
-  private commands: Command[] = [];
+  private commands = new Map<string, Command>();
 
   constructor() {
     this.registerCommand(new TestCommand());
+    this.registerCommand(new EightBallCommand());
 
-    console.log(`Registered commands: ${this.commands.length}`);
+    console.log(`Registered commands: ${this.commands.size}`);
   }
 
   /**
@@ -22,13 +26,12 @@ export default class CommandManager {
       throw new Error("Application is not available; call sync after the client logs in");
     }
     const { commands } = application;
-    const local = this.commands.map((command) => command.slashCommand);
+    const local = Array.from(this.commands.values()).map((command) => command.build());
 
     // Delete Discord commands that no longer exist locally.
-    const localNames = new Set(local.map((command) => command.name));
     const remote = await commands.fetch();
     for (const remoteCommand of remote.values()) {
-      if (!localNames.has(remoteCommand.name)) {
+      if (!this.commands.has(remoteCommand.name)) {
         await remoteCommand.delete();
         console.log(`Deleted stale command: ${remoteCommand.name}`);
       }
@@ -36,7 +39,7 @@ export default class CommandManager {
 
     // Register/update all local commands.
     await commands.set(local);
-    console.log(`Synced ${local.length} command(s)`);
+    console.log(`Synced ${this.commands.size} command(s)`);
   }
 
   /**
@@ -48,26 +51,30 @@ export default class CommandManager {
       if (!interaction.isChatInputCommand()) {
         return;
       }
-      if (!interaction.guild) {
+      const { commandName } = interaction;
+      const command = this.commands.get(commandName);
+      if (!command) {
+        console.log(`Unknown command: ${commandName}`);
         return;
       }
 
-      const command = this.commands.find((c) => c.slashCommand.name === interaction.commandName);
-      if (!command) {
-        console.log(`Unknown command: ${interaction.commandName}`);
+      const guild = interaction.guild;
+      if (!guild && !command.userInstallable) {
         return;
       }
 
       try {
-        await command.executeSlash(interaction.user, interaction.guild, interaction);
+        const user = await GlobalUsersManager.getUser(interaction.user);
+        const args = new ParsedArguments(interaction.options);
+        await command.executeSlash({ globalUser: user, guild: guild, ctx: interaction, args });
       } catch (error) {
-        console.error(`Error executing command "${interaction.commandName}":`, error);
+        console.error(`Error executing command "${commandName}":`, error);
       }
     });
   }
 
   private registerCommand(command: Command) {
-    this.commands.push(command);
+    this.commands.set(command.slashCommand.name, command);
     console.log(`Registered command: ${command.id} - ${command.displayName}`);
   }
 }

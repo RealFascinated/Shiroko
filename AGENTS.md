@@ -20,6 +20,16 @@ When the user asks you to commit, stage and commit only the files for the curren
 - Exclude ephemeral debug code (instrumentation the user added for this session) unless they asked to keep it.
 - Never stage secrets (`.env`, credentials, tokens). Warn the user if they ask to commit those.
 
+### Commands
+
+Required command options can't be empty or null. When reading a required option with the strict flag (`getString("name", true)`), assert non-null with `!` — the option is guaranteed present.
+
+```typescript
+const question = ctx.options.getString("question", true)!;
+```
+
+Every command should be user-installable unless it needs the guild. Override `userInstallable` to return `true` so the command registers for both guild and user installs and can be used in servers and DMs. Only return `false` when the command genuinely needs a guild context.
+
 ## Read the Subsystem
 
 Read the subsystem before you write code. A change sits inside a framework, manager, registry, or feature area — explore base classes, registration paths, config hooks, and existing implementations first.
@@ -70,6 +80,16 @@ test("hello world", () => {
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
 
+## Database
+
+Postgres runs via Docker Compose (`docker-compose.yml`, `postgres:16-alpine`); start it with `docker compose up -d`. Connection config lives in `.env` (`DATABASE_URL`).
+
+Drizzle ORM wraps the `pg` driver (`drizzle-orm/node-postgres`). `db` is exported from `src/db/index.ts`; tables are exported from `src/db/schema.ts`.
+
+- Migrations: `bunx drizzle-kit generate` to create, `bunx drizzle-kit migrate` to apply. `push` applies schema without migration files; `drop` removes them.
+- `drizzle/meta/` is machine-generated and prettier-ignored; don't hand-edit it.
+- Exception to the "use `Bun.sql`" rule: drizzle's `pg` driver is permitted — drizzle is an ORM layer, not raw `pg` usage.
+
 # Code Style
 
 ## Design
@@ -94,6 +114,34 @@ abstract class Reward {
   abstract grant(user: User): void;
 }
 ```
+
+## Class Members
+
+Every class member must declare an explicit visibility modifier (`public`, `protected`, `private`) and, for fields and methods, an explicit return type.
+
+Bad:
+
+```js
+class Foo {
+  counter = 0;
+  compute() { return this.counter; }
+}
+```
+
+Good:
+
+```js
+class Foo {
+  public counter: number = 0;
+  public compute(): number { return this.counter; }
+}
+```
+
+Applies to class fields, methods, getters, and setters. Constructors inherit their class's visibility (no modifier needed).
+
+## Comments
+
+Only full JSDoc comments on methods. Never use 1-line comments (`/** ... */` or `// ...`) on methods — if a method needs a comment, write a complete JSDoc block describing it. 1-line comments are acceptable only as brief inline section markers inside a method body.
 
 ## Return statements
 
