@@ -185,16 +185,16 @@ export default abstract class Command {
   private applyOption<T extends OptionSubBuilder>(builder: T, option: CommandOptionBuilder): T {
     builder.setName(option.name).setDescription(option.description).setRequired(option.required);
     if (option.choices) {
-      const add = (
+      const addChoices = (
         builder as {
-          addChoices?(...choices: Array<{ name: string; value: string | number | boolean }>): unknown;
+          addChoices(...choices: Array<{ name: string; value: string | number | boolean }>): unknown;
         }
       ).addChoices;
-      if (add) {
-        const entries = Object.entries(option.choices).filter(
-          (entry): entry is [string, string | number | boolean] => entry[1] !== undefined
-        );
-        add(...entries.map(([name, value]) => ({ name, value })));
+      const entries = Object.entries(option.choices).filter(
+        (entry): entry is [string, string | number | boolean] => entry[1] !== undefined
+      );
+      if (entries.length > 0) {
+        addChoices.call(builder, ...entries.map(([name, value]) => ({ name, value })));
       }
     }
     return builder;
