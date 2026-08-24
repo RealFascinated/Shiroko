@@ -4,7 +4,10 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import CommandManager from "./command/command-manager";
 import ContextMenuCommandManager from "./context-menu/context-menu-command-manager";
 import { db } from "./db";
+import { runesService } from "./feature/economy/runes.service";
 import { env } from "./lib/env";
+
+export { runesService };
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");

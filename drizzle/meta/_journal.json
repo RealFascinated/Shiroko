@@ -29,6 +29,34 @@
       "when": 1787604437955,
       "tag": "0003_drop_interaction_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787609576598,
+      "tag": "0004_serious_mandarin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787610299165,
+      "tag": "0005_amazing_songbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787620000000,
+      "tag": "0006_rename_economy_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787628000000,
+      "tag": "0007_fold_streak_into_user_economy",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,8 @@
   },
   "scripts": {
     "prettier": "prettier --write .",
+    "test": "bun test",
+    "test:cooldowns": "bun test src/lib/cooldown/",
     "count-lines": "find projects -type f -not -path '*/dist/*' -not -path '*/.next/*' -not -path '*/node_modules/*' -name '*.ts' -o -name '*.tsx' | xargs wc -l"
   },
   "dependencies": {

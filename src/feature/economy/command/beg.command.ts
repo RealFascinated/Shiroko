@@ -1,0 +1,95 @@
+import Command, { type ExecuteContext } from "../../../command/command";
+import { remainingMs } from "../../../lib/cooldown/cooldowns";
+import { baseEmbed } from "../../../lib/embed";
+import { TimeUnit } from "../../../lib/time";
+import { economyConfig } from "../config";
+import { startEconomyCooldown } from "../cooldowns";
+import { runesService } from "../runes.service";
+
+const PATRONS = [
+  {
+    name: "Arona",
+    chance: 0.5,
+    says: (amt: number) => `hands you ${amt} runes. "That's all I had... go buy a soda or something."`,
+  },
+  {
+    name: "Hifumi",
+    chance: 0.05,
+    says: (amt: number) => `grins and hands you ${amt} runes. "Don't tell anyone, okay?"`,
+  },
+  {
+    name: "Sora",
+    chance: 0.4,
+    says: (amt: number) => `counts out ${amt} runes. "The General Shop appreciates your patronage."`,
+  },
+  {
+    name: "Arisu",
+    chance: 0.05,
+    says: (amt: number) => `gives you ${amt} runes. "This is a state-of-the-art... coin? Probably."`,
+  },
+] as const;
+
+/**
+ * Beg for runes from a rotating cast of Blue Archive patrons. Low reward,
+ * high flavor, and occasionally the inner Blade robs you.
+ */
+export default class BegCommand extends Command {
+  constructor() {
+    super("beg", "Beg for runes");
+  }
+
+  public override get userInstallable(): boolean {
+    return true;
+  }
+
+  protected override async onExecuteSlash({ globalUser, ctx }: ExecuteContext) {
+    const cd = await startEconomyCooldown(globalUser.id, "beg", economyConfig.begCooldownMs);
+    if (!cd.ok) {
+      const secs = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Second, 1));
+      return ctx.reply(`You're begging too fast. Wait ${secs} second${secs === 1 ? "" : "s"}.`);
+    }
+
+    const roll = Math.random();
+
+    // Arona's moody side strikes: small loss.
+    if (roll < 0.15) {
+      const loss = 1 + Math.floor(Math.random() * 4);
+      const result = await runesService.transfer(globalUser.id, loss, "bank", loss);
+      if (!result.ok) {
+        return ctx.reply(
+          "Arona's moody side eyed you, but you have nothing to lose... and nothing to give. You walk away shaken."
+        );
+      }
+      const embed = baseEmbed()
+        .setTitle("Beg")
+        .setDescription(
+          `Arona's moody side stirs and snatches **${loss} runes** from your wallet. "Don't tell her."`
+        );
+      return ctx.reply({ embeds: [embed] });
+    }
+
+    // Someone is home: pick a patron.
+    const patrons = PATRONS.filter(p => p.chance > 0);
+    let remaining = Math.random();
+    let patron = patrons[0];
+    for (const p of patrons) {
+      remaining -= p.chance;
+      if (remaining <= 0) {
+        patron = p;
+        break;
+      }
+    }
+    if (!patron) {
+      return ctx.reply("No one is home right now. Try again later.");
+    }
+
+    const amountRange: [number, number] = patron.name === "Hifumi" ? [100, 500] : [1, 20];
+    const amount = amountRange[0] + Math.floor(Math.random() * (amountRange[1] - amountRange[0] + 1));
+    await runesService.addMoney(globalUser.id, amount, "wallet");
+
+    const embed = baseEmbed()
+      .setTitle("Beg")
+      .setDescription(`**${patron.name}** ${patron.says(amount)}`);
+    return ctx.reply({ embeds: [embed] });
+  }
+}

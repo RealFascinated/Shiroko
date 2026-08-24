@@ -1,5 +1,15 @@
 import type { Client } from "discord.js";
 import { Events, type SlashCommandBuilder } from "discord.js";
+import BalanceCommand from "../feature/economy/command/balance.command";
+import BankCommand, {
+  BankDepositCommand,
+  BankWithdrawCommand,
+} from "../feature/economy/command/bank.command";
+import BegCommand from "../feature/economy/command/beg.command";
+import DailyCommand from "../feature/economy/command/daily.command";
+import GambleCommand from "../feature/economy/command/gamble.command";
+import RichCommand from "../feature/economy/command/rich.command";
+import WorkCommand from "../feature/economy/command/work.command";
 import TestCommand from "../feature/interaction/command/interaction.command";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
@@ -14,6 +24,16 @@ export default class CommandManager {
     this.registerCommand(new TestCommand());
     this.registerCommand(new PingCommand());
     this.registerCommand(new AvatarCommand());
+    this.registerCommand(new DailyCommand());
+    this.registerCommand(new BegCommand());
+    this.registerCommand(new WorkCommand());
+    this.registerCommand(new GambleCommand());
+    const bank = new BankCommand();
+    bank.registerSubCommand(new BankDepositCommand());
+    bank.registerSubCommand(new BankWithdrawCommand());
+    this.registerCommand(bank);
+    this.registerCommand(new BalanceCommand());
+    this.registerCommand(new RichCommand());
     console.log(`Registered commands: ${this.commands.size}`);
   }
 

@@ -2,7 +2,17 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { interactions } from "../../db/schema";
 
-export type InteractionType = "hug" | "kiss" | "slap" | "pat";
+export type InteractionType =
+  | "hug"
+  | "kiss"
+  | "slap"
+  | "pat"
+  | "cuddle"
+  | "dance"
+  | "feed"
+  | "headpat"
+  | "holdhands"
+  | "poke";
 
 /**
  * Increment the interaction count from `actorId` to `targetId` and return the new count.
