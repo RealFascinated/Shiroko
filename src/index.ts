@@ -5,7 +5,6 @@ import { env } from "./lib/env";
 import { db } from "./db";
 import CommandManager from "./command/command-manager";
 import AppCommandManager from "./command/app-command-manager";
-import AvatarCommand from "./feature/interaction/command/app/avatar.command";
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");
@@ -23,8 +22,13 @@ appCommands.registerHandlers(discordClient);
 discordClient.once(Events.ClientReady, async (readyClient) => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 
-  await commands.sync(readyClient);
-  await appCommands.sync(readyClient);
+  const application = readyClient.application;
+  if (!application) {
+    throw new Error("Application is not available");
+  }
+  const allCommands = [...commands.build(), ...appCommands.build()];
+  await application.commands.set(allCommands);
+  console.log(`Synced ${allCommands.length} command(s)`);
 
   try {
     const channel = await readyClient.channels.fetch("1446633266160603268");

@@ -1,4 +1,4 @@
-import { ApplicationCommandType, Events } from "discord.js";
+import { Events, type SlashCommandBuilder } from "discord.js";
 import type { Client } from "discord.js";
 import type Command from "./command";
 import ParsedArguments from "./parsed-arguments";
@@ -16,43 +16,10 @@ export default class CommandManager {
   }
 
   /**
-   * Sync local commands with Discord: register/update every local command,
-   * and delete any Discord command that no longer exists locally.
+   * Build every local slash command for registration.
    */
-  public async sync(client: Client): Promise<void> {
-    const application = client.application;
-    if (!application) {
-      throw new Error("Application is not available; call sync after the client logs in");
-    }
-    const { commands } = application;
-    const local = Array.from(this.commands.values()).map((command) => command.build());
-
-    // Delete Discord commands that no longer exist locally.
-    const remote = await commands.fetch();
-    for (const remoteCommand of remote.values()) {
-      // Only manage chat-input slash commands, not context menu commands
-      if (remoteCommand.type !== ApplicationCommandType.ChatInput) {
-        continue;
-      }
-      if (!this.commands.has(remoteCommand.name)) {
-        await remoteCommand.delete();
-        console.log(`Deleted stale command: ${remoteCommand.name}`);
-      }
-    }
-
-    // Register/update all local commands without touching other managers' commands.
-    for (const commandData of local) {
-      const existing = remote.find(
-        (command) =>
-          command.name === commandData.name && command.type === ApplicationCommandType.ChatInput
-      );
-      if (existing) {
-        await existing.edit(commandData);
-      } else {
-        await commands.create(commandData);
-      }
-    }
-    console.log(`Synced ${this.commands.size} command(s)`);
+  public build(): SlashCommandBuilder[] {
+    return Array.from(this.commands.values()).map((command) => command.build());
   }
 
   /**
@@ -87,7 +54,7 @@ export default class CommandManager {
   }
 
   private registerCommand(command: Command) {
-    this.commands.set(command.registeredName, command);
+    this.commands.set(command.slashCommand.name, command);
     console.log(`Registered command: ${command.id} - ${command.displayName}`);
   }
 }

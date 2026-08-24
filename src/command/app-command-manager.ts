@@ -1,4 +1,8 @@
-import { ApplicationCommandType, Events } from "discord.js";
+import {
+  Events,
+  type MessageApplicationCommandData,
+  type UserApplicationCommandData,
+} from "discord.js";
 import type { Client } from "discord.js";
 import type AppCommand from "./app-command";
 import type GlobalUser from "../user/global-user";
@@ -6,7 +10,7 @@ import GlobalUsersManager from "../user/global-users-manager";
 import AvatarCommand from "../feature/interaction/command/app/avatar.command";
 
 /**
- * Manages context menu application commands: syncs with Discord API
+ * Manages context menu application commands: builds them for registration
  * and dispatches user/message context interactions to their handlers.
  */
 export default class AppCommandManager {
@@ -18,44 +22,10 @@ export default class AppCommandManager {
   }
 
   /**
-   * Sync local app commands with Discord: register/update every local command,
-   * and delete any Discord command that no longer exists locally.
+   * Build every local app command for registration.
    */
-  public async sync(client: Client): Promise<void> {
-    const application = client.application;
-    if (!application) {
-      throw new Error("Application is not available; call sync after the client logs in");
-    }
-    const { commands } = application;
-    const local = Array.from(this.commands.values()).map((command) => command.build());
-
-    const remote = await commands.fetch();
-    for (const remoteCommand of remote.values()) {
-      // Only manage context menu commands, not slash commands
-      if (
-        remoteCommand.type !== ApplicationCommandType.User &&
-        remoteCommand.type !== ApplicationCommandType.Message
-      ) {
-        continue;
-      }
-      if (!this.commands.has(remoteCommand.name)) {
-        await remoteCommand.delete();
-        console.log(`Deleted stale app command: ${remoteCommand.name}`);
-      }
-    }
-
-    // Register/update all local commands without touching other managers' commands.
-    for (const commandData of local) {
-      const existing = remote.find(
-        (command) => command.name === commandData.name && command.type === commandData.type
-      );
-      if (existing) {
-        await existing.edit(commandData);
-      } else {
-        await commands.create(commandData);
-      }
-    }
-    console.log(`Synced ${this.commands.size} app command(s)`);
+  public build(): Array<UserApplicationCommandData | MessageApplicationCommandData> {
+    return Array.from(this.commands.values()).map((command) => command.build());
   }
 
   /**
@@ -85,7 +55,7 @@ export default class AppCommandManager {
   }
 
   private registerCommand(command: AppCommand) {
-    this.commands.set(command.registeredName, command);
+    this.commands.set(command.id, command);
     console.log(`Registered app command: ${command.id} - ${command.displayName}`);
   }
 }
