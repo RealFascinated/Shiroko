@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { env } from "./lib/env";
 import { db } from "./db";
 import CommandManager from "./command/command-manager";
-import AppCommandManager from "./command/app-command-manager";
+import ContextMenuCommandManager from "./context-menu/context-menu-command-manager";
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");
@@ -16,8 +16,8 @@ export const discordClient = new Client({
 const commands = new CommandManager();
 commands.registerHandlers(discordClient);
 
-const appCommands = new AppCommandManager();
-appCommands.registerHandlers(discordClient);
+const contextMenuCommands = new ContextMenuCommandManager();
+contextMenuCommands.registerHandlers(discordClient);
 
 discordClient.once(Events.ClientReady, async (readyClient) => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
@@ -26,7 +26,7 @@ discordClient.once(Events.ClientReady, async (readyClient) => {
   if (!application) {
     throw new Error("Application is not available");
   }
-  const allCommands = [...commands.build(), ...appCommands.build()];
+  const allCommands = [...commands.build(), ...contextMenuCommands.build()];
   await application.commands.set(allCommands);
   console.log(`Synced ${allCommands.length} command(s)`);
 

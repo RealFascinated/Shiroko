@@ -9,5 +9,5 @@ RUN bun install --frozen-lockfile --production
 # Application source.
 COPY . .
 
-# Inject the token at runtime: docker run -e DISCORD_BOT_TOKEN=... shiroko-bot
+# Inject the token at runtime: docker run -e DISCORD_BOT_TOKEN=... arona-bot
 CMD ["bun", "run", "src/index.ts"]

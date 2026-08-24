@@ -4,25 +4,24 @@ import {
   type UserApplicationCommandData,
 } from "discord.js";
 import type { Client } from "discord.js";
-import type AppCommand from "./app-command";
-import type GlobalUser from "../user/global-user";
+import type ContextMenuCommand from "./context-menu-command";
 import GlobalUsersManager from "../user/global-users-manager";
-import AvatarCommand from "../feature/interaction/command/app/avatar.command";
+import AvatarCommand from "./impl/avatar.command";
 
 /**
  * Manages context menu application commands: builds them for registration
  * and dispatches user/message context interactions to their handlers.
  */
-export default class AppCommandManager {
-  private commands = new Map<string, AppCommand>();
+export default class ContextMenuCommandManager {
+  private commands = new Map<string, ContextMenuCommand>();
 
   constructor() {
     this.registerCommand(new AvatarCommand());
-    console.log(`App commands registered: ${this.commands.size}`);
+    console.log(`Context menu commands registered: ${this.commands.size}`);
   }
 
   /**
-   * Build every local app command for registration.
+   * Build every local context menu command for registration.
    */
   public build(): Array<UserApplicationCommandData | MessageApplicationCommandData> {
     return Array.from(this.commands.values()).map((command) => command.build());
@@ -41,7 +40,7 @@ export default class AppCommandManager {
       const commandName = interaction.commandName;
       const command = this.commands.get(commandName);
       if (!command) {
-        console.log(`Unknown app command: ${commandName}`);
+        console.log(`Unknown context menu command: ${commandName}`);
         return;
       }
 
@@ -49,13 +48,13 @@ export default class AppCommandManager {
         const globalUser = await GlobalUsersManager.getUser(interaction.user);
         await command.execute({ globalUser, guild: interaction.guild, ctx: interaction });
       } catch (error) {
-        console.error(`Error executing app command "${commandName}":`, error);
+        console.error(`Error executing context menu command "${commandName}":`, error);
       }
     });
   }
 
-  private registerCommand(command: AppCommand) {
+  private registerCommand(command: ContextMenuCommand) {
     this.commands.set(command.id, command);
-    console.log(`Registered app command: ${command.id} - ${command.displayName}`);
+    console.log(`Registered context menu command: ${command.id} - ${command.displayName}`);
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "shiroko",
+  "name": "arona",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
@@ -10,7 +10,10 @@
     "prettier": "^3.9.6",
     "typescript": "^5.9.3"
   },
-  "peerDependencies": {},
+  "scripts": {
+    "prettier": "prettier --write .",
+    "count-lines": "find projects -type f -not -path '*/dist/*' -not -path '*/.next/*' -not -path '*/node_modules/*' -name '*.ts' -o -name '*.tsx' | xargs wc -l"
+  },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
     "@t3-oss/env-core": "^0.13.11",

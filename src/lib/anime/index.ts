@@ -8,7 +8,7 @@
  */
 
 const BASE_URL = "https://nekos.best/api/v2";
-const USER_AGENT = "Shiroko (https://github.com/Discord/Shiroko)";
+const USER_AGENT = "Arona (https://github.com/Discord/Shiroko)";
 
 export type Dimensions = { width: number; height: number };
 

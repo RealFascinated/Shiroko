@@ -1,8 +1,8 @@
 import { ApplicationCommandType, type UserContextMenuCommandInteraction } from "discord.js";
-import AppCommand, { type AppExecuteContext } from "../../../../command/app-command";
-import { baseEmbed } from "../../../../lib/embed";
+import ContextMenuCommand, { type ContextMenuExecuteContext } from "../context-menu-command";
+import { baseEmbed } from "../../lib/embed";
 
-export default class AvatarCommand extends AppCommand {
+export default class AvatarCommand extends ContextMenuCommand {
   constructor() {
     super("avatar", "Show avatar");
   }
@@ -11,9 +11,9 @@ export default class AvatarCommand extends AppCommand {
     return ApplicationCommandType.User;
   }
 
-  protected override async onExecute({ ctx }: AppExecuteContext): Promise<void> {
+  protected override async onExecute({ ctx }: ContextMenuExecuteContext): Promise<void> {
     const target = (ctx as UserContextMenuCommandInteraction).targetUser;
-    const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "png" });
+    const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
 
     const embed = baseEmbed()
       .setTitle(`${target.displayName}'s avatar`)

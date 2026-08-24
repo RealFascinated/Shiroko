@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "shiroko",
+      "name": "arona",
       "dependencies": {
         "@discordjs/voice": "^0.19.2",
         "@t3-oss/env-core": "^0.13.11",

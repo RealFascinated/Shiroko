@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-shiroko}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shiroko}
-      POSTGRES_DB: ${POSTGRES_DB:-shiroko}
+      POSTGRES_USER: ${POSTGRES_USER:-arona}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arona}
+      POSTGRES_DB: ${POSTGRES_DB:-arona}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:

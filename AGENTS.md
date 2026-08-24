@@ -124,7 +124,9 @@ Bad:
 ```js
 class Foo {
   counter = 0;
-  compute() { return this.counter; }
+  compute() {
+    return this.counter;
+  }
 }
 ```
 

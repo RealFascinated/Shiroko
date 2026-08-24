@@ -1,4 +1,4 @@
-# shiroko
+# arona
 
 To install dependencies:
 

@@ -10,7 +10,7 @@ import {
 } from "discord.js";
 import type GlobalUser from "../user/global-user";
 
-export interface AppExecuteContext {
+export interface ContextMenuExecuteContext {
   globalUser: GlobalUser;
   guild: Guild | null;
   ctx: UserContextMenuCommandInteraction | MessageContextMenuCommandInteraction;
@@ -22,11 +22,11 @@ export interface AppExecuteContext {
  * Mirrors {@link Command} but targets context menu commands instead
  * of chat-input slash commands.
  */
-export default abstract class AppCommand {
+export default abstract class ContextMenuCommand {
   public readonly id: string;
   public readonly displayName: string;
 
-  private readonly subCommands = new Map<string, AppCommand>();
+  private readonly subCommands = new Map<string, ContextMenuCommand>();
 
   constructor(id: string, displayName: string) {
     this.id = id;
@@ -43,7 +43,7 @@ export default abstract class AppCommand {
   /**
    * Register a sub-command that this command exposes in Discord.
    */
-  public registerSubCommand(command: AppCommand): void {
+  public registerSubCommand(command: ContextMenuCommand): void {
     this.subCommands.set(command.id, command);
   }
 
@@ -80,7 +80,7 @@ export default abstract class AppCommand {
   /**
    * Execute this command when a context menu interaction is received.
    */
-  public async execute(context: AppExecuteContext): Promise<void> {
+  public async execute(context: ContextMenuExecuteContext): Promise<void> {
     const { ctx } = context;
     const subCommandName = ctx.commandName;
     const subCommand = this.subCommands.get(subCommandName);
@@ -90,5 +90,5 @@ export default abstract class AppCommand {
     return this.onExecute(context);
   }
 
-  protected abstract onExecute(context: AppExecuteContext): Promise<void>;
+  protected abstract onExecute(context: ContextMenuExecuteContext): Promise<void>;
 }

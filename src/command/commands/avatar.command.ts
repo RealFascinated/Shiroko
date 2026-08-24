@@ -17,7 +17,7 @@ export default class AvatarCommand extends Command {
 
   protected override async onExecuteSlash({ globalUser, ctx, args }: ExecuteContext) {
     const target = args.user("user") ?? globalUser.discordUser;
-    const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "png" });
+    const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
 
     const embed = baseEmbed()
       .setTitle(`${target.displayName}'s avatar`)
