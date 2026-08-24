@@ -2,24 +2,37 @@ import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { interactionProfiles } from "../../db/schema";
 import Profile, { type ProfileScope } from "../../lib/profile/profile";
-import type { InteractionType } from "./interaction-type";
 
-export type InteractionData = Partial<Record<InteractionType, number>>;
+export type InteractionData = {
+  hugs: Record<string, number>;
+  kisses: Record<string, number>;
+  slaps: Record<string, number>;
+  pats: Record<string, number>;
+};
 
 export class InteractionProfile extends Profile<InteractionData> {
-  public hugs: number = 0;
+  public hugs: Map<string, number> = new Map();
+  public kisses: Map<string, number> = new Map();
+  public slaps: Map<string, number> = new Map();
+  public pats: Map<string, number> = new Map();
 
   protected override get scope(): ProfileScope {
     return "user";
   }
 
   protected override deserialize(raw: InteractionData): void {
-    this.hugs = raw.hugs ?? 0;
+    this.hugs = new Map(Object.entries(raw.hugs ?? {}));
+    this.kisses = new Map(Object.entries(raw.kisses ?? {}));
+    this.slaps = new Map(Object.entries(raw.slaps ?? {}));
+    this.pats = new Map(Object.entries(raw.pats ?? {}));
   }
 
   protected override serialize(): InteractionData {
     return {
-      hugs: this.hugs,
+      hugs: Object.fromEntries(this.hugs),
+      kisses: Object.fromEntries(this.kisses),
+      slaps: Object.fromEntries(this.slaps),
+      pats: Object.fromEntries(this.pats),
     };
   }
 

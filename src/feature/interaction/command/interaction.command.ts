@@ -1,11 +1,17 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import HugCommand from "./sub/hug.command";
+import KissCommand from "./sub/kiss.command";
+import SlapCommand from "./sub/slap.command";
+import PatCommand from "./sub/pat.command";
 
 export default class InteractionCommand extends Command {
   constructor() {
     super("interact", "Interact with others");
 
     this.registerSubCommand(new HugCommand());
+    this.registerSubCommand(new KissCommand());
+    this.registerSubCommand(new SlapCommand());
+    this.registerSubCommand(new PatCommand());
   }
 
   public override get userInstallable(): boolean {

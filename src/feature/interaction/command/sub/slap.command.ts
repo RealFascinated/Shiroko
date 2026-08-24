@@ -4,30 +4,30 @@ import { userOption } from "../../../../command/option";
 import { getGif } from "../../../../lib/anime";
 import { Constants } from "../../../../constants";
 
-export default class HugCommand extends Command {
+export default class SlapCommand extends Command {
   constructor() {
-    super("hug", "Give someone a big hug");
+    super("slap", "Slap someone");
   }
 
   public override get options() {
-    return [userOption(true, "target", "Who to hug")];
+    return [userOption(true, "target", "Who to slap")];
   }
 
   protected override async onExecuteSlash({ globalUser, ctx, args }: ExecuteContext) {
     const target = args.user("target")!;
     if (target.id === globalUser.discordUser.id) {
-      return ctx.reply("You can't hug yourself! :(");
+      return ctx.reply("You can't slap yourself! :(");
     }
     const interactionProfile = await globalUser.getInteractionsProfile();
-    interactionProfile.hugs.set(target.id, (interactionProfile.hugs.get(target.id) ?? 0) + 1);
+    interactionProfile.slaps.set(target.id, (interactionProfile.slaps.get(target.id) ?? 0) + 1);
     interactionProfile.markDirty();
 
-    const count = interactionProfile.hugs.get(target.id) ?? 0;
-    const gif = await getGif("hug");
+    const count = interactionProfile.slaps.get(target.id) ?? 0;
+    const gif = await getGif("slap");
     const embed = new EmbedBuilder()
       .setDescription(
-        `**${globalUser.discordUser.displayName}** hugs **${target.displayName}**!
-        ***${target.displayName}** has been **hugged** by **${globalUser.discordUser.displayName}** **${count} times**.*`
+        `**${globalUser.discordUser.displayName}** slaps **${target.displayName}**!
+        ***${target.displayName}** has been **slapped** by **${globalUser.discordUser.displayName}** **${count} times**.*`
       )
       .setImage(gif.url)
       .setColor(Constants.mainColor);
