@@ -4,18 +4,18 @@ import {
   InteractionContextType,
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
-  type SlashCommandStringOption,
-  type SlashCommandIntegerOption,
-  type SlashCommandBooleanOption,
-  type SlashCommandUserOption,
-  type SlashCommandChannelOption,
-  type SlashCommandRoleOption,
-  type SlashCommandNumberOption,
-  type SlashCommandMentionableOption,
-  type SlashCommandAttachmentOption,
   type ChatInputCommandInteraction,
   type Guild,
   type InteractionResponse,
+  type SlashCommandAttachmentOption,
+  type SlashCommandBooleanOption,
+  type SlashCommandChannelOption,
+  type SlashCommandIntegerOption,
+  type SlashCommandMentionableOption,
+  type SlashCommandNumberOption,
+  type SlashCommandRoleOption,
+  type SlashCommandStringOption,
+  type SlashCommandUserOption,
 } from "discord.js";
 import type GlobalUser from "../user/global-user";
 import type { CommandOptionBuilder } from "./option";
@@ -41,33 +41,25 @@ type OptionSubBuilder =
 
 interface OptionHolder {
   addStringOption(
-    input:
-      SlashCommandStringOption | ((builder: SlashCommandStringOption) => SlashCommandStringOption)
+    input: SlashCommandStringOption | ((builder: SlashCommandStringOption) => SlashCommandStringOption)
   ): unknown;
   addIntegerOption(
-    input:
-      | SlashCommandIntegerOption
-      | ((builder: SlashCommandIntegerOption) => SlashCommandIntegerOption)
+    input: SlashCommandIntegerOption | ((builder: SlashCommandIntegerOption) => SlashCommandIntegerOption)
   ): unknown;
   addBooleanOption(
-    input:
-      | SlashCommandBooleanOption
-      | ((builder: SlashCommandBooleanOption) => SlashCommandBooleanOption)
+    input: SlashCommandBooleanOption | ((builder: SlashCommandBooleanOption) => SlashCommandBooleanOption)
   ): unknown;
   addUserOption(
     input: SlashCommandUserOption | ((builder: SlashCommandUserOption) => SlashCommandUserOption)
   ): unknown;
   addChannelOption(
-    input:
-      | SlashCommandChannelOption
-      | ((builder: SlashCommandChannelOption) => SlashCommandChannelOption)
+    input: SlashCommandChannelOption | ((builder: SlashCommandChannelOption) => SlashCommandChannelOption)
   ): unknown;
   addRoleOption(
     input: SlashCommandRoleOption | ((builder: SlashCommandRoleOption) => SlashCommandRoleOption)
   ): unknown;
   addNumberOption(
-    input:
-      SlashCommandNumberOption | ((builder: SlashCommandNumberOption) => SlashCommandNumberOption)
+    input: SlashCommandNumberOption | ((builder: SlashCommandNumberOption) => SlashCommandNumberOption)
   ): unknown;
   addMentionableOption(
     input:
@@ -76,8 +68,7 @@ interface OptionHolder {
   ): unknown;
   addAttachmentOption(
     input:
-      | SlashCommandAttachmentOption
-      | ((builder: SlashCommandAttachmentOption) => SlashCommandAttachmentOption)
+      SlashCommandAttachmentOption | ((builder: SlashCommandAttachmentOption) => SlashCommandAttachmentOption)
   ): unknown;
 }
 
@@ -162,31 +153,31 @@ export default abstract class Command {
   private addOption(builder: OptionHolder, option: CommandOptionBuilder): void {
     switch (option.type) {
       case ApplicationCommandOptionType.String:
-        builder.addStringOption((o) => this.applyOption(o, option));
+        builder.addStringOption(o => this.applyOption(o, option));
         break;
       case ApplicationCommandOptionType.Integer:
-        builder.addIntegerOption((o) => this.applyOption(o, option));
+        builder.addIntegerOption(o => this.applyOption(o, option));
         break;
       case ApplicationCommandOptionType.Boolean:
-        builder.addBooleanOption((o) => this.applyOption(o, option));
+        builder.addBooleanOption(o => this.applyOption(o, option));
         break;
       case ApplicationCommandOptionType.User:
-        builder.addUserOption((o) => this.applyOption(o, option));
+        builder.addUserOption(o => this.applyOption(o, option));
         break;
       case ApplicationCommandOptionType.Channel:
-        builder.addChannelOption((o) => this.applyOption(o, option));
+        builder.addChannelOption(o => this.applyOption(o, option));
         break;
       case ApplicationCommandOptionType.Role:
-        builder.addRoleOption((o) => this.applyOption(o, option));
+        builder.addRoleOption(o => this.applyOption(o, option));
         break;
       case ApplicationCommandOptionType.Number:
-        builder.addNumberOption((o) => this.applyOption(o, option));
+        builder.addNumberOption(o => this.applyOption(o, option));
         break;
       case ApplicationCommandOptionType.Mentionable:
-        builder.addMentionableOption((o) => this.applyOption(o, option));
+        builder.addMentionableOption(o => this.applyOption(o, option));
         break;
       case ApplicationCommandOptionType.Attachment:
-        builder.addAttachmentOption((o) => this.applyOption(o, option));
+        builder.addAttachmentOption(o => this.applyOption(o, option));
         break;
     }
   }
@@ -196,9 +187,7 @@ export default abstract class Command {
     if (option.choices) {
       const add = (
         builder as {
-          addChoices?(
-            ...choices: Array<{ name: string; value: string | number | boolean }>
-          ): unknown;
+          addChoices?(...choices: Array<{ name: string; value: string | number | boolean }>): unknown;
         }
       ).addChoices;
       if (add) {

@@ -22,17 +22,10 @@ export default class GlobalUsersManager {
       return cached;
     }
 
-    const [existing] = await db
-      .select()
-      .from(globalUsers)
-      .where(eq(globalUsers.id, user.id))
-      .limit(1);
+    const [existing] = await db.select().from(globalUsers).where(eq(globalUsers.id, user.id)).limit(1);
 
     if (!existing) {
-      await db
-        .insert(globalUsers)
-        .values({ id: user.id })
-        .onConflictDoNothing({ target: globalUsers.id });
+      await db.insert(globalUsers).values({ id: user.id }).onConflictDoNothing({ target: globalUsers.id });
       console.log(`Created new global user for ${user.tag} (${user.id})`);
     }
 

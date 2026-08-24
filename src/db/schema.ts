@@ -20,7 +20,7 @@ export const interactions = pgTable(
     count: integer("count").notNull().default(1),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.actorId, table.targetId, table.type] })]
+  table => [primaryKey({ columns: [table.actorId, table.targetId, table.type] })]
 );
 
 export const schema = {

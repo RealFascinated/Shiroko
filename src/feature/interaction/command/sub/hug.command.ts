@@ -1,10 +1,10 @@
-import { baseEmbed } from "../../../../lib/embed";
 import Command, { type ExecuteContext } from "../../../../command/command";
 import { userOption } from "../../../../command/option";
 import { getGif } from "../../../../lib/anime";
+import { baseEmbed } from "../../../../lib/embed";
 import { pluralize } from "../../../../lib/utils";
-import { incrementInteraction } from "../../interactions";
 import GlobalUsersManager from "../../../../user/global-users-manager";
+import { incrementInteraction } from "../../interactions";
 
 export default class HugCommand extends Command {
   constructor() {

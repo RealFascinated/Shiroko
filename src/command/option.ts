@@ -14,17 +14,11 @@ export interface CommandOption {
   maxValue?: number;
 }
 
-export type CommandOptionDescriptor = Partial<
-  Pick<CommandOption, "choices" | "minValue" | "maxValue">
->;
+export type CommandOptionDescriptor = Partial<Pick<CommandOption, "choices" | "minValue" | "maxValue">>;
 
 export type CommandOptionBuilder = CommandOption;
 
-export function stringOption(
-  required: boolean,
-  name: string,
-  description: string
-): CommandOptionBuilder;
+export function stringOption(required: boolean, name: string, description: string): CommandOptionBuilder;
 export function stringOption(
   required: boolean,
   name: string,
@@ -40,27 +34,15 @@ export function stringOption(
   return { name, description, type: ApplicationCommandOptionType.String, required, ...options };
 }
 
-export function userOption(
-  required: boolean,
-  name: string,
-  description: string
-): CommandOptionBuilder {
+export function userOption(required: boolean, name: string, description: string): CommandOptionBuilder {
   return { name, description, type: ApplicationCommandOptionType.User, required };
 }
 
-export function channelOption(
-  required: boolean,
-  name: string,
-  description: string
-): CommandOptionBuilder {
+export function channelOption(required: boolean, name: string, description: string): CommandOptionBuilder {
   return { name, description, type: ApplicationCommandOptionType.Channel, required };
 }
 
-export function roleOption(
-  required: boolean,
-  name: string,
-  description: string
-): CommandOptionBuilder {
+export function roleOption(required: boolean, name: string, description: string): CommandOptionBuilder {
   return { name, description, type: ApplicationCommandOptionType.Role, required };
 }
 
@@ -96,19 +78,11 @@ export function integerOption(
   return { ...base, ...(first ?? {}) };
 }
 
-export function booleanOption(
-  required: boolean,
-  name: string,
-  description: string
-): CommandOptionBuilder {
+export function booleanOption(required: boolean, name: string, description: string): CommandOptionBuilder {
   return { name, description, type: ApplicationCommandOptionType.Boolean, required };
 }
 
-export function numberOption(
-  required: boolean,
-  name: string,
-  description: string
-): CommandOptionBuilder {
+export function numberOption(required: boolean, name: string, description: string): CommandOptionBuilder {
   return { name, description, type: ApplicationCommandOptionType.Number, required };
 }
 
@@ -120,11 +94,7 @@ export function mentionableOption(
   return { name, description, type: ApplicationCommandOptionType.Mentionable, required };
 }
 
-export function attachmentOption(
-  required: boolean,
-  name: string,
-  description: string
-): CommandOptionBuilder {
+export function attachmentOption(required: boolean, name: string, description: string): CommandOptionBuilder {
   return { name, description, type: ApplicationCommandOptionType.Attachment, required };
 }
 

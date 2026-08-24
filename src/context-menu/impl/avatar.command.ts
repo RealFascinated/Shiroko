@@ -1,6 +1,6 @@
 import { ApplicationCommandType, type UserContextMenuCommandInteraction } from "discord.js";
-import ContextMenuCommand, { type ContextMenuExecuteContext } from "../context-menu-command";
 import { baseEmbed } from "../../lib/embed";
+import ContextMenuCommand, { type ContextMenuExecuteContext } from "../context-menu-command";
 
 export default class AvatarCommand extends ContextMenuCommand {
   constructor() {

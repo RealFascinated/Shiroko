@@ -225,10 +225,10 @@ Bad:
 
 ```js
 getUser(id)
-  .then((user) => getUserProfile(user.id))
-  .then((profile) => saveProfile(user.id, profile))
+  .then(user => getUserProfile(user.id))
+  .then(profile => saveProfile(user.id, profile))
   .then(() => log("saved"))
-  .catch((err) => console.error(err));
+  .catch(err => console.error(err));
 ```
 
 Good:

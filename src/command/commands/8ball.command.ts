@@ -31,9 +31,7 @@ export default class EightBallCommand extends Command {
     const question = ctx.options.getString("question", true)!;
     const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
     return ctx.reply({
-      embeds: [
-        baseEmbed().setTitle("🎱 Magic 8-ball").setDescription(`> ${question}\n\n**${answer}**`),
-      ],
+      embeds: [baseEmbed().setTitle("🎱 Magic 8-ball").setDescription(`> ${question}\n\n**${answer}**`)],
     });
   }
 }

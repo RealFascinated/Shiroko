@@ -1,12 +1,12 @@
 import {
-  ApplicationIntegrationType,
   ApplicationCommandType,
+  ApplicationIntegrationType,
   InteractionContextType,
-  type UserContextMenuCommandInteraction,
-  type MessageContextMenuCommandInteraction,
   type Guild,
-  type UserApplicationCommandData,
   type MessageApplicationCommandData,
+  type MessageContextMenuCommandInteraction,
+  type UserApplicationCommandData,
+  type UserContextMenuCommandInteraction,
 } from "discord.js";
 import type GlobalUser from "../user/global-user";
 
@@ -50,8 +50,7 @@ export default abstract class ContextMenuCommand {
   /**
    * The command type: User or Message context menu.
    */
-  protected abstract get commandType():
-    ApplicationCommandType.User | ApplicationCommandType.Message;
+  protected abstract get commandType(): ApplicationCommandType.User | ApplicationCommandType.Message;
 
   /**
    * Build the final command data object with integration types and contexts applied.

@@ -1,10 +1,10 @@
-import { Client, Events, GatewayIntentBits } from "discord.js";
 import { joinVoiceChannel } from "@discordjs/voice";
+import { Client, Events, GatewayIntentBits } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { env } from "./lib/env";
-import { db } from "./db";
 import CommandManager from "./command/command-manager";
 import ContextMenuCommandManager from "./context-menu/context-menu-command-manager";
+import { db } from "./db";
+import { env } from "./lib/env";
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");
@@ -19,7 +19,7 @@ commands.registerHandlers(discordClient);
 const contextMenuCommands = new ContextMenuCommandManager();
 contextMenuCommands.registerHandlers(discordClient);
 
-discordClient.once(Events.ClientReady, async (readyClient) => {
+discordClient.once(Events.ClientReady, async readyClient => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 
   const application = readyClient.application;
@@ -39,7 +39,7 @@ discordClient.once(Events.ClientReady, async (readyClient) => {
         adapterCreator: channel.guild.voiceAdapterCreator,
         selfMute: true,
       });
-      connection.on("error", (error) => console.error("Voice connection error:", error));
+      connection.on("error", error => console.error("Voice connection error:", error));
     }
   } catch (error) {
     console.error(error);

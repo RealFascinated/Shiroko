@@ -1,6 +1,6 @@
 import { EmbedBuilder } from "discord.js";
-import { Constants } from "../constants";
 import { discordClient } from "..";
+import { Constants } from "../constants";
 
 /**
  * Build a new embed pre-configured with the bot's brand color and footer.

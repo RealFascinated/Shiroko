@@ -39,9 +39,7 @@ export default class ParsedArguments {
     return this.resolver.getUser(name);
   }
 
-  public channel<T extends GuildChannelResolvable = GuildChannelResolvable>(
-    name: string
-  ): T | null {
+  public channel<T extends GuildChannelResolvable = GuildChannelResolvable>(name: string): T | null {
     return this.resolver.getChannel(name) as T | null;
   }
 

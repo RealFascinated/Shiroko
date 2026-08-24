@@ -1,5 +1,5 @@
-import "reflect-metadata";
 import { ApplicationCommandOptionType } from "discord.js";
+import "reflect-metadata";
 
 /**
  * Declarative metadata for a command, mirroring Wild's `@CommandInfo`
@@ -13,7 +13,7 @@ export interface CommandInfoMetadata {
 }
 
 export function CommandInfo(metadata: CommandInfoMetadata): ClassDecorator {
-  return (target) => {
+  return target => {
     Reflect.defineMetadata("command:info", metadata, target);
   };
 }

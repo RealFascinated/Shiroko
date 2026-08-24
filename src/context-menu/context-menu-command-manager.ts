@@ -1,11 +1,7 @@
-import {
-  Events,
-  type MessageApplicationCommandData,
-  type UserApplicationCommandData,
-} from "discord.js";
 import type { Client } from "discord.js";
-import type ContextMenuCommand from "./context-menu-command";
+import { Events, type MessageApplicationCommandData, type UserApplicationCommandData } from "discord.js";
 import GlobalUsersManager from "../user/global-users-manager";
+import type ContextMenuCommand from "./context-menu-command";
 import AvatarCommand from "./impl/avatar.command";
 
 /**
@@ -24,7 +20,7 @@ export default class ContextMenuCommandManager {
    * Build every local context menu command for registration.
    */
   public build(): Array<UserApplicationCommandData | MessageApplicationCommandData> {
-    return Array.from(this.commands.values()).map((command) => command.build());
+    return Array.from(this.commands.values()).map(command => command.build());
   }
 
   /**
@@ -32,7 +28,7 @@ export default class ContextMenuCommandManager {
    * to their matching command's execute.
    */
   public registerHandlers(client: Client): void {
-    client.on(Events.InteractionCreate, async (interaction) => {
+    client.on(Events.InteractionCreate, async interaction => {
       if (!interaction.isUserContextMenuCommand() && !interaction.isMessageContextMenuCommand()) {
         return;
       }

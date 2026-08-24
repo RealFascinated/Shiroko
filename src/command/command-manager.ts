@@ -1,11 +1,11 @@
-import { Events, type SlashCommandBuilder } from "discord.js";
 import type { Client } from "discord.js";
-import type Command from "./command";
-import ParsedArguments from "./parsed-arguments";
+import { Events, type SlashCommandBuilder } from "discord.js";
 import TestCommand from "../feature/interaction/command/interaction.command";
-import PingCommand from "./commands/ping.command";
-import AvatarCommand from "./commands/avatar.command";
 import GlobalUsersManager from "../user/global-users-manager";
+import type Command from "./command";
+import AvatarCommand from "./commands/avatar.command";
+import PingCommand from "./commands/ping.command";
+import ParsedArguments from "./parsed-arguments";
 
 export default class CommandManager {
   private commands = new Map<string, Command>();
@@ -21,7 +21,7 @@ export default class CommandManager {
    * Build every local slash command for registration.
    */
   public build(): SlashCommandBuilder[] {
-    return Array.from(this.commands.values()).map((command) => command.build());
+    return Array.from(this.commands.values()).map(command => command.build());
   }
 
   /**
@@ -29,7 +29,7 @@ export default class CommandManager {
    * to their matching command's executeSlash.
    */
   public registerHandlers(client: Client): void {
-    client.on(Events.InteractionCreate, async (interaction) => {
+    client.on(Events.InteractionCreate, async interaction => {
       if (!interaction.isChatInputCommand()) {
         return;
       }
