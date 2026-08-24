@@ -4,6 +4,7 @@ import type Command from "./command";
 import ParsedArguments from "./parsed-arguments";
 import TestCommand from "../feature/interaction/command/interaction.command";
 import PingCommand from "./commands/ping.command";
+import AvatarCommand from "./commands/avatar.command";
 import GlobalUsersManager from "../user/global-users-manager";
 
 export default class CommandManager {
@@ -12,6 +13,7 @@ export default class CommandManager {
   constructor() {
     this.registerCommand(new TestCommand());
     this.registerCommand(new PingCommand());
+    this.registerCommand(new AvatarCommand());
     console.log(`Registered commands: ${this.commands.size}`);
   }
 
