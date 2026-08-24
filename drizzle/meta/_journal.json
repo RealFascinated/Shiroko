@@ -47,21 +47,21 @@
     {
       "idx": 6,
       "version": "7",
-      "when": 1787620000000,
+      "when": 1787610299166,
       "tag": "0006_rename_economy_tables",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "7",
-      "when": 1787628000000,
+      "when": 1787610299167,
       "tag": "0007_fold_streak_into_user_economy",
       "breakpoints": true
     },
     {
       "idx": 8,
       "version": "7",
-      "when": 1787630000000,
+      "when": 1787610299168,
       "tag": "0008_sync_first_seen",
       "breakpoints": true
     }
