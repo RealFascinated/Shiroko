@@ -57,6 +57,13 @@
       "when": 1787628000000,
       "tag": "0007_fold_streak_into_user_economy",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787630000000,
+      "tag": "0008_sync_first_seen",
+      "breakpoints": true
     }
   ]
 }
