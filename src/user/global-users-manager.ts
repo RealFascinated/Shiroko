@@ -23,6 +23,7 @@ export default class GlobalUsersManager {
       return new GlobalUser(user, inserted);
     }
 
-    return this.getUser(user);
+    const [row] = await db.select().from(globalUsers).where(eq(globalUsers.id, user.id));
+    return new GlobalUser(user, row!);
   }
 }

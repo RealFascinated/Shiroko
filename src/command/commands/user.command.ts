@@ -2,12 +2,16 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  type ChatInputCommandInteraction,
+  type Guild,
   type GuildMember,
   type MessageActionRowComponentBuilder,
+  type User,
 } from "discord.js";
-import { runesService } from "../../feature/economy/runes.service";
+import { runesService, type Balance } from "../../feature/economy/runes.service";
 import { baseEmbed, runes } from "../../lib/embed";
 import { formatRank } from "../../lib/format";
+import type GlobalUser from "../../user/global-user";
 import GlobalUsersManager from "../../user/global-users-manager";
 import Command, { type ExecuteContext } from "../command";
 import { userOption } from "../option";
@@ -31,12 +35,31 @@ export default class UserCommand extends Command {
 
   protected override async onExecuteSlash({ globalUser, guild, ctx, args, commandName }: ExecuteContext) {
     const target = args.user("user") ?? globalUser.discordUser;
-    const [targetGlobal, balance, rank] = await Promise.all([
-      GlobalUsersManager.getUser(target),
-      runesService.getBalance(target.id),
-      runesService.getGlobalRank(target.id),
-    ]);
+    if (target === globalUser.discordUser) {
+      const [balance, rank] = await Promise.all([
+        runesService.getBalance(globalUser.id),
+        runesService.getGlobalRank(globalUser.id),
+      ]);
+      return this.replyProfile(commandName, target, globalUser, balance, rank, guild, ctx);
+    }
 
+    const targetGlobal = await GlobalUsersManager.getUser(target);
+    const [balance, rank] = await Promise.all([
+      runesService.getBalance(targetGlobal.id),
+      runesService.getGlobalRank(targetGlobal.id),
+    ]);
+    return this.replyProfile(commandName, target, targetGlobal, balance, rank, guild, ctx);
+  }
+
+  private async replyProfile(
+    commandName: string,
+    target: User,
+    targetGlobal: GlobalUser,
+    balance: Balance,
+    rank: number | null,
+    guild: Guild | null,
+    ctx: ChatInputCommandInteraction
+  ): Promise<ReturnType<Command["executeSlash"]>> {
     const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
     const bannerUrl = target.bannerURL({ size: 4096, extension: "webp" });
 
