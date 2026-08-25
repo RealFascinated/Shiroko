@@ -2,6 +2,7 @@ import { MessageFlags } from "discord.js";
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
+import { randInt, randIntRange } from "../../../lib/math";
 import { TimeUnit } from "../../../lib/time";
 import { pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
@@ -12,21 +13,25 @@ const PATRONS = [
   {
     name: "Arona",
     chance: 0.5,
+    range: [1, 20],
     says: (amt: number) => `hands you ${amt} runes. "That's all I had... go buy a soda or something."`,
   },
   {
     name: "Hifumi",
     chance: 0.05,
+    range: [100, 500],
     says: (amt: number) => `grins and hands you ${amt} runes. "Don't tell anyone, okay?"`,
   },
   {
     name: "Sora",
     chance: 0.4,
+    range: [1, 20],
     says: (amt: number) => `counts out ${amt} runes. "The General Shop appreciates your patronage."`,
   },
   {
     name: "Arisu",
     chance: 0.05,
+    range: [1, 20],
     says: (amt: number) => `gives you ${amt} runes. "This is a state-of-the-art... coin? Probably."`,
   },
 ] as const;
@@ -62,7 +67,7 @@ export default class BegCommand extends Command {
 
     // Arona's moody side strikes: small loss.
     if (roll < 0.15) {
-      const loss = 1 + Math.floor(Math.random() * 4);
+      const loss = randInt(1, 4);
       const result = await runesService.transfer(globalUser.id, loss, "bank", loss);
       if (!result.ok) {
         return ctx.reply({
@@ -99,8 +104,7 @@ export default class BegCommand extends Command {
       );
     }
 
-    const amountRange: [number, number] = patron.name === "Hifumi" ? [100, 500] : [1, 20];
-    const amount = amountRange[0] + Math.floor(Math.random() * (amountRange[1] - amountRange[0] + 1));
+    const amount = randIntRange(patron.range);
     await runesService.addMoney(globalUser.id, amount, "wallet");
 
     const embed = baseEmbed(commandName)

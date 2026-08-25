@@ -2,6 +2,7 @@ import Command, { type ExecuteContext } from "../../../command/command";
 import { stringOption } from "../../../command/option";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, ephemeralErrorReply, errorEmbed, runes } from "../../../lib/embed";
+import { randInt } from "../../../lib/math";
 import { TimeUnit } from "../../../lib/time";
 import { pick, pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
@@ -168,7 +169,7 @@ export default class WorkCommand extends Command {
 
     if (job.kind === "variable") {
       const [min, max] = job.pay;
-      pay = min + Math.floor(Math.random() * (max - min + 1));
+      pay = randInt(min, max);
       if (job.bonus && Math.random() < job.bonus.chance) {
         bonus = job.bonus.amount;
       }
