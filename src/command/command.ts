@@ -99,15 +99,6 @@ export default abstract class Command {
   }
 
   /**
-   * Result-card title for this command's embeds, e.g. "💰 Balance".
-   * Overridden by subclasses that need a fixed title; commands that build
-   * their own title at runtime can ignore it.
-   */
-  public get embedTitle(): string {
-    return this.id;
-  }
-
-  /**
    * Whether this command is available to users outside of guilds (user install).
    *
    * When `true`, the command is registered for both guild and user installs
@@ -170,14 +161,6 @@ export default abstract class Command {
     return reply;
   }
 
-  /**
-   * A per-reply layout override for {@link onExecuteSlash} (e.g. a fixed
-   * title that can't be computed from `this.id`). See {@link FollowUpType}.
-   */
-  public get followUp(): FollowUpType | null {
-    return null;
-  }
-
   protected abstract onExecuteSlash(context: ExecuteContext): Promise<FollowUpReturn>;
 
   private addOption(builder: OptionHolder, option: CommandOptionBuilder): void {
@@ -233,18 +216,6 @@ export default abstract class Command {
 }
 
 /**
- * An embed-layout override for a single reply. See `DESIGN.md`.
- *
- * A command's `followUp` getter can return this to switch layout details for
- * every one of its embeds — used by commands whose embed title is computed
- * from a base class (`PairInteractionCommand`) rather than a fixed string.
- */
-export interface FollowUpType {
-  commandName?: string;
-  title?: string;
-}
-
-/**
  * Return a plain `ctx.reply(...)` result untouched, or hand `{ value, type }`
  * follow-ups off to `finishFollowUp` so the command's reply is still sent.
  */
@@ -263,8 +234,7 @@ async function finishFollowUp(
     return context.ctx.reply(reply.value);
   }
   if (reply.type === "embed") {
-    const embed = context.commandName === "interact" ? reply.value.setTitle("🤝 Interact") : reply.value;
-    return context.ctx.reply({ embeds: [embed] });
+    return context.ctx.reply({ embeds: [reply.value] });
   }
   return context.ctx.reply({ embeds: [reply.value] });
 }

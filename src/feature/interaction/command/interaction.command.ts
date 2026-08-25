@@ -33,9 +33,7 @@ export default class InteractionCommand extends Command {
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     return ctx.reply({
-      embeds: [
-        baseEmbed(commandName).setTitle("🤝 Interact").setDescription("Choose a subcommand: `/interact hug`"),
-      ],
+      embeds: [baseEmbed(commandName).setDescription("Choose a subcommand: `/interact hug`")],
     });
   }
 }

@@ -11,10 +11,6 @@ export default class AvatarCommand extends Command {
     return true;
   }
 
-  public override get embedTitle(): string {
-    return "🖼️ Avatar";
-  }
-
   public override get options() {
     return [userOption(false, "user", "Whose avatar to show")];
   }
