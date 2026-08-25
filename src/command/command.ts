@@ -220,7 +220,7 @@ export default abstract class Command {
  * follow-ups off to `finishFollowUp` so the command's reply is still sent.
  */
 function isFollowUp(reply: FollowUpReturn): reply is FollowUp {
-  return typeof reply === "object" && !("content" in reply);
+  return typeof reply === "object" && "type" in reply;
 }
 
 /**

@@ -40,9 +40,7 @@ export default class BalanceCommand extends Command {
 
     const embed = baseEmbed(commandName)
       .setTitle(`💰 ${target.displayName}'s Balance`)
-      .setDescription(
-        `**${target.displayName}** holds **${(bal.wallet + bal.bank).toLocaleString()} runes**.`
-      )
+      .setDescription(`**${target}** holds **${(bal.wallet + bal.bank).toLocaleString()} runes**.`)
       .addFields(
         { name: "Wallet", value: runes(bal.wallet), inline: true },
         { name: "Bank", value: runes(bal.bank), inline: true }

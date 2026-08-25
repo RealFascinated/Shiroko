@@ -5,6 +5,7 @@ import {
   InteractionResponse,
   type ButtonInteraction,
   type MessageActionRowComponentBuilder,
+  type User,
 } from "discord.js";
 import Command, { type ExecuteContext } from "../../../command/command";
 import { userOption } from "../../../command/option";
@@ -53,19 +54,14 @@ export default abstract class PairInteractionCommand extends Command {
    *
    * `actor` performed the interaction on `recipient`; `commandName` names
    * the invoking command for the footer and `count` seeds the tally line.
+   * Users render as mentions (`@user`), not raw display names.
    */
-  private buildEmbed(
-    commandName: string,
-    actor: { displayName: string },
-    recipient: { displayName: string },
-    count: number,
-    gif: AnimeGif
-  ) {
+  private buildEmbed(commandName: string, actor: User, recipient: User, count: number, gif: AnimeGif) {
     const embed = baseEmbed(commandName)
       .setDescription(
-        `**${actor.displayName}** ${this.verb} **${recipient.displayName}**!` +
-          `\n*${recipient.displayName} has been **${this.pastParticiple}** by ` +
-          `**${actor.displayName}** **${pluralize("time", count)}**.*`
+        `**${actor}** ${this.verb} **${recipient}**!` +
+          `\n*${recipient} has been **${this.pastParticiple}** by ` +
+          `**${actor}** **${pluralize("time", count)}**.*`
       )
       .setImage(gif.url);
     if (gif.anime_name) {
@@ -97,7 +93,7 @@ export default abstract class PairInteractionCommand extends Command {
         customId: backButtonId(this.interactionType),
         userId: target.id,
         windowMs: interactionConfig.backButtonWindowMs,
-        onPress: button => this.returnInteraction(button, globalUser.discordUser.id, commandName),
+        onPress: button => this.returnInteraction(button, globalUser.discordUser, commandName),
       });
     }
 
@@ -110,7 +106,7 @@ export default abstract class PairInteractionCommand extends Command {
    */
   private async returnInteraction(
     button: ButtonInteraction,
-    actorId: string,
+    originalActor: User,
     commandName: string
   ): Promise<void> {
     const cd = await startInteractionCooldown(
@@ -124,10 +120,10 @@ export default abstract class PairInteractionCommand extends Command {
       return;
     }
 
-    const targetUser = await GlobalUsersManager.getUser(button.user);
-    const count = await incrementInteraction(targetUser.id, actorId, this.interactionType);
+    const presserUser = await GlobalUsersManager.getUser(button.user);
+    const count = await incrementInteraction(presserUser.id, originalActor.id, this.interactionType);
     const gif = await getGif(this.gifCategory);
-    const embed = this.buildEmbed(commandName, targetUser.discordUser, button.user, count, gif);
+    const embed = this.buildEmbed(commandName, presserUser.discordUser, originalActor, count, gif);
     await button.followUp({ embeds: [embed] });
   }
 }
