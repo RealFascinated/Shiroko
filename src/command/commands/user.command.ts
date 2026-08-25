@@ -52,29 +52,40 @@ export default class UserCommand extends Command {
       }
     }
 
-    const lines = [
-      `**Wallet:** ${runes(balance.wallet)}`,
-      `**Bank:** ${runes(balance.bank)}`,
-      `**Global Rank:** ${formatRank(rank)}`,
-      `**Account Created:** <t:${Math.floor(target.createdAt.getTime() / 1000)}:R>`,
-      `**First Seen:** <t:${Math.floor(targetGlobal.firstSeen.getTime() / 1000)}:R>`,
-      `**User ID:** \`${target.id}\``,
+    const sections: string[][] = [
+      [
+        `**💰 Economy**`,
+        `**Wallet:** ${runes(balance.wallet)}`,
+        `**Bank:** ${runes(balance.bank)}`,
+        `**Global Rank:** ${formatRank(rank)}`,
+      ],
     ];
     if (member) {
       const roles = member.roles.cache
         .filter(role => role.id !== guild!.id)
         .sort((a, b) => b.position - a.position)
         .map(role => role.toString());
-      lines.push(`**Roles:** ${roles.length ? roles.join(" ") : "None"}`);
-      if (member.premiumSince) {
-        lines.push(`**Boosting Since:** <t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`);
-      }
+      sections.push([
+        `**🎭 Server**`,
+        `**Roles:** ${roles.length ? roles.join(" ") : "None"}`,
+        ...(member.premiumSince
+          ? [`**Boosting Since:** <t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`]
+          : []),
+      ]);
     }
+    sections.push([
+      `**🗓️ Account**`,
+      `**Account Created:** <t:${Math.floor(target.createdAt.getTime() / 1000)}:R>`,
+      `**First Seen:** <t:${Math.floor(targetGlobal.firstSeen.getTime() / 1000)}:R>`,
+      `**User ID:** \`${target.id}\``,
+    ]);
+
+    const lines = sections.map(section => section.join("\n")).join("\n\n");
 
     const embed = baseEmbed(commandName)
       .setTitle(`👤 ${target.displayName}'s Profile`)
       .setThumbnail(avatarUrl)
-      .setDescription(lines.join("\n"));
+      .setDescription(lines);
 
     if (bannerUrl) {
       embed.setImage(bannerUrl);
