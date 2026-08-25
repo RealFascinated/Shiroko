@@ -106,7 +106,7 @@ export default class BegCommand extends Command {
     }
 
     const amount = randIntRange(patron.range);
-    const balance = await runesService.addMoney(globalUser.id, amount, "wallet");
+    const balance = await runesService.addMoney(globalUser.id, amount, "wallet", "beg");
 
     const embed = baseEmbed(commandName)
       .setTitle("💸 Beg")

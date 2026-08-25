@@ -1,5 +1,16 @@
 import { sql } from "drizzle-orm";
-import { boolean, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const globalUsers = pgTable("global_users", {
   id: text("id").primaryKey(),
@@ -73,12 +84,45 @@ export const quests = pgTable("quests", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** The two pockets a rune balance lives in: the spendable wallet or the safe bank. */
+export const pocketEnum = pgEnum("pocket", ["wallet", "bank"]);
+
+/**
+ * Every rune flow in the economy, one row per flow. `amount` is the net
+ * delta at `actorPocket` (positive = gained, negative = spent/lost). A flow
+ * touching a second user records their id and pocket in the `target*`
+ * columns; fees, tips, and gains with no counterparty leave them `null`.
+ * `metadata` carries optional per-kind extras (streak counts, wagers, GIF
+ * sources) without a schema change.
+ */
+export const economyTransactions = pgTable(
+  "economy_transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => globalUsers.id, { onDelete: "cascade" }),
+    actorPocket: pocketEnum("actor_pocket").notNull(),
+    amount: integer("amount").notNull(),
+    kind: text("kind").notNull(),
+    targetId: text("target_id").references(() => globalUsers.id, { onDelete: "cascade" }),
+    targetPocket: pocketEnum("target_pocket"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [
+    index("economy_transactions_created_idx").on(table.createdAt.desc()),
+    index("economy_transactions_actor_idx").on(table.actorId, table.createdAt.desc()),
+  ]
+);
+
 export const schema = {
   globalUsers,
   interactions,
   cooldowns,
   userEconomy,
   quests,
+  economyTransactions,
 };
 
 export type GlobalUserSchema = typeof globalUsers.$inferSelect;
@@ -86,4 +130,6 @@ export type InteractionSchema = typeof interactions.$inferSelect;
 export type CooldownSchema = typeof cooldowns.$inferSelect;
 export type UserEconomySchema = typeof userEconomy.$inferSelect;
 export type QuestSchema = typeof quests.$inferSelect;
+export type EconomyTransactionSchema = typeof economyTransactions.$inferSelect;
+export type Pocket = "wallet" | "bank";
 export const now = sql`now()`;

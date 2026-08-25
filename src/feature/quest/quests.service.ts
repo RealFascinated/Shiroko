@@ -314,7 +314,7 @@ export default class QuestsService {
         .where(
           and(eq(quests.userId, userId), eq(quests.kind, row.kind as QuestPeriod), eq(quests.slug, row.slug))
         );
-      await runesService.addMoney(userId, definition.reward, "wallet");
+      await runesService.addMoney(userId, definition.reward, "wallet", "quest");
       claimed.push({ slug: row.slug, reward: definition.reward });
     }
 

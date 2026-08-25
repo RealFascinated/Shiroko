@@ -180,7 +180,7 @@ export default class WorkCommand extends Command {
     }
 
     const total = pay + bonus;
-    const balance = await runesService.addMoney(globalUser.id, total, "wallet");
+    const balance = await runesService.addMoney(globalUser.id, total, "wallet", "work");
     await addQuestProgress(globalUser.id, "work", 1);
     await addQuestProgress(globalUser.id, "earn", total);
 
