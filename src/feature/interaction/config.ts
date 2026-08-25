@@ -6,5 +6,5 @@ import { TimeUnit } from "../../lib/time";
  */
 export const interactionConfig = {
   /** Window, in milliseconds, during which a "… back!" button can be used. */
-  backButtonWindowMs: TimeUnit.toMillis(TimeUnit.Minute, 1),
+  backButtonWindowMs: TimeUnit.toMillis(TimeUnit.Hour, 3),
 };
