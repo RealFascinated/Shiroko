@@ -3,6 +3,7 @@ import { Events, type MessageApplicationCommandData, type UserApplicationCommand
 import GlobalUsersManager from "../user/global-users-manager";
 import type ContextMenuCommand from "./context-menu-command";
 import AvatarCommand from "./impl/avatar.command";
+import BannerCommand from "./impl/banner.command";
 
 /**
  * Manages context menu application commands: builds them for registration
@@ -13,6 +14,7 @@ export default class ContextMenuCommandManager {
 
   constructor() {
     this.registerCommand(new AvatarCommand());
+    this.registerCommand(new BannerCommand());
     console.log(`Context menu commands registered: ${this.commands.size}`);
   }
 

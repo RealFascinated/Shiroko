@@ -2,9 +2,9 @@ import { ApplicationCommandType, type UserContextMenuCommandInteraction } from "
 import { baseEmbed } from "../../lib/embed";
 import ContextMenuCommand, { type ContextMenuExecuteContext } from "../context-menu-command";
 
-export default class AvatarCommand extends ContextMenuCommand {
+export default class BannerCommand extends ContextMenuCommand {
   constructor() {
-    super("avatar", "Show avatar");
+    super("banner", "Show banner");
   }
 
   protected override get commandType(): ApplicationCommandType.User {
@@ -13,11 +13,20 @@ export default class AvatarCommand extends ContextMenuCommand {
 
   protected override async onExecute({ ctx }: ContextMenuExecuteContext): Promise<void> {
     const target = (ctx as UserContextMenuCommandInteraction).targetUser;
-    const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
+    const bannerUrl = target.bannerURL({ size: 4096, extension: "webp" });
+
+    if (!bannerUrl) {
+      const embed = baseEmbed()
+        .setTitle(`${target.displayName}'s Banner`)
+        .setDescription("No banner set");
+
+      await ctx.reply({ embeds: [embed] });
+      return;
+    }
 
     const embed = baseEmbed()
-      .setTitle(`${target.displayName}'s Avatar`)
-      .setImage(avatarUrl);
+      .setTitle(`${target.displayName}'s Banner`)
+      .setImage(bannerUrl);
 
     await ctx.reply({ embeds: [embed] });
   }
