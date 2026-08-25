@@ -9,6 +9,7 @@ import {
   type User,
 } from "discord.js";
 import { runesService, type Balance } from "../../feature/economy/runes.service";
+import { fetchGuildMember } from "../../lib/discord";
 import { baseEmbed, runes } from "../../lib/embed";
 import { formatRank } from "../../lib/format";
 import type GlobalUser from "../../user/global-user";
@@ -65,14 +66,7 @@ export default class UserCommand extends Command {
 
     let member: GuildMember | null = null;
     if (guild) {
-      member = guild.members.cache.get(target.id) ?? null;
-      if (!member) {
-        try {
-          member = await guild.members.fetch(target.id);
-        } catch {
-          member = null;
-        }
-      }
+      member = await fetchGuildMember(guild, target.id);
     }
 
     const sections: string[][] = [
