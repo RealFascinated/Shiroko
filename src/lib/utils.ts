@@ -37,3 +37,17 @@ export function ordinal(n: number): string {
 export function titleCase(word: string): string {
   return word ? word[0]!.toUpperCase() + word.slice(1) : word;
 }
+
+/**
+ * Return the first element of `items`, or throw if it has none.
+ *
+ * The caller is expected to provide a non-empty array — an empty one is a
+ * programming/upstream error, not a normal case.
+ */
+export function first<T>(items: readonly T[]): T {
+  const item = items[0];
+  if (!item) {
+    throw new Error("expected at least one item");
+  }
+  return item;
+}
