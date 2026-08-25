@@ -10,13 +10,10 @@ import {
 import Command, { type ExecuteContext } from "../../../command/command";
 import { userOption } from "../../../command/option";
 import { getGif, type AnimeGif } from "../../../lib/anime";
-import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, watchButtonPress } from "../../../lib/embed";
-import { TimeUnit } from "../../../lib/time";
 import { pluralize } from "../../../lib/utils";
 import GlobalUsersManager from "../../../user/global-users-manager";
 import { interactionConfig } from "../config";
-import { startInteractionCooldown } from "../cooldowns";
 import { incrementInteraction, type InteractionType } from "../interactions";
 
 /** Discriminator for this test command, e.g. `interaction-back:hug`. */
@@ -101,25 +98,15 @@ export default abstract class PairInteractionCommand extends Command {
   }
 
   /**
-   * Return the interaction to the original actor: enforce the per-user
-   * cooldown, count the reverse direction, and post a matching result card.
+   * Return the interaction to the original actor: count the reverse
+   * direction and post a matching result card. The button itself was
+   * already removed by `watchButtonPress`, so this runs at most once.
    */
   private async returnInteraction(
     button: ButtonInteraction,
     originalActor: User,
     commandName: string
   ): Promise<void> {
-    const cd = await startInteractionCooldown(
-      button.user.id,
-      `back:${this.interactionType}`,
-      interactionConfig.backButtonCooldownMs
-    );
-    if (!cd.ok) {
-      const secs = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Second, 1));
-      await button.followUp(`You already returned that. Try again in ${pluralize("second", secs)}.`);
-      return;
-    }
-
     const presserUser = await GlobalUsersManager.getUser(button.user);
     const count = await incrementInteraction(presserUser.id, originalActor.id, this.interactionType);
     const gif = await getGif(this.gifCategory);
