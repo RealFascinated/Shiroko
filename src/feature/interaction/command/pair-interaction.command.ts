@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   InteractionResponse,
+  MessageFlags,
   type ButtonInteraction,
   type MessageActionRowComponentBuilder,
   type User,
@@ -65,7 +66,7 @@ export default abstract class PairInteractionCommand extends Command {
   protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
     const target = args.user("target")!;
     if (target.id === globalUser.discordUser.id) {
-      return ctx.reply(`You can't ${this.verb} yourself! :(`);
+      return ctx.reply({ content: `You can't ${this.verb} yourself! :(`, flags: MessageFlags.Ephemeral });
     }
     const targetUser = await GlobalUsersManager.getUser(target);
     const count = await incrementInteraction(globalUser.id, targetUser.id, this.interactionType);

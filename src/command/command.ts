@@ -2,6 +2,7 @@ import {
   ApplicationCommandOptionType,
   ApplicationIntegrationType,
   InteractionContextType,
+  MessageFlags,
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
@@ -225,6 +226,7 @@ function isFollowUp(reply: FollowUpReturn): reply is FollowUp {
 
 /**
  * Send a follow-up: a plain string, a styled embed, or an error embed.
+ * Error follow-ups are always ephemeral — see DESIGN.md.
  */
 async function finishFollowUp(
   context: ExecuteContext,
@@ -236,5 +238,5 @@ async function finishFollowUp(
   if (reply.type === "embed") {
     return context.ctx.reply({ embeds: [reply.value] });
   }
-  return context.ctx.reply({ embeds: [reply.value] });
+  return context.ctx.reply({ embeds: [reply.value], flags: MessageFlags.Ephemeral });
 }

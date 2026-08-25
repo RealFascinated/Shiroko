@@ -1,7 +1,7 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { stringOption } from "../../../command/option";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
-import { baseEmbed, errorEmbed, runes } from "../../../lib/embed";
+import { baseEmbed, ephemeralErrorReply, errorEmbed, runes } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
 import { pick, pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
@@ -142,21 +142,25 @@ export default class WorkCommand extends Command {
     const cd = await startEconomyCooldown(globalUser.id, "work", economyConfig.workCooldownMs);
     if (!cd.ok) {
       const mins = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Minute, 1));
-      return ctx.reply({
-        embeds: [
+      return ctx.reply(
+        ephemeralErrorReply(
+          commandName,
           errorEmbed(commandName).setDescription(
             `You're still on shift cooldown. Come back in ${pluralize("minute", mins)}.`
-          ),
-        ],
-      });
+          )
+        )
+      );
     }
 
     const jobName = args.string("job")!;
     const job = economyConfig.workJobs[jobName];
     if (!job) {
-      return ctx.reply({
-        embeds: [errorEmbed(commandName).setDescription("That's not a real job at the Summit.")],
-      });
+      return ctx.reply(
+        ephemeralErrorReply(
+          commandName,
+          errorEmbed(commandName).setDescription("That's not a real job at the Summit.")
+        )
+      );
     }
 
     let pay: number;

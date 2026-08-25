@@ -1,6 +1,7 @@
+import { MessageFlags } from "discord.js";
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
-import { baseEmbed, errorEmbed } from "../../../lib/embed";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
 import { pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
@@ -47,13 +48,14 @@ export default class BegCommand extends Command {
     const cd = await startEconomyCooldown(globalUser.id, "beg", economyConfig.begCooldownMs);
     if (!cd.ok) {
       const secs = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Second, 1));
-      return ctx.reply({
-        embeds: [
+      return ctx.reply(
+        ephemeralErrorReply(
+          commandName,
           errorEmbed(commandName).setDescription(
             `You're begging too fast. Wait ${pluralize("second", secs)}.`
-          ),
-        ],
-      });
+          )
+        )
+      );
     }
 
     const roll = Math.random();
@@ -63,9 +65,11 @@ export default class BegCommand extends Command {
       const loss = 1 + Math.floor(Math.random() * 4);
       const result = await runesService.transfer(globalUser.id, loss, "bank", loss);
       if (!result.ok) {
-        return ctx.reply(
-          "Arona's moody side eyed you, but you have nothing to lose... and nothing to give. You walk away shaken."
-        );
+        return ctx.reply({
+          content:
+            "Arona's moody side eyed you, but you have nothing to lose... and nothing to give. You walk away shaken.",
+          flags: MessageFlags.Ephemeral,
+        });
       }
       const embed = baseEmbed(commandName)
         .setTitle("💸 Beg")
@@ -87,9 +91,12 @@ export default class BegCommand extends Command {
       }
     }
     if (!patron) {
-      return ctx.reply({
-        embeds: [errorEmbed(commandName).setDescription("No one is home right now. Try again later.")],
-      });
+      return ctx.reply(
+        ephemeralErrorReply(
+          commandName,
+          errorEmbed(commandName).setDescription("No one is home right now. Try again later.")
+        )
+      );
     }
 
     const amountRange: [number, number] = patron.name === "Hifumi" ? [100, 500] : [1, 20];

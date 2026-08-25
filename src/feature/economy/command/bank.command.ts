@@ -1,3 +1,4 @@
+import { MessageFlags } from "discord.js";
 import Command, { type ExecuteContext } from "../../../command/command";
 import { stringOption } from "../../../command/option";
 import { baseEmbed, errorEmbed, runes } from "../../../lib/embed";
@@ -18,7 +19,10 @@ export default class BankCommand extends Command {
   }
 
   protected override async onExecuteSlash({ ctx }: ExecuteContext) {
-    return ctx.reply("Choose a subcommand: /bank deposit <amount> or /bank withdraw <amount>");
+    return ctx.reply({
+      content: "Choose a subcommand: /bank deposit <amount> or /bank withdraw <amount>",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 }
 
@@ -42,10 +46,14 @@ export class BankDepositCommand extends Command {
     if (amount === null) {
       return ctx.reply({
         embeds: [errorEmbed(commandName).setDescription("Say a number, or `all` / `half`.")],
+        flags: MessageFlags.Ephemeral,
       });
     }
     if (amount <= 0) {
-      return ctx.reply({ embeds: [errorEmbed(commandName).setDescription("You have nothing to deposit.")] });
+      return ctx.reply({
+        embeds: [errorEmbed(commandName).setDescription("You have nothing to deposit.")],
+        flags: MessageFlags.Ephemeral,
+      });
     }
 
     const result = await runesService.transfer(globalUser.id, amount, "bank", economyConfig.bankTransferCap);
@@ -54,6 +62,7 @@ export class BankDepositCommand extends Command {
         embeds: [
           errorEmbed(commandName).setDescription("You don't have enough runes in your wallet for that."),
         ],
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -88,10 +97,14 @@ export class BankWithdrawCommand extends Command {
     if (amount === null) {
       return ctx.reply({
         embeds: [errorEmbed(commandName).setDescription("Say a number, or `all` / `half`.")],
+        flags: MessageFlags.Ephemeral,
       });
     }
     if (amount <= 0) {
-      return ctx.reply({ embeds: [errorEmbed(commandName).setDescription("Your bank is empty.")] });
+      return ctx.reply({
+        embeds: [errorEmbed(commandName).setDescription("Your bank is empty.")],
+        flags: MessageFlags.Ephemeral,
+      });
     }
 
     const result = await runesService.transfer(
@@ -105,6 +118,7 @@ export class BankWithdrawCommand extends Command {
         embeds: [
           errorEmbed(commandName).setDescription("You don't have enough runes in your bank for that."),
         ],
+        flags: MessageFlags.Ephemeral,
       });
     }
 

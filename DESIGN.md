@@ -100,6 +100,11 @@ shape rules, but with `Constants.errorColor` (`#e74c3c`) — and the same
 footer. Sparse text replies are reserved for bare/short answers with no
 card-shaped content.
 
+> **Rule:** errors and warnings are **ephemeral** — the error reply carries
+> `flags: MessageFlags.Ephemeral`, so only the invoking user sees it. Success
+> cards keep a normal channel reply. (Adopted 2026-08-25; replacement for the
+> earlier temporary experiment marker.)
+
 ## Builder reference
 
 ```ts

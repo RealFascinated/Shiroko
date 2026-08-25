@@ -1,4 +1,10 @@
-import { EmbedBuilder, type ButtonInteraction, type InteractionResponse } from "discord.js";
+import {
+  EmbedBuilder,
+  MessageFlags,
+  type ButtonInteraction,
+  type InteractionReplyOptions,
+  type InteractionResponse,
+} from "discord.js";
 import { discordClient } from "..";
 import { Constants } from "../constants";
 
@@ -21,6 +27,16 @@ export function baseEmbed(command: string | null = null): EmbedBuilder {
  */
 export function errorEmbed(command: string | null = null): EmbedBuilder {
   return new EmbedBuilder().setColor(Constants.errorColor).setFooter({ text: footerText(command) });
+}
+
+/**
+ * Reply options for an ephemeral error — visible only to the invoking user.
+ * Success cards remain public; see DESIGN.md.
+ *
+ * Build the embed first, then pass it: `ctx.reply(ephemeralErrorReply(command, embed))`.
+ */
+export function ephemeralErrorReply(command: string | null, embed: EmbedBuilder): InteractionReplyOptions {
+  return { embeds: [embed ?? errorEmbed(command)], flags: MessageFlags.Ephemeral };
 }
 
 /**

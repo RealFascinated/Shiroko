@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
-import { baseEmbed, errorEmbed } from "../../../lib/embed";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
 import { TimeUnit } from "../../../lib/time";
 import { pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
@@ -23,13 +23,14 @@ export default class DailyCommand extends Command {
     const cd = await startEconomyCooldown(globalUser.id, "daily", economyConfig.dailyCooldownMs);
     if (!cd.ok) {
       const mins = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Minute, 1));
-      return ctx.reply({
-        embeds: [
+      return ctx.reply(
+        ephemeralErrorReply(
+          commandName,
           errorEmbed(commandName).setDescription(
             `You already claimed today. Come back in ${pluralize("minute", mins)}.`
-          ),
-        ],
-      });
+          )
+        )
+      );
     }
 
     const { amount, streak } = await runesService.claimDaily(globalUser.id);
