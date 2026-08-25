@@ -25,12 +25,12 @@ export default class GambleCommand extends Command {
       }),
       stringOption(true, "game", "Which game to play", {
         choices: {
-          "2x": "Double or Nothing (coin flip)",
-          "4x": "Quadruple or Bust (pick 1-8)",
+          "2x": "Double or Nothing (loaded coin flip)",
+          "4x": `Quadruple or Bust (pick 1-${economyConfig.gambleQuadrupleSides})`,
           "1.5x": "Low risk (pet the Arona)",
         },
       }),
-      stringOption(false, "pick", "Heads/Tails for 2x, or a number 1-8 for 4x"),
+      stringOption(false, "pick", `Heads/Tails for 2x, or a number 1-${economyConfig.gambleQuadrupleSides} for 4x`),
     ];
   }
 
@@ -63,22 +63,23 @@ export default class GambleCommand extends Command {
             )
           );
         }
-        win = Math.random() < 0.5;
+        win = Math.random() < economyConfig.gambleCoinWinChance;
         multiplier = 2;
         outcomeLine = `The coin lands **${win ? chosen : chosen === "heads" ? "tails" : "heads"}**.`;
         break;
       }
       case "4x": {
+        const sides = economyConfig.gambleQuadrupleSides;
         const chosen = pick ? parseInt(pick, 10) : NaN;
-        if (!Number.isInteger(chosen) || chosen < 1 || chosen > 8) {
+        if (!Number.isInteger(chosen) || chosen < 1 || chosen > sides) {
           return ctx.reply(
             ephemeralErrorReply(
               commandName,
-              errorEmbed(commandName).setDescription("Pick a number from 1 to 8 for Quadruple or Bust.")
+              errorEmbed(commandName).setDescription(`Pick a number from 1 to ${sides} for Quadruple or Bust.`)
             )
           );
         }
-        const rolled = 1 + Math.floor(Math.random() * 8);
+        const rolled = 1 + Math.floor(Math.random() * sides);
         win = rolled === chosen;
         multiplier = economyConfig.gambleQuadruplePayout;
         outcomeLine = `The rune lands on **${rolled}**${win ? `, exactly your ${chosen}!` : "."}`;

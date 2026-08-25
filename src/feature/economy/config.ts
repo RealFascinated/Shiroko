@@ -63,6 +63,10 @@ export const economyConfig = {
   } as Record<string, WorkJob>,
   /** Maximum wager for /gamble. */
   gambleMaxWager: 25_000,
+  /** Win chance for the 2x coin flip. Loaded below 0.5 so the house keeps an edge. */
+  gambleCoinWinChance: 0.45,
+  /** Sides on the 4x die (pick 1..N, win on an exact match). */
+  gambleQuadrupleSides: 4,
   /** Multiplier applied to a winning 4x bet. */
   gambleQuadruplePayout: 3.5,
   /** Multiplier applied to a winning 1.5x bet. */
