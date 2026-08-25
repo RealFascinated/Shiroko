@@ -37,7 +37,7 @@ export const economyConfig = {
    */
   dailyStreakWindowMs: TimeUnit.toMillis(TimeUnit.Day, 2),
   /** Cooldown for /beg, in milliseconds. */
-  begCooldownMs: TimeUnit.toMillis(TimeUnit.Second, 45),
+  begCooldownMs: TimeUnit.toMillis(TimeUnit.Minute, 10),
   /** Cooldown for /work, in milliseconds. */
   workCooldownMs: TimeUnit.toMillis(TimeUnit.Minute, 45),
   /** Part-time jobs at the Summit, keyed by the /work subcommand name. */

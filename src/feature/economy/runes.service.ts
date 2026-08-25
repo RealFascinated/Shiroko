@@ -159,6 +159,32 @@ export default class RunesService {
   }
 
   /**
+   * Remove `amount` runes from `userId`'s `pocket`, actually reducing their
+   * balance. Unlike `addMoney`/`transfer` this is a net loss, so the
+   * `WHERE ... >= amount` guard means it can't take runes the user doesn't
+   * have; it returns `null` (no runes moved) when the pocket is short.
+   * `kind` names the flow for the transaction ledger.
+   */
+  public async removeMoney(userId: string, amount: number, pocket: Pocket, kind: string): Promise<Balance | null> {
+    const column = pocket === "wallet" ? userEconomy.wallet : userEconomy.bank;
+    const [row] = await db
+      .update(userEconomy)
+      .set({
+        [pocket]: sql`${column} - ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(userEconomy.userId, userId), sql`${column} >= ${amount}`))
+      .returning({ wallet: userEconomy.wallet, bank: userEconomy.bank });
+
+    if (!row) {
+      return null;
+    }
+
+    await this.recordTransaction(db, { actorId: userId, actorPocket: pocket, amount: -amount, kind });
+    return { userId, ...row };
+  }
+
+  /**
    * Move `amount` runes from one pocket to the other.
    *
    * The source pocket is decremented with a `WHERE ... >= amount` guard so a

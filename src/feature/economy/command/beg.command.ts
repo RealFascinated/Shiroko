@@ -19,7 +19,7 @@ const PATRONS = [
   {
     name: "Hifumi",
     chance: 0.05,
-    range: [100, 500],
+    range: [50, 150],
     says: (amt: number) => `grins and hands you ${amt} runes. "Don't tell anyone, okay?"`,
   },
   {
@@ -52,12 +52,12 @@ export default class BegCommand extends Command {
   protected override async onExecuteSlash({ globalUser, ctx, commandName }: ExecuteContext) {
     const cd = await startEconomyCooldown(globalUser.id, "beg", economyConfig.begCooldownMs);
     if (!cd.ok) {
-      const secs = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Second, 1));
+      const mins = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Minute, 1));
       return ctx.reply(
         ephemeralErrorReply(
           commandName,
           errorEmbed(commandName).setDescription(
-            `You're begging too fast. Wait ${pluralize("second", secs)}.`
+            `You're begging too fast. Come back in ${pluralize("minute", mins)}.`
           )
         )
       );
@@ -68,8 +68,8 @@ export default class BegCommand extends Command {
     // Arona's moody side strikes: small loss.
     if (roll < 0.15) {
       const loss = randInt(1, 4);
-      const result = await runesService.transfer(globalUser.id, loss, "bank", loss);
-      if (!result.ok) {
+      const result = await runesService.removeMoney(globalUser.id, loss, "wallet", "begLoss");
+      if (!result) {
         return ctx.reply({
           content:
             "Arona's moody side eyed you, but you have nothing to lose... and nothing to give. You walk away shaken.",
@@ -81,7 +81,7 @@ export default class BegCommand extends Command {
         .setDescription(
           `You begged, but Arona's moody side stirs and snatches **${loss} runes** from your wallet.\n\n*"Don't tell her."*`
         )
-        .addFields({ name: "Wallet", value: runes(result.balance.wallet), inline: true });
+        .addFields({ name: "Wallet", value: runes(result.wallet), inline: true });
       return ctx.reply({ embeds: [embed] });
     }
 
