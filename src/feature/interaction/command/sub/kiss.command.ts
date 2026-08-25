@@ -7,5 +7,4 @@ export default class KissCommand extends PairInteractionCommand {
   protected readonly interactionType = "kiss";
   protected readonly gifCategory = "kiss";
   protected readonly verb = "kisses";
-  protected readonly pastParticiple = "kissed";
 }

@@ -7,5 +7,4 @@ export default class HoldhandsCommand extends PairInteractionCommand {
   protected readonly interactionType = "holdhands";
   protected readonly gifCategory = "handhold";
   protected readonly verb = "holds hands with";
-  protected readonly pastParticiple = "held hands with";
 }

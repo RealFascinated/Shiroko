@@ -11,7 +11,7 @@ import Command, { type ExecuteContext } from "../../../command/command";
 import { userOption } from "../../../command/option";
 import { getGif, type AnimeGif } from "../../../lib/anime";
 import { baseEmbed, watchButtonPress } from "../../../lib/embed";
-import { pluralize } from "../../../lib/utils";
+import { ordinal } from "../../../lib/utils";
 import GlobalUsersManager from "../../../user/global-users-manager";
 import { interactionConfig } from "../config";
 import { incrementInteraction, type InteractionType } from "../interactions";
@@ -36,7 +36,6 @@ export default abstract class PairInteractionCommand extends Command {
   protected abstract readonly interactionType: InteractionType;
   protected abstract readonly gifCategory: Parameters<typeof getGif>[0];
   protected abstract readonly verb: string;
-  protected abstract readonly pastParticiple: string;
 
   constructor(id: string, displayName: string) {
     super(id, displayName);
@@ -50,16 +49,12 @@ export default abstract class PairInteractionCommand extends Command {
    * Build the result-card embed for one side of this interaction.
    *
    * `actor` performed the interaction on `recipient`; `commandName` names
-   * the invoking command for the footer and `count` seeds the tally line.
-   * Users render as mentions (`@user`), not raw display names.
+   * the invoking command for the footer and `count` seeds the ordinal tally.
+   * Each user is mentioned exactly once.
    */
   private buildEmbed(commandName: string, actor: User, recipient: User, count: number, gif: AnimeGif) {
     const embed = baseEmbed(commandName)
-      .setDescription(
-        `**${actor}** ${this.verb} **${recipient}**!` +
-          `\n*${recipient} has been **${this.pastParticiple}** by ` +
-          `**${actor}** **${pluralize("time", count)}**.*`
-      )
+      .setDescription(`**${actor}** ${this.verb} **${recipient}** for the **${ordinal(count)}** time!`)
       .setImage(gif.url);
     if (gif.anime_name) {
       embed.addFields({ name: "Anime", value: gif.anime_name, inline: true });

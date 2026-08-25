@@ -7,5 +7,4 @@ export default class FeedCommand extends PairInteractionCommand {
   protected readonly interactionType = "feed";
   protected readonly gifCategory = "feed";
   protected readonly verb = "feeds";
-  protected readonly pastParticiple = "fed";
 }

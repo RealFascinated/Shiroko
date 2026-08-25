@@ -7,5 +7,4 @@ export default class HeadpatCommand extends PairInteractionCommand {
   protected readonly interactionType = "headpat";
   protected readonly gifCategory = "pat";
   protected readonly verb = "headpats";
-  protected readonly pastParticiple = "headpatted";
 }
