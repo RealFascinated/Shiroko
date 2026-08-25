@@ -16,12 +16,13 @@ export interface Balance {
 export type Pocket = "wallet" | "bank";
 
 /**
- * Outcome of a successful daily claim: the runes awarded and the streak
- * counted for the claim.
+ * Outcome of a successful daily claim: the runes awarded, the streak
+ * counted for the claim, and the balance after the payout.
  */
 export interface DailyClaim {
   amount: number;
   streak: number;
+  balance: Balance;
 }
 
 /**
@@ -198,8 +199,8 @@ export default class RunesService {
     );
     const amount = economyConfig.dailyBase + bonus;
 
-    await this.addMoney(userId, amount, "wallet");
-    return { amount, streak: newStreak };
+    const balance = await this.addMoney(userId, amount, "wallet");
+    return { amount, streak: newStreak, balance };
   }
 
   /**

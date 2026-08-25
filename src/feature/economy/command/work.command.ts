@@ -179,7 +179,7 @@ export default class WorkCommand extends Command {
     }
 
     const total = pay + bonus;
-    await runesService.addMoney(globalUser.id, total, "wallet");
+    const balance = await runesService.addMoney(globalUser.id, total, "wallet");
 
     const resultLines = JOB_RESULTS[jobName] ?? [pay => `You earn ${runes(pay)}.`];
     const lines = [pick(resultLines)(pay)];
@@ -189,7 +189,8 @@ export default class WorkCommand extends Command {
 
     const embed = baseEmbed(commandName)
       .setTitle("💼 Work")
-      .setDescription(`You earned **${total.toLocaleString()} runes**.\n\n*${lines.join(" ")}*`);
+      .setDescription(`You earned **${total.toLocaleString()} runes**.\n\n*${lines.join(" ")}*`)
+      .addFields({ name: "Wallet", value: runes(balance.wallet), inline: true });
     return ctx.reply({ embeds: [embed] });
   }
 }

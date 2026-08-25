@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
+import { baseEmbed, ephemeralErrorReply, errorEmbed, runes } from "../../../lib/embed";
 import { pluralize } from "../../../lib/format";
 import { TimeUnit } from "../../../lib/time";
 import { economyConfig } from "../config";
@@ -33,15 +33,18 @@ export default class DailyCommand extends Command {
       );
     }
 
-    const { amount, streak } = await runesService.claimDaily(globalUser.id);
+    const { amount, streak, balance } = await runesService.claimDaily(globalUser.id);
     const embed = baseEmbed(commandName)
       .setTitle("🍩 Daily Runes")
       .setDescription(`You claimed **${amount.toLocaleString()} runes**!`)
-      .addFields({
-        name: "Streak",
-        value: pluralize("day", streak).replace(/(^|\s)(\d+)/, "$1$2"),
-        inline: true,
-      });
+      .addFields(
+        {
+          name: "Streak",
+          value: pluralize("day", streak).replace(/(^|\s)(\d+)/, "$1$2"),
+          inline: true,
+        },
+        { name: "Wallet", value: runes(balance.wallet), inline: true }
+      );
 
     return ctx.reply({ embeds: [embed] });
   }

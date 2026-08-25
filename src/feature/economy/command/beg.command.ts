@@ -1,7 +1,7 @@
 import { MessageFlags } from "discord.js";
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
+import { baseEmbed, ephemeralErrorReply, errorEmbed, runes } from "../../../lib/embed";
 import { pluralize } from "../../../lib/format";
 import { randInt, randIntRange } from "../../../lib/math";
 import { TimeUnit } from "../../../lib/time";
@@ -80,7 +80,8 @@ export default class BegCommand extends Command {
         .setTitle("💸 Beg")
         .setDescription(
           `You begged, but Arona's moody side stirs and snatches **${loss} runes** from your wallet.\n\n*"Don't tell her."*`
-        );
+        )
+        .addFields({ name: "Wallet", value: runes(result.balance.wallet), inline: true });
       return ctx.reply({ embeds: [embed] });
     }
 
@@ -105,11 +106,12 @@ export default class BegCommand extends Command {
     }
 
     const amount = randIntRange(patron.range);
-    await runesService.addMoney(globalUser.id, amount, "wallet");
+    const balance = await runesService.addMoney(globalUser.id, amount, "wallet");
 
     const embed = baseEmbed(commandName)
       .setTitle("💸 Beg")
-      .setDescription(`You beg, and **${patron.name}** answers.\n\n*${patron.says(amount)}*`);
+      .setDescription(`You beg, and **${patron.name}** answers.\n\n*${patron.says(amount)}*`)
+      .addFields({ name: "Wallet", value: runes(balance.wallet), inline: true });
     return ctx.reply({ embeds: [embed] });
   }
 }
