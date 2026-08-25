@@ -30,7 +30,11 @@ export default class GambleCommand extends Command {
           "1.5x": "Low risk (pet the Arona)",
         },
       }),
-      stringOption(false, "pick", `Heads/Tails for 2x, or a number 1-${economyConfig.gambleQuadrupleSides} for 4x`),
+      stringOption(
+        false,
+        "pick",
+        `Heads/Tails for 2x, or a number 1-${economyConfig.gambleQuadrupleSides} for 4x`
+      ),
     ];
   }
 
@@ -75,7 +79,9 @@ export default class GambleCommand extends Command {
           return ctx.reply(
             ephemeralErrorReply(
               commandName,
-              errorEmbed(commandName).setDescription(`Pick a number from 1 to ${sides} for Quadruple or Bust.`)
+              errorEmbed(commandName).setDescription(
+                `Pick a number from 1 to ${sides} for Quadruple or Bust.`
+              )
             )
           );
         }

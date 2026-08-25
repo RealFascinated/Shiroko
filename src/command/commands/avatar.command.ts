@@ -19,9 +19,7 @@ export default class AvatarCommand extends Command {
     const target = args.user("user") ?? globalUser.discordUser;
     const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
 
-    const embed = baseEmbed(commandName)
-      .setTitle(`${target.displayName}'s Avatar`)
-      .setImage(avatarUrl);
+    const embed = baseEmbed(commandName).setTitle(`${target.displayName}'s Avatar`).setImage(avatarUrl);
 
     return ctx.reply({ embeds: [embed] });
   }

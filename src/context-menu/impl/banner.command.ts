@@ -16,17 +16,13 @@ export default class BannerCommand extends ContextMenuCommand {
     const bannerUrl = target.bannerURL({ size: 4096, extension: "webp" });
 
     if (!bannerUrl) {
-      const embed = baseEmbed()
-        .setTitle(`${target.displayName}'s Banner`)
-        .setDescription("No banner set");
+      const embed = baseEmbed().setTitle(`${target.displayName}'s Banner`).setDescription("No banner set");
 
       await ctx.reply({ embeds: [embed] });
       return;
     }
 
-    const embed = baseEmbed()
-      .setTitle(`${target.displayName}'s Banner`)
-      .setImage(bannerUrl);
+    const embed = baseEmbed().setTitle(`${target.displayName}'s Banner`).setImage(bannerUrl);
 
     await ctx.reply({ embeds: [embed] });
   }

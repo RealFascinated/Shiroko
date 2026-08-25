@@ -27,9 +27,7 @@ export default class BannerCommand extends Command {
       return ctx.reply({ embeds: [embed] });
     }
 
-    const embed = baseEmbed(commandName)
-      .setTitle(`${target.displayName}'s Banner`)
-      .setImage(bannerUrl);
+    const embed = baseEmbed(commandName).setTitle(`${target.displayName}'s Banner`).setImage(bannerUrl);
 
     return ctx.reply({ embeds: [embed] });
   }

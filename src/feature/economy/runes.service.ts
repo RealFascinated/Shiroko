@@ -46,8 +46,11 @@ export interface TransferResult {
 }
 
 /**
- * Every money flow in the economy. All writes are atomic `UPDATE ... SET x =
- * x +/- n` statements so two commands can't race to a negative balance.
+ * Every money flow in the economy. Each money flow commits its balance
+ * change and its ledger row in one `db.transaction`, so the ledger can
+ * never describe a balance change that didn't happen (or vice versa).
+ * Balance writes are atomic `UPDATE ... SET x = x +/- n` statements guarded
+ * so two commands can't race to a negative balance.
  */
 export default class RunesService {
   /**
@@ -139,8 +142,25 @@ export default class RunesService {
     pocket: Pocket,
     kind: string = "generic"
   ): Promise<Balance> {
+    // Ensure the row exists so the credit inside the transaction always matches.
+    await this.getBalance(userId);
+
+    return db.transaction(async tx => this.creditTx(tx, userId, amount, pocket, kind));
+  }
+
+  /**
+   * Credit `amount` runes to `userId`'s `pocket` and append the ledger row
+   * on the passed-in transaction handle, so both commit together.
+   */
+  private async creditTx(
+    tx: DbClient,
+    userId: string,
+    amount: number,
+    pocket: Pocket,
+    kind: string
+  ): Promise<Balance> {
     const column = pocket === "wallet" ? userEconomy.wallet : userEconomy.bank;
-    const [row] = await db
+    const [row] = await tx
       .update(userEconomy)
       .set({
         [pocket]: sql`${column} + ${amount}`,
@@ -149,13 +169,8 @@ export default class RunesService {
       .where(eq(userEconomy.userId, userId))
       .returning({ wallet: userEconomy.wallet, bank: userEconomy.bank });
 
-    if (!row) {
-      await this.getBalance(userId);
-      return this.addMoney(userId, amount, pocket, kind);
-    }
-
-    await this.recordTransaction(db, { actorId: userId, actorPocket: pocket, amount, kind });
-    return { userId, ...row };
+    await this.recordTransaction(tx, { actorId: userId, actorPocket: pocket, amount, kind });
+    return { userId, ...row! };
   }
 
   /**
@@ -165,23 +180,30 @@ export default class RunesService {
    * have; it returns `null` (no runes moved) when the pocket is short.
    * `kind` names the flow for the transaction ledger.
    */
-  public async removeMoney(userId: string, amount: number, pocket: Pocket, kind: string): Promise<Balance | null> {
+  public async removeMoney(
+    userId: string,
+    amount: number,
+    pocket: Pocket,
+    kind: string
+  ): Promise<Balance | null> {
     const column = pocket === "wallet" ? userEconomy.wallet : userEconomy.bank;
-    const [row] = await db
-      .update(userEconomy)
-      .set({
-        [pocket]: sql`${column} - ${amount}`,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(userEconomy.userId, userId), sql`${column} >= ${amount}`))
-      .returning({ wallet: userEconomy.wallet, bank: userEconomy.bank });
+    return db.transaction(async tx => {
+      const [row] = await tx
+        .update(userEconomy)
+        .set({
+          [pocket]: sql`${column} - ${amount}`,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(userEconomy.userId, userId), sql`${column} >= ${amount}`))
+        .returning({ wallet: userEconomy.wallet, bank: userEconomy.bank });
 
-    if (!row) {
-      return null;
-    }
+      if (!row) {
+        return null;
+      }
 
-    await this.recordTransaction(db, { actorId: userId, actorPocket: pocket, amount: -amount, kind });
-    return { userId, ...row };
+      await this.recordTransaction(tx, { actorId: userId, actorPocket: pocket, amount: -amount, kind });
+      return { userId, ...row };
+    });
   }
 
   /**
@@ -195,33 +217,39 @@ export default class RunesService {
     const safeAmount = Math.min(amount, cap);
     const from = to === "wallet" ? userEconomy.bank : userEconomy.wallet;
     const toColumn = to === "wallet" ? userEconomy.wallet : userEconomy.bank;
+    const kind = to === "bank" ? "deposit" : "withdraw";
+    const fromPocket: Pocket = to === "bank" ? "wallet" : "bank";
+    const toPocket: Pocket = to === "bank" ? "bank" : "wallet";
 
-    const [row] = await db
-      .update(userEconomy)
-      .set({
-        [from.name]: sql`${from} - ${safeAmount}`,
-        [toColumn.name]: sql`${toColumn} + ${safeAmount}`,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(userEconomy.userId, userId), sql`${from} >= ${safeAmount}`))
-      .returning({ wallet: userEconomy.wallet, bank: userEconomy.bank });
+    const row = await db.transaction(async tx => {
+      const [row] = await tx
+        .update(userEconomy)
+        .set({
+          [from.name]: sql`${from} - ${safeAmount}`,
+          [toColumn.name]: sql`${toColumn} + ${safeAmount}`,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(userEconomy.userId, userId), sql`${from} >= ${safeAmount}`))
+        .returning({ wallet: userEconomy.wallet, bank: userEconomy.bank });
+
+      if (!row) {
+        return null;
+      }
+
+      await this.recordTransaction(tx, {
+        actorId: userId,
+        actorPocket: fromPocket,
+        amount: -safeAmount,
+        kind,
+        targetId: userId,
+        targetPocket: toPocket,
+      });
+      return row;
+    });
 
     if (!row) {
       return { ok: false, balance: await this.getBalance(userId) };
     }
-
-    const balance = { userId, ...row };
-    const kind = to === "bank" ? "deposit" : "withdraw";
-    const fromPocket: Pocket = to === "bank" ? "wallet" : "bank";
-    const toPocket: Pocket = to === "bank" ? "bank" : "wallet";
-    await this.recordTransaction(db, {
-      actorId: userId,
-      actorPocket: fromPocket,
-      amount: -safeAmount,
-      kind,
-      targetId: userId,
-      targetPocket: toPocket,
-    });
 
     if (kind === "deposit") {
       await addQuestProgress(userId, "deposit", safeAmount);
@@ -229,7 +257,7 @@ export default class RunesService {
       await addQuestProgress(userId, "withdraw", safeAmount);
     }
 
-    return { ok: true, balance };
+    return { ok: true, balance: { userId, ...row } };
   }
 
   /**
@@ -244,44 +272,41 @@ export default class RunesService {
    * compute the streak.
    */
   public async claimDaily(userId: string): Promise<DailyClaim> {
-    const [existing] = await db
-      .select({
-        wallet: userEconomy.wallet,
-        bank: userEconomy.bank,
-        streak: userEconomy.streak,
-        lastClaimed: userEconomy.lastClaimed,
-      })
-      .from(userEconomy)
-      .where(eq(userEconomy.userId, userId));
+    // Ensure the row exists so the writes inside the transaction always match.
+    await this.getBalance(userId);
 
     const nowTs = Date.now();
-    const keepStreak =
-      !!existing && nowTs - existing.lastClaimed.getTime() <= economyConfig.dailyStreakWindowMs;
-    const newStreak = (keepStreak ? existing.streak : 0) + 1;
+    return db.transaction(async tx => {
+      const [existing] = await tx
+        .select({
+          streak: userEconomy.streak,
+          lastClaimed: userEconomy.lastClaimed,
+        })
+        .from(userEconomy)
+        .where(eq(userEconomy.userId, userId));
 
-    const [row] = await db
-      .update(userEconomy)
-      .set({
-        streak: newStreak,
-        lastClaimed: new Date(nowTs),
-        updatedAt: new Date(),
-      })
-      .where(eq(userEconomy.userId, userId))
-      .returning({ extra: sql`1` });
+      const keepStreak =
+        !!existing && nowTs - existing.lastClaimed.getTime() <= economyConfig.dailyStreakWindowMs;
+      const newStreak = (keepStreak ? existing.streak : 0) + 1;
 
-    if (!row) {
-      await this.getBalance(userId);
-      return this.claimDaily(userId);
-    }
+      await tx
+        .update(userEconomy)
+        .set({
+          streak: newStreak,
+          lastClaimed: new Date(nowTs),
+          updatedAt: new Date(),
+        })
+        .where(eq(userEconomy.userId, userId));
 
-    const bonus = Math.min(
-      economyConfig.dailyStreakBonus * Math.max(0, newStreak - 1),
-      economyConfig.dailyStreakCap
-    );
-    const amount = economyConfig.dailyBase + bonus;
+      const bonus = Math.min(
+        economyConfig.dailyStreakBonus * Math.max(0, newStreak - 1),
+        economyConfig.dailyStreakCap
+      );
+      const amount = economyConfig.dailyBase + bonus;
 
-    const balance = await this.addMoney(userId, amount, "wallet", "daily");
-    return { amount, streak: newStreak, balance };
+      const balance = await this.creditTx(tx, userId, amount, "wallet", "daily");
+      return { amount, streak: newStreak, balance };
+    });
   }
 
   /**
@@ -297,60 +322,61 @@ export default class RunesService {
     multiplier: number,
     win: boolean
   ): Promise<GambleResult | null> {
-    const wagerRow = await this.recordGambleBet(userId, wager);
-    if (!wagerRow) {
+    const payout = win ? Math.round(wager * multiplier) : 0;
+
+    const result = await db.transaction(async tx => {
+      const [spent] = await tx
+        .update(userEconomy)
+        .set({
+          wallet: sql`${userEconomy.wallet} - ${wager}`,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(userEconomy.userId, userId), sql`${userEconomy.wallet} >= ${wager}`))
+        .returning({ wallet: userEconomy.wallet });
+
+      if (!spent) {
+        return null;
+      }
+
+      await this.recordTransaction(tx, {
+        actorId: userId,
+        actorPocket: "wallet",
+        amount: -wager,
+        kind: "gamble",
+      });
+
+      if (payout > 0) {
+        const [after] = await tx
+          .update(userEconomy)
+          .set({
+            wallet: sql`${userEconomy.wallet} + ${payout}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(userEconomy.userId, userId))
+          .returning({ wallet: userEconomy.wallet });
+
+        await this.recordTransaction(tx, {
+          actorId: userId,
+          actorPocket: "wallet",
+          amount: payout,
+          kind: "gambleWin",
+        });
+        return { wallet: after!.wallet, won: true, payout };
+      }
+
+      return { wallet: spent.wallet, won: false, payout: 0 };
+    });
+
+    if (!result) {
       return null;
     }
 
-    if (!win) {
-      return { wallet: wagerRow, won: false, payout: 0 };
-    }
-
-    const payout = Math.round(wager * multiplier);
-    const [after] = await db
-      .update(userEconomy)
-      .set({
-        wallet: sql`${userEconomy.wallet} + ${payout}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(userEconomy.userId, userId))
-      .returning({ wallet: userEconomy.wallet });
-    await this.recordTransaction(db, {
-      actorId: userId,
-      actorPocket: "wallet",
-      amount: payout,
-      kind: "gambleWin",
-    });
-    await addQuestProgress(userId, "earn", payout);
-
-    return { wallet: after?.wallet ?? wagerRow + payout, won: true, payout };
-  }
-
-  /**
-   * Deduct the wager from the wallet atomically and record the loss.
-   * Returns the post-bet wallet, or `null` if the user couldn't cover the bet.
-   */
-  private async recordGambleBet(userId: string, wager: number): Promise<number | null> {
-    const [spent] = await db
-      .update(userEconomy)
-      .set({
-        wallet: sql`${userEconomy.wallet} - ${wager}`,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(userEconomy.userId, userId), sql`${userEconomy.wallet} >= ${wager}`))
-      .returning({ wallet: userEconomy.wallet });
-
-    if (!spent) {
-      return null;
-    }
-    await this.recordTransaction(db, {
-      actorId: userId,
-      actorPocket: "wallet",
-      amount: -wager,
-      kind: "gamble",
-    });
     await addQuestProgress(userId, "spend", wager);
-    return spent.wallet;
+    if (result.won) {
+      await addQuestProgress(userId, "earn", result.payout);
+    }
+
+    return result;
   }
 
   /**
