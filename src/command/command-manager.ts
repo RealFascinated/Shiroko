@@ -15,6 +15,7 @@ import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import AvatarCommand from "./commands/avatar.command";
 import PingCommand from "./commands/ping.command";
+import UserCommand from "./commands/user.command";
 import ParsedArguments from "./parsed-arguments";
 
 export default class CommandManager {
@@ -24,6 +25,7 @@ export default class CommandManager {
     this.registerCommand(new TestCommand());
     this.registerCommand(new PingCommand());
     this.registerCommand(new AvatarCommand());
+    this.registerCommand(new UserCommand());
     this.registerCommand(new DailyCommand());
     this.registerCommand(new BegCommand());
     this.registerCommand(new WorkCommand());
