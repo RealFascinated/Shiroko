@@ -78,6 +78,28 @@ export default class RunesService {
   }
 
   /**
+   * Global rank of `userId` by total runes (wallet + bank), 1-based. `null`
+   * for users with no economy row.
+   */
+  public async getGlobalRank(userId: string): Promise<number | null> {
+    const [row] = await db
+      .select({
+        rank: sql`(
+          SELECT COUNT(*) + 1
+          FROM ${userEconomy} AS richer
+          WHERE richer.${userEconomy.wallet} + richer.${userEconomy.bank} >
+                ${userEconomy.wallet} + ${userEconomy.bank}
+          AND richer.${userEconomy.userId} IS NOT NULL
+        )`.mapWith(Number),
+        total: sql`${userEconomy.wallet} + ${userEconomy.bank}`.mapWith(Number),
+      })
+      .from(userEconomy)
+      .where(eq(userEconomy.userId, userId));
+
+    return row ? row.rank : null;
+  }
+
+  /**
    * Add `amount` runes to `userId`'s `pocket` and return the new balance.
    */
   public async addMoney(userId: string, amount: number, pocket: Pocket): Promise<Balance> {

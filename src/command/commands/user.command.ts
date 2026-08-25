@@ -7,6 +7,7 @@ import {
 } from "discord.js";
 import { runesService } from "../../feature/economy/runes.service";
 import { baseEmbed, runes } from "../../lib/embed";
+import { formatRank } from "../../lib/format";
 import GlobalUsersManager from "../../user/global-users-manager";
 import Command, { type ExecuteContext } from "../command";
 import { userOption } from "../option";
@@ -30,9 +31,10 @@ export default class UserCommand extends Command {
 
   protected override async onExecuteSlash({ globalUser, guild, ctx, args, commandName }: ExecuteContext) {
     const target = args.user("user") ?? globalUser.discordUser;
-    const [targetGlobal, balance] = await Promise.all([
+    const [targetGlobal, balance, rank] = await Promise.all([
       GlobalUsersManager.getUser(target),
       runesService.getBalance(target.id),
+      runesService.getGlobalRank(target.id),
     ]);
 
     const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
@@ -53,6 +55,8 @@ export default class UserCommand extends Command {
     const lines = [
       `**Wallet:** ${runes(balance.wallet)}`,
       `**Bank:** ${runes(balance.bank)}`,
+      `**Global Rank:** ${formatRank(rank)}`,
+      `**Account Created:** <t:${Math.floor(target.createdAt.getTime() / 1000)}:R>`,
       `**First Seen:** <t:${Math.floor(targetGlobal.firstSeen.getTime() / 1000)}:R>`,
       `**User ID:** \`${target.id}\``,
     ];
@@ -62,6 +66,9 @@ export default class UserCommand extends Command {
         .sort((a, b) => b.position - a.position)
         .map(role => role.toString());
       lines.push(`**Roles:** ${roles.length ? roles.join(" ") : "None"}`);
+      if (member.premiumSince) {
+        lines.push(`**Boosting Since:** <t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`);
+      }
     }
 
     const embed = baseEmbed(commandName)

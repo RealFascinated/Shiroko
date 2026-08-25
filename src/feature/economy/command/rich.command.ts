@@ -3,13 +3,7 @@ import Command, { type ExecuteContext } from "../../../command/command";
 import { db } from "../../../db";
 import { userEconomy } from "../../../db/schema";
 import { baseEmbed } from "../../../lib/embed";
-
-/** Leaderboard rank prefixes: medals for the top 3, plain numbers beyond. */
-const RANK_PREFIXES: Record<number, string> = {
-  0: "🥇",
-  1: "🥈",
-  2: "🥉",
-};
+import { MEDALS } from "../../../lib/format";
 
 /**
  * Global leaderboard of the richest rune holders (wallet + bank combined).
@@ -38,7 +32,7 @@ export default class RichCommand extends Command {
     }
 
     const lines = top.map((row, i) => {
-      const prefix = RANK_PREFIXES[i] ?? `${i + 1}.`;
+      const prefix = MEDALS[i] ?? `${i + 1}.`;
       return `${prefix} <@${row.userId}> — **${row.total.toLocaleString()} runes**`;
     });
 

@@ -1,8 +1,8 @@
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
+import { pluralize } from "../../../lib/format";
 import { TimeUnit } from "../../../lib/time";
-import { pluralize } from "../../../lib/utils";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
 import { runesService } from "../runes.service";

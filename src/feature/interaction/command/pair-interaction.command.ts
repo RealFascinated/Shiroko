@@ -12,7 +12,7 @@ import Command, { type ExecuteContext } from "../../../command/command";
 import { userOption } from "../../../command/option";
 import { getGif, type AnimeGif } from "../../../lib/anime";
 import { baseEmbed, watchButtonPress } from "../../../lib/embed";
-import { ordinal, titleCase } from "../../../lib/utils";
+import { ordinal, titleCase } from "../../../lib/format";
 import GlobalUsersManager from "../../../user/global-users-manager";
 import { interactionConfig } from "../config";
 import { incrementInteraction, type InteractionType } from "../interactions";
