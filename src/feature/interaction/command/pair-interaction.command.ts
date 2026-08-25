@@ -11,7 +11,7 @@ import Command, { type ExecuteContext } from "../../../command/command";
 import { userOption } from "../../../command/option";
 import { getGif, type AnimeGif } from "../../../lib/anime";
 import { baseEmbed, watchButtonPress } from "../../../lib/embed";
-import { ordinal } from "../../../lib/utils";
+import { ordinal, titleCase } from "../../../lib/utils";
 import GlobalUsersManager from "../../../user/global-users-manager";
 import { interactionConfig } from "../config";
 import { incrementInteraction, type InteractionType } from "../interactions";
@@ -75,7 +75,7 @@ export default abstract class PairInteractionCommand extends Command {
     const row = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(backButtonId(this.interactionType))
-        .setLabel(`${this.interactionType} back!`)
+        .setLabel(`${titleCase(this.interactionType)} Back!`)
         .setStyle(ButtonStyle.Secondary)
     );
     const response = await ctx.reply({ embeds: [embed], components: [row] });

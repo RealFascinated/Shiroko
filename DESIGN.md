@@ -38,6 +38,48 @@ that produced it.
 | Roles / actions    | 🤝       | 🤝 Cuddle, 🤝 Hug                   |
 | Generic tooling    | _(none)_ | Avatar, Pong!                       |
 
+## Buttons
+
+Buttons are one-shot confirmations attached to a result card. They follow a
+fixed label grammar and disable themselves the moment they're used.
+
+### Labels
+
+Action buttons use **Title Case**: capitalize the action and "Back",
+e.g. **"Hug Back!"**, **"Kiss Back!"**, **"Headpat Back!"** — never
+sentence case ("hug back!"). The verb form follows the interaction's `verb`
+field, so "holds hands with" renders as **"Holdhands Back!"** (the command
+id, not the full phrase), and the label stays under Discord's 80-char cap.
+
+### Button life
+
+Every button is **one-shot**:
+
+- It lives on exactly one reply (each interaction gets its own button).
+- On a valid press the components are stripped from the message
+  (`button.update({ components: [] })`) _before_ the press is handled, so it
+  can never fire twice.
+- When the collection window (`interactionConfig.backButtonWindowMs`) elapses,
+  the components are stripped again, leaving a clean card.
+- Only the user the card is addressed to may press; presses from anyone else
+  are ignored entirely.
+
+The generic plumbing lives in `watchButtonPress(response, options)` in
+`src/lib/embed.ts` — custom id + allowed user + window, then an `onPress`
+callback — so every future button should route through it instead of
+hand-rolling collectors.
+
+## Mentions in embeds
+
+User names inside result cards render as **mentions** (`<@id>`), and each
+user is mentioned **exactly once** per embed. This keeps cards scannable and
+ping-capable without repeating names:
+
+> **@Lee** headpats **@Bray** for the **2nd time**!
+
+Titles keep the pretty display name (e.g. _"Budd Dwyer's Avatar"_,
+_"💰 Budd Dwyer's Balance"_) — only body text mentions.
+
 ## Trade formatting
 
 Currency is always written via the `runes()` helper, which renders an inline
