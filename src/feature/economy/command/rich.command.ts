@@ -33,7 +33,7 @@ export default class RichCommand extends Command {
 
     const lines = top.map((row, i) => {
       const prefix = MEDALS[i] ?? `${i + 1}.`;
-      return `${prefix} <@${row.userId}> — **${row.total.toLocaleString()} runes**`;
+      return `${prefix} <@${row.userId}> - **${row.total.toLocaleString()} runes**`;
     });
 
     const embed = baseEmbed(commandName).setTitle("🏆 Richest Rune Holders").setDescription(lines.join("\n"));

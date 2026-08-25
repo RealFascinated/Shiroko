@@ -1,5 +1,5 @@
 /**
- * Typed client for the nekos.best API — free, keyless SFW anime images and GIFs.
+ * Typed client for the nekos.best API. Free, keyless SFW anime images and GIFs.
  *
  * Docs: https://docs.nekos.best/getting-started/api-reference.html
  *

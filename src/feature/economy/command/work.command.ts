@@ -6,6 +6,7 @@ import { pluralize } from "../../../lib/format";
 import { randInt } from "../../../lib/math";
 import { TimeUnit } from "../../../lib/time";
 import { pick } from "../../../lib/utils";
+import { addQuestProgress } from "../../quest/quests.service";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
 import { runesService } from "../runes.service";
@@ -180,6 +181,8 @@ export default class WorkCommand extends Command {
 
     const total = pay + bonus;
     const balance = await runesService.addMoney(globalUser.id, total, "wallet");
+    await addQuestProgress(globalUser.id, "work", 1);
+    await addQuestProgress(globalUser.id, "earn", total);
 
     const resultLines = JOB_RESULTS[jobName] ?? [pay => `You earn ${runes(pay)}.`];
     const lines = [pick(resultLines)(pay)];

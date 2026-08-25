@@ -81,7 +81,7 @@ export default class GambleCommand extends Command {
         const rolled = 1 + Math.floor(Math.random() * 8);
         win = rolled === chosen;
         multiplier = economyConfig.gambleQuadruplePayout;
-        outcomeLine = `The rune lands on **${rolled}**${win ? ` — exactly your ${chosen}!` : "."}`;
+        outcomeLine = `The rune lands on **${rolled}**${win ? `, exactly your ${chosen}!` : "."}`;
         break;
       }
       default: {

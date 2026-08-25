@@ -3,6 +3,7 @@ import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, ephemeralErrorReply, errorEmbed, runes } from "../../../lib/embed";
 import { pluralize } from "../../../lib/format";
 import { TimeUnit } from "../../../lib/time";
+import { addQuestProgress } from "../../quest/quests.service";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
 import { runesService } from "../runes.service";
@@ -34,6 +35,8 @@ export default class DailyCommand extends Command {
     }
 
     const { amount, streak, balance } = await runesService.claimDaily(globalUser.id);
+    await addQuestProgress(globalUser.id, "claimDaily", 1);
+    await addQuestProgress(globalUser.id, "earn", amount);
     const embed = baseEmbed(commandName)
       .setTitle("🍩 Daily Runes")
       .setDescription(`You claimed **${amount.toLocaleString()} runes**!`)

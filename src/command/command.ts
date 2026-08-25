@@ -226,7 +226,7 @@ function isFollowUp(reply: FollowUpReturn): reply is FollowUp {
 
 /**
  * Send a follow-up: a plain string, a styled embed, or an error embed.
- * Error follow-ups are always ephemeral — see DESIGN.md.
+ * Error follow-ups are always ephemeral. See DESIGN.md.
  */
 async function finishFollowUp(
   context: ExecuteContext,

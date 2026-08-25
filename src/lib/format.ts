@@ -30,10 +30,10 @@ export const MEDALS: readonly (string | null)[] = ["🥇", "🥈", "🥉"];
 
 /**
  * Format a 1-based leaderboard rank: medals for the top 3, `#N` beyond.
- * `null` stays `—`.
+ * `null` stays `-`.
  */
 export function formatRank(rank: number | null): string {
-  return rank === null ? "—" : (MEDALS[rank - 1] ?? `#${rank}`);
+  return rank === null ? "-" : (MEDALS[rank - 1] ?? `#${rank}`);
 }
 
 /**

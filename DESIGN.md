@@ -46,7 +46,7 @@ fixed label grammar and disable themselves the moment they're used.
 ### Labels
 
 Action buttons use **Title Case**: capitalize the action and "Back",
-e.g. **"Hug Back!"**, **"Kiss Back!"**, **"Headpat Back!"** — never
+e.g. **"Hug Back!"**, **"Kiss Back!"**, **"Headpat Back!"**, never
 sentence case ("hug back!"). The verb form follows the interaction's `verb`
 field, so "holds hands with" renders as **"Holdhands Back!"** (the command
 id, not the full phrase), and the label stays under Discord's 80-char cap.
@@ -65,8 +65,8 @@ Every button is **one-shot**:
   are ignored entirely.
 
 The generic plumbing lives in `watchButtonPress(response, options)` in
-`src/lib/embed.ts` — custom id + allowed user + window, then an `onPress`
-callback — so every future button should route through it instead of
+`src/lib/embed.ts`: custom id + allowed user + window, then an `onPress`
+callback. So every future button should route through it instead of
 hand-rolling collectors.
 
 ## Mentions in embeds
@@ -78,7 +78,7 @@ ping-capable without repeating names:
 > **@Lee** headpats **@Bray** for the **2nd time**!
 
 Titles keep the pretty display name (e.g. _"Budd Dwyer's Avatar"_,
-_"💰 Budd Dwyer's Balance"_) — only body text mentions.
+_"💰 Budd Dwyer's Balance"_); only body text mentions.
 
 ## Trade formatting
 
@@ -90,17 +90,17 @@ bare number for a rune amount.
 
 One footer, one job: **`<bot name> · /<command>`**, e.g. "Shiroko · /balance".
 The bot name is Discord's default look, so it stays; the command name is the
-useful part. Never repurpose the footer for other data — put that in fields
+useful part. Never repurpose the footer for other data; put that in fields
 (e.g. avatar's user ID) or in layer 3 (e.g. the anime title).
 
 ## Errors and cooldowns
 
-Errors, failed actions, and locked-out cooldowns use `errorEmbed()` — same
-shape rules, but with `Constants.errorColor` (`#e74c3c`) — and the same
+Errors, failed actions, and locked-out cooldowns use `errorEmbed()`: same
+shape rules, but with `Constants.errorColor` (`#e74c3c`) and the same
 footer. Sparse text replies are reserved for bare/short answers with no
 card-shaped content.
 
-> **Rule:** errors and warnings are **ephemeral** — the error reply carries
+> **Rule:** errors and warnings are **ephemeral**; the error reply carries
 > `flags: MessageFlags.Ephemeral`, so only the invoking user sees it. Success
 > cards keep a normal channel reply. (Adopted 2026-08-25; replacement for the
 > earlier temporary experiment marker.)

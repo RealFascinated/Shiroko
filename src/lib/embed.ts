@@ -13,7 +13,7 @@ import { Constants } from "../constants";
  *
  * Embeds are "result cards": a summary line (layer 1) carries the news,
  * optional details (layer 2) carries supporting numbers, and optional flavor
- * (layer 3) carries personality — always italic, always last.
+ * (layer 3) carries personality. Always italic, always last.
  *
  * Every embed wears the same footer: bot name, then the invoking command.
  */
@@ -30,7 +30,7 @@ export function errorEmbed(command: string | null = null): EmbedBuilder {
 }
 
 /**
- * Reply options for an ephemeral error — visible only to the invoking user.
+ * Reply options for an ephemeral error: visible only to the invoking user.
  * Success cards remain public; see DESIGN.md.
  *
  * Build the embed first, then pass it: `ctx.reply(ephemeralErrorReply(command, embed))`.

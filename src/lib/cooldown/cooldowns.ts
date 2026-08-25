@@ -24,8 +24,8 @@ export interface TryStartResult {
  * Base implementation for a cooldown store.
  *
  * Subclasses only implement the backend write primitives `_set`, `_get`,
- * `_delete`, and `_clear`. Everything else — `tryStart`, `get`,
- * `isOnCooldown`, `delete`, `clear` — is shared, including stale-entry
+ * `_delete`, and `_clear`. Everything else (`tryStart`, `get`,
+ * `isOnCooldown`, `delete`, `clear`) is shared, including stale-entry
  * expiry.
  */
 export abstract class Cooldowns {
@@ -53,7 +53,7 @@ export abstract class Cooldowns {
 
   /**
    * Fetch a cooldown by key, or `null` if it is absent or already expired
-   * (an expired entry is dropped — invoking `get` is what clears it).
+   * (an expired entry is dropped. Invoking `get` is what clears it).
    */
   public async get(key: string): Promise<Cooldown | null> {
     const row = await this._get(key);

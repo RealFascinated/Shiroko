@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { userEconomy } from "../../db/schema";
+import { addQuestProgress } from "../quest/quests.service";
 import { economyConfig } from "./config";
 
 /**
@@ -12,7 +13,7 @@ export interface Balance {
   bank: number;
 }
 
-/** A pocket runes can be held in — the spendable wallet or the safe bank. */
+/** A pocket runes can be held in: the spendable wallet or the safe bank. */
 export type Pocket = "wallet" | "bank";
 
 /**
@@ -148,7 +149,14 @@ export default class RunesService {
       return { ok: false, balance: await this.getBalance(userId) };
     }
 
-    return { ok: true, balance: { userId, ...row } };
+    const balance = { userId, ...row };
+    if (to === "bank") {
+      await addQuestProgress(userId, "deposit", safeAmount);
+    } else {
+      await addQuestProgress(userId, "withdraw", safeAmount);
+    }
+
+    return { ok: true, balance };
   }
 
   /**
@@ -228,6 +236,7 @@ export default class RunesService {
     if (!spent) {
       return null;
     }
+    await addQuestProgress(userId, "spend", wager);
 
     if (!win) {
       return { wallet: spent.wallet, won: false, payout: 0 };
@@ -242,8 +251,77 @@ export default class RunesService {
       })
       .where(eq(userEconomy.userId, userId))
       .returning({ wallet: userEconomy.wallet });
+    await addQuestProgress(userId, "earn", payout);
 
     return { wallet: after?.wallet ?? spent.wallet + payout, won: true, payout };
+  }
+
+  /**
+   * Send `amount` runes from `fromUserId`'s wallet to `toUserId`'s wallet,
+   * taking a percentage transaction fee (see `economyConfig.payFeeRate`).
+   *
+   * The fee is rounded down and deducted from the sender's wallet *in
+   * addition to* the sent amount, so the recipient always receives exactly
+   * `amount`. Atomic: both wallet writes happen in one transaction, so a
+   * payment can never partially apply. Quest progress is recorded after the
+   * commit, matching the other money flows.
+   *
+   * Returns `null` if the sender lacks the runes; otherwise the post-payment
+   * balances for both parties, the fee charged, and the amount the recipient
+   * actually received.
+   */
+  public async pay(
+    fromUserId: string,
+    toUserId: string,
+    amount: number
+  ): Promise<{ sender: Balance; recipient: Balance; fee: number; received: number } | null> {
+    const fee = Math.floor(amount * economyConfig.payFeeRate);
+    const totalDebit = amount + fee;
+
+    // Ensure the recipient has an economy row before the transaction so the
+    // credit inside it always matches a row.
+    await this.getBalance(toUserId);
+
+    const result = await db.transaction(async tx => {
+      const [senderRow] = await tx
+        .update(userEconomy)
+        .set({
+          wallet: sql`${userEconomy.wallet} - ${totalDebit}`,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(userEconomy.userId, fromUserId), sql`${userEconomy.wallet} >= ${totalDebit}`))
+        .returning({ wallet: userEconomy.wallet, bank: userEconomy.bank });
+
+      if (!senderRow) {
+        return null;
+      }
+
+      const [recipientRow] = await tx
+        .update(userEconomy)
+        .set({
+          wallet: sql`${userEconomy.wallet} + ${amount}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(userEconomy.userId, toUserId))
+        .returning({ wallet: userEconomy.wallet, bank: userEconomy.bank });
+
+      return {
+        sender: { userId: fromUserId, ...senderRow },
+        recipient: { userId: toUserId, ...recipientRow! },
+        fee,
+        received: amount,
+      };
+    });
+
+    if (!result) {
+      return null;
+    }
+
+    await addQuestProgress(fromUserId, "spend", totalDebit);
+    await addQuestProgress(fromUserId, "paySomeone", amount);
+    await addQuestProgress(toUserId, "earn", amount);
+
+    return result;
   }
 }
 

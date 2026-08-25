@@ -64,6 +64,13 @@
       "when": 1787610299168,
       "tag": "0008_sync_first_seen",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787682718524,
+      "tag": "0009_add_quests",
+      "breakpoints": true
     }
   ]
 }

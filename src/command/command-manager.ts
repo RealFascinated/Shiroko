@@ -8,9 +8,11 @@ import BankCommand, {
 import BegCommand from "../feature/economy/command/beg.command";
 import DailyCommand from "../feature/economy/command/daily.command";
 import GambleCommand from "../feature/economy/command/gamble.command";
+import PayCommand from "../feature/economy/command/pay.command";
 import RichCommand from "../feature/economy/command/rich.command";
 import WorkCommand from "../feature/economy/command/work.command";
 import TestCommand from "../feature/interaction/command/interaction.command";
+import QuestsCommand from "../feature/quest/command/quests.command";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import AvatarCommand from "./commands/avatar.command";
@@ -36,6 +38,8 @@ export default class CommandManager {
     this.registerCommand(bank);
     this.registerCommand(new BalanceCommand());
     this.registerCommand(new RichCommand());
+    this.registerCommand(new QuestsCommand());
+    this.registerCommand(new PayCommand());
     console.log(`Registered commands: ${this.commands.size}`);
   }
 

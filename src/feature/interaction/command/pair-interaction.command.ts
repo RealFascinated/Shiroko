@@ -14,6 +14,7 @@ import { getGif, type AnimeGif } from "../../../lib/anime";
 import { baseEmbed, watchButtonPress } from "../../../lib/embed";
 import { ordinal, titleCase } from "../../../lib/format";
 import GlobalUsersManager from "../../../user/global-users-manager";
+import { addQuestProgress } from "../../quest/quests.service";
 import { interactionConfig } from "../config";
 import { incrementInteraction, type InteractionType } from "../interactions";
 
@@ -70,6 +71,7 @@ export default abstract class PairInteractionCommand extends Command {
     }
     const targetUser = await GlobalUsersManager.getUser(target);
     const count = await incrementInteraction(globalUser.id, targetUser.id, this.interactionType);
+    await addQuestProgress(globalUser.id, "interact", 1);
     const gif = await getGif(this.gifCategory);
     const embed = this.buildEmbed(commandName, globalUser.discordUser, target, count, gif);
 
@@ -105,6 +107,7 @@ export default abstract class PairInteractionCommand extends Command {
   ): Promise<void> {
     const presserUser = await GlobalUsersManager.getUser(button.user);
     const count = await incrementInteraction(presserUser.id, originalActor.id, this.interactionType);
+    await addQuestProgress(presserUser.id, "interact", 1);
     const gif = await getGif(this.gifCategory);
     const embed = this.buildEmbed(commandName, presserUser.discordUser, originalActor, count, gif);
     await button.followUp({ embeds: [embed] });

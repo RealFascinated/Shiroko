@@ -19,7 +19,7 @@ export interface VariableWorkJob {
 export type WorkJob = FlatWorkJob | VariableWorkJob;
 
 /**
- * Tuning knobs for the rune economy. Values are initial guesses — tweak
+ * Tuning knobs for the rune economy. Values are initial guesses; tweak
  * here and restart to rebalance without redeploying.
  */
 export const economyConfig = {
@@ -69,4 +69,8 @@ export const economyConfig = {
   gambleLowPayout: 1.4,
   /** Maximum runes moved per bank deposit/withdraw action. */
   bankTransferCap: 10_000,
+  /** Fraction of a payment kept as a fee, e.g. 0.05 for 5%. */
+  payFeeRate: 0.05,
+  /** Minimum runes a payment may send. */
+  payMinAmount: 1,
 };

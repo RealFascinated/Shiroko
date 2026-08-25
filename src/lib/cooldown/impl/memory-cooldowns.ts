@@ -1,7 +1,7 @@
 import { Cooldowns, type Cooldown } from "../cooldowns";
 
 /**
- * In-memory cooldowns. Fast, zero I/O, and they reset on restart — which is
+ * In-memory cooldowns. Fast, zero I/O, and they reset on restart, which is
  * the correct trade-off for cooldowns like gambling or a global shop reset.
  * For cooldowns that must survive a restart or span multiple processes, use
  * `DbCooldowns` instead.

@@ -1,7 +1,7 @@
 import { TimeUnit } from "../../lib/time";
 
 /**
- * Tuning knobs for the interaction feature. Values are initial guesses —
+ * Tuning knobs for the interaction feature. Values are initial guesses;
  * tweak here and restart to rebalance without redeploying.
  */
 export const interactionConfig = {
