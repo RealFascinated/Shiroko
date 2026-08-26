@@ -12,6 +12,8 @@ import { runesService } from "../runes.service";
 export default class BankCommand extends Command {
   constructor() {
     super("bank", "Deposit or withdraw runes");
+    this.registerSubCommand(new BankDepositCommand());
+    this.registerSubCommand(new BankWithdrawCommand());
   }
 
   public override get userInstallable(): boolean {

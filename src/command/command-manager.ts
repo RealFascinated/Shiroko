@@ -1,10 +1,7 @@
 import type { Client } from "discord.js";
 import { Events, type SlashCommandBuilder } from "discord.js";
 import BalanceCommand from "../feature/economy/command/balance.command";
-import BankCommand, {
-  BankDepositCommand,
-  BankWithdrawCommand,
-} from "../feature/economy/command/bank.command";
+import BankCommand from "../feature/economy/command/bank.command";
 import BegCommand from "../feature/economy/command/beg.command";
 import DailyCommand from "../feature/economy/command/daily.command";
 import GambleCommand from "../feature/economy/command/gamble.command";
@@ -33,10 +30,7 @@ export default class CommandManager {
     this.registerCommand(new BegCommand());
     this.registerCommand(new WorkCommand());
     this.registerCommand(new GambleCommand());
-    const bank = new BankCommand();
-    bank.registerSubCommand(new BankDepositCommand());
-    bank.registerSubCommand(new BankWithdrawCommand());
-    this.registerCommand(bank);
+    this.registerCommand(new BankCommand());
     this.registerCommand(new BalanceCommand());
     this.registerCommand(new RichCommand());
     this.registerCommand(new QuestsCommand());
