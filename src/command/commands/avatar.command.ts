@@ -4,7 +4,7 @@ import { userOption } from "../option";
 
 export default class AvatarCommand extends Command {
   constructor() {
-    super("avatar", "Show avatar");
+    super("avatar", "Show a user's profile avatar");
   }
 
   public override get userInstallable(): boolean {

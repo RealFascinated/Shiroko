@@ -16,6 +16,7 @@ import QuestsCommand from "../feature/quest/command/quests.command";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import AvatarCommand from "./commands/avatar.command";
+import BlehCommand from "./commands/bleh.command";
 import PingCommand from "./commands/ping.command";
 import UserCommand from "./commands/user.command";
 import ParsedArguments from "./parsed-arguments";
@@ -40,6 +41,7 @@ export default class CommandManager {
     this.registerCommand(new RichCommand());
     this.registerCommand(new QuestsCommand());
     this.registerCommand(new PayCommand());
+    this.registerCommand(new BlehCommand());
     console.log(`Registered commands: ${this.commands.size}`);
   }
 

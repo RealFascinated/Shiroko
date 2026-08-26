@@ -2,9 +2,9 @@ import { getGif } from "../../lib/anime";
 import { baseEmbed } from "../../lib/embed";
 import Command, { type ExecuteContext } from "../command";
 
-export default class PoutCommand extends Command {
+export default class BlehCommand extends Command {
   constructor() {
-    super("pout", "Express a pouty mood with an anime gif");
+    super("bleh", "Express your displeasure with a bleh anime gif");
   }
 
   public override get userInstallable(): boolean {
@@ -12,10 +12,10 @@ export default class PoutCommand extends Command {
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
-    const gif = await getGif("pout");
+    const gif = await getGif("bleh");
 
     return ctx.reply({
-      embeds: [baseEmbed(commandName).setTitle(`${ctx.user.displayName} pouts`).setImage(gif.url)],
+      embeds: [baseEmbed(commandName).setTitle(`${ctx.user.displayName} feels bleh`).setImage(gif.url)],
     });
   }
 }

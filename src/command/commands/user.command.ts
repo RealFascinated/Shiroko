@@ -23,7 +23,7 @@ import { userOption } from "../option";
  */
 export default class UserCommand extends Command {
   constructor() {
-    super("user", "Show user info");
+    super("user", "Show a user's profile: balance, avatar, banner and more");
   }
 
   public override get userInstallable(): boolean {

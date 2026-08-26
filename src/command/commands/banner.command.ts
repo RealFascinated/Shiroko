@@ -4,7 +4,7 @@ import { userOption } from "../option";
 
 export default class BannerCommand extends Command {
   constructor() {
-    super("banner", "Show banner");
+    super("banner", "Show a user's profile banner");
   }
 
   public override get userInstallable(): boolean {
