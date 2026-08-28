@@ -14,25 +14,25 @@ const PATRONS = [
     name: "Arona",
     chance: 0.5,
     range: [1, 20],
-    says: (amt: number) => `hands you ${amt} runes. "That's all I had... go buy a soda or something."`,
+    line: `hands over the runes. "That's all I had... go buy a soda or something."`,
   },
   {
     name: "Hifumi",
     chance: 0.05,
     range: [50, 150],
-    says: (amt: number) => `grins and hands you ${amt} runes. "Don't tell anyone, okay?"`,
+    line: `grins and slips you a fat handful. "Don't tell anyone, okay?"`,
   },
   {
     name: "Sora",
     chance: 0.4,
     range: [1, 20],
-    says: (amt: number) => `counts out ${amt} runes. "The General Shop appreciates your patronage."`,
+    line: `counts out the runes with great ceremony. "The General Shop appreciates your patronage."`,
   },
   {
     name: "Arisu",
     chance: 0.05,
     range: [1, 20],
-    says: (amt: number) => `gives you ${amt} runes. "This is a state-of-the-art... coin? Probably."`,
+    line: `hands over the runes. "This is a state-of-the-art... coin? Probably."`,
   },
 ] as const;
 
@@ -79,9 +79,10 @@ export default class BegCommand extends Command {
       const embed = baseEmbed(commandName)
         .setTitle("💸 Beg")
         .setDescription(
-          `You begged, but Arona's moody side stirs and snatches **${loss} runes** from your wallet.\n\n*"Don't tell her."*`
-        )
-        .addFields({ name: "Wallet", value: runes(result.wallet), inline: true });
+          `You begged, but Arona's moody side stirs and snatches **${loss} runes** from your wallet.\n${runes(
+            result.wallet
+          )} in your wallet.\n\n*"Don't tell her."*`
+        );
       return ctx.reply({ embeds: [embed] });
     }
 
@@ -110,8 +111,11 @@ export default class BegCommand extends Command {
 
     const embed = baseEmbed(commandName)
       .setTitle("💸 Beg")
-      .setDescription(`You beg, and **${patron.name}** answers.\n\n*${patron.says(amount)}*`)
-      .addFields({ name: "Wallet", value: runes(balance.wallet), inline: true });
+      .setDescription(
+        `You begged, and **${patron.name}** handed you **${amount} runes**.\n${runes(
+          balance.wallet
+        )} in your wallet.\n\n*${patron.line}*`
+      );
     return ctx.reply({ embeds: [embed] });
   }
 }

@@ -114,17 +114,12 @@ export default class GambleCommand extends Command {
       );
     }
 
+    const summary = win
+      ? `You won **${result.payout.toLocaleString()} runes**!`
+      : `You lost **${amount.toLocaleString()} runes**.`;
     const embed = baseEmbed(commandName)
       .setTitle("🎰 Gamble")
-      .setDescription(
-        win
-          ? `You won **${result.payout.toLocaleString()} runes**!`
-          : `You lost **${amount.toLocaleString()} runes**.`
-      )
-      .addFields(
-        { name: "Result", value: outcomeLine, inline: true },
-        { name: "Wallet", value: runes(result.wallet), inline: true }
-      );
+      .setDescription(`${summary}\n${runes(result.wallet)} in your wallet.\n\n*${outcomeLine}*`);
     return ctx.reply({ embeds: [embed] });
   }
 }

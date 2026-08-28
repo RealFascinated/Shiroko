@@ -17,6 +17,21 @@ Each embed is built from up to three layers, composed top-to-bottom.
 Default every embed to layers 1 + 2. Flavor (layer 3) is optional; when present
 it is always the final line of the description.
 
+### Orphan fields
+
+Discord renders fields _after_ the description, so a lone `Wallet` field lands
+below the flavor and inverts the layer order. When a card has exactly one
+balance line, fold it into the description as a plain layer-2 line under the
+summary instead of a field:
+
+> You earned **60 runes**.
+> `425 runes` in your wallet.
+>
+> _You patrol the food court looking suitably mysterious._
+
+Fields are for two or more side-by-side details (Wallet / Bank, Fee / You /
+Them). Flavor never restates the numbers the summary already gave.
+
 ### One-line embeds
 
 Small confirmations ("Deposited 20 runes") collapse to a single summary line

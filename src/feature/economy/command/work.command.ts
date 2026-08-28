@@ -11,105 +11,88 @@ import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
 import { runesService } from "../runes.service";
 
-/** Result lines keyed by job name; each renders the payout text. */
-const JOB_RESULTS: Record<string, Array<(pay: number) => string>> = {
+/** Result lines keyed by job name. */
+const JOB_RESULTS: Record<string, string[]> = {
   security: [
-    pay =>
-      `You clock in, put on the shades, and stand guard at the Summit entrance. **${pay} runes** for your trouble.`,
-    pay => `A kid tries to sneak a soda past you. One look and they put it back. **${pay} runes** earned.`,
-    pay => `You patrol the food court looking suitably mysterious. **${pay} runes** in your pocket.`,
-    pay =>
-      `You catch a shoplifter trying to swipe a cheap soda. They pay double out of shame. **${pay} runes** for you.`,
-    pay => `You spend the shift helping lost kids find their parents. **${pay} runes** for being a hero.`,
-    pay => `A stray Shiba wanders through. You guard it like a VIP for an hour. **${pay} runes** earned.`,
-    pay => `You break up a turf war over a vending machine. **${pay} runes** for your bravery.`,
+    `You clock in, put on the shades, and stand guard at the Summit entrance.`,
+    `A kid tries to sneak a soda past you. One look and they put it back.`,
+    `You patrol the food court looking suitably mysterious.`,
+    `You catch a shoplifter trying to swipe a cheap soda. They pay double out of shame.`,
+    `You spend the shift helping lost kids find their parents.`,
+    `A stray Shiba wanders through. You guard it like a VIP for an hour.`,
+    `You break up a turf war over a vending machine.`,
   ],
   vending: [
-    pay => `You restock the vending machines. The instant coffee vanishes first. **${pay} runes** earned.`,
-    pay => `You wrestle the machine that ate someone's change. **${pay} runes** for your effort.`,
-    pay => `Fully loaded soda racks, zero casualties. **${pay} runes** paid out.`,
-    pay =>
-      `You find an old bottle of Sobacola behind a machine and pocket it. **${pay} runes** plus a mystery soda.`,
-    pay =>
-      `A machine jams every single can. You fix it with a firm handshake and a lot of patience. **${pay} runes**.`,
-    pay => `You rotate the stock so the fresh sodas are in front. Store policy. **${pay} runes** earned.`,
-    pay => `You refill a machine with fifty sodas and only cry once. **${pay} runes** for your resilience.`,
+    `You restock the vending machines. The instant coffee vanishes first.`,
+    `You wrestle the machine that ate someone's change.`,
+    `Fully loaded soda racks, zero casualties.`,
+    `You find an old bottle of Sobacola behind a machine and pocket it, plus a mystery soda.`,
+    `A machine jams every single can. You fix it with a firm handshake and a lot of patience.`,
+    `You rotate the stock so the fresh sodas are in front. Store policy.`,
+    `You refill a machine with fifty sodas and only cry once.`,
   ],
   soda: [
-    pay => `You ferry sodas around the Summit in record time. **${pay} runes** for the delivery.`,
-    pay => `Twelve soda deliveries and only two spilled. Arona would be proud. **${pay} runes** earned.`,
-    pay => `You run sodas until your legs give out. **${pay} runes** for your dedication.`,
-    pay => `You deliver a single soda across three floors because someone paid extra. **${pay} runes**.`,
-    pay =>
-      `You transport a fresh batch to the security desk and get a nod of approval. **${pay} runes** earned.`,
-    pay => `You almost trip with a full tray of sodas, then somehow save all of them. **${pay} runes**.`,
-    pay => `You become known as the Soda Runner of the Summit. The legends grow. **${pay} runes** paid out.`,
+    `You ferry sodas around the Summit in record time.`,
+    `Twelve soda deliveries and only two spilled. Arona would be proud.`,
+    `You run sodas until your legs give out.`,
+    `You deliver a single soda across three floors because someone paid extra.`,
+    `You transport a fresh batch to the security desk and get a nod of approval.`,
+    `You almost trip with a full tray of sodas, then somehow save all of them.`,
+    `You become known as the Soda Runner of the Summit. The legends grow.`,
   ],
   intern: [
-    pay => `You file foreclosure papers and dodge angry stares. **${pay} runes** for your trouble.`,
-    pay => `You organize the filing room. Nobody thanks you, but the runes show up. **${pay} runes** earned.`,
-    pay => `You spend the shift photocopying and questioning your life choices. **${pay} runes**.`,
-    pay =>
-      `You sort paperwork for hours and find a cheesy romance novel hidden in the archives. **${pay} runes**.`,
-    pay => `You run the office coffee machine better than anyone. **${pay} runes** for your service.`,
-    pay => `You learn 30 ways to say "we'll call you back" while answering phones. **${pay} runes**.`,
-    pay => `You sneak a nap in the storage closet and somehow don't get caught. **${pay} runes** earned.`,
+    `You file foreclosure papers and dodge angry stares.`,
+    `You organize the filing room. Nobody thanks you, but the runes show up.`,
+    `You spend the shift photocopying and questioning your life choices.`,
+    `You sort paperwork for hours and find a cheesy romance novel hidden in the archives.`,
+    `You run the office coffee machine better than anyone.`,
+    `You learn 30 ways to say "we'll call you back" while answering phones.`,
+    `You sneak a nap in the storage closet and somehow don't get caught.`,
   ],
   barista: [
-    pay => `You craft a boba so perfect a customer takes a photo of it. **${pay} runes** for your art.`,
-    pay => `You survive the lunch rush with a smile (mostly). **${pay} runes** earned.`,
-    pay => `You make a drink with extra boba and the customer's day is made. **${pay} runes**.`,
-    pay => `You steam milk, shake tea, and refuse to ask how the boba gets in. **${pay} runes** paid out.`,
-    pay => `You name a drink after a shy customer's dog. They order it twice more. **${pay} runes** earned.`,
-    pay => `Only three spills today. A personal record. **${pay} runes** for your grace.`,
+    `You craft a boba so perfect a customer takes a photo of it.`,
+    `You survive the lunch rush with a smile (mostly).`,
+    `You make a drink with extra boba and the customer's day is made.`,
+    `You steam milk, shake tea, and refuse to ask how the boba gets in.`,
+    `You name a drink after a shy customer's dog. They order it twice more.`,
+    `Only three spills today. A personal record.`,
   ],
   gacha: [
-    pay =>
-      `You restock gacha machines. A kid pulls three rares in a row and you take full credit. **${pay} runes**.`,
-    pay =>
-      `You refill the capsule machine and slip in a little bonus prize. **${pay} runes** for your kindness.`,
-    pay => `You wrestle a jammed gacha machine free with a spoon and sheer will. **${pay} runes**.`,
-    pay =>
-      `You check that every capsule is seated. Nothing is jankier than a half-stuck capsule. **${pay} runes**.`,
-    pay =>
-      `You witness someone get exactly what they wanted. Their scream of joy echoes. **${pay} runes** earned.`,
-    pay => `You spend the shift keeping the machines from being shaken to death. **${pay} runes**.`,
+    `You restock gacha machines. A kid pulls three rares in a row and you take full credit.`,
+    `You refill the capsule machine and slip in a little bonus prize.`,
+    `You wrestle a jammed gacha machine free with a spoon and sheer will.`,
+    `You check that every capsule is seated. Nothing is jankier than a half-stuck capsule.`,
+    `You witness someone get exactly what they wanted. Their scream of joy echoes.`,
+    `You spend the shift keeping the machines from being shaken to death.`,
   ],
   janitor: [
-    pay =>
-      `You mop the food court while a kid skids across the wet floor. Liability paperwork avoided. **${pay} runes**.`,
-    pay =>
-      `You clean up after a soda explosion that somehow involved confetti. **${pay} runes** for your bravery.`,
-    pay => `You polish the fountain and a coin lands at your feet like a tip. **${pay} runes** earned.`,
-    pay => `You find a lost keychain in the vents and return it. **${pay} runes** plus a smile.`,
-    pay => `You take out the trash and feel a quiet sense of purpose. **${pay} runes**.`,
-    pay => `You sweep up glitter for an hour. It's still glittering. **${pay} runes** for your patience.`,
+    `You mop the food court while a kid skids across the wet floor. Liability paperwork avoided.`,
+    `You clean up after a soda explosion that somehow involved confetti.`,
+    `You polish the fountain and a coin lands at your feet like a tip.`,
+    `You find a lost keychain in the vents and return it.`,
+    `You take out the trash and feel a quiet sense of purpose.`,
+    `You sweep up glitter for an hour. It's still glittering.`,
   ],
   delivery: [
-    pay => `You run food across the food court like a relay star. **${pay} runes** earned.`,
-    pay => `You deliver a tray of steaming ramen without spilling a drop. **${pay} runes**.`,
-    pay =>
-      `You shave seconds off your delivery record. The kitchen staff applaud. **${pay} runes** paid out.`,
-    pay => `You carry five orders at once and emerge victorious. **${pay} runes** for your triumph.`,
-    pay => `One customer tips you with a sticker of a smiling soda can. **${pay} runes** and a new friend.`,
-    pay => `You brave the lunch rush and deliver everything hot. **${pay} runes** earned.`,
+    `You run food across the food court like a relay star.`,
+    `You deliver a tray of steaming ramen without spilling a drop.`,
+    `You shave seconds off your delivery record. The kitchen staff applaud.`,
+    `You carry five orders at once and emerge victorious.`,
+    `One customer tips you with a sticker of a smiling soda can and a new friend.`,
+    `You brave the lunch rush and deliver everything hot.`,
   ],
 };
 
 /** Bonus payout lines for the internship's lucky days. */
-const BONUS_LINES: Array<(bonus: number) => string> = [
-  bonus => `A friendly old-timer slips you an extra **${bonus} runes** for your trouble.`,
-  bonus => `An old-timer pats you on the back and quietly hands you **${bonus} runes**. "Nice work, kid."`,
-  bonus => `A grumpy old-timer tosses **${bonus} runes** at you. "For the soda fund."`,
-  bonus =>
-    `The old-timer at the counter winks and adds **${bonus} runes** to your pay. "Don't tell the boss."`,
-  bonus =>
-    `"Here's **${bonus} runes**," an old-timer says, pushing them toward you. "You earned it, unlike the last three."`,
-  bonus =>
-    `A mysterious old-timer gives you **${bonus} runes**. "A tip from a friend of a friend of an Arona."`,
-  bonus =>
-    `The old-timer treats the whole office to coffee with your bonus. **${bonus} runes**... but you're the hero.`,
-] as const;
+const BONUS_LINES = [
+  `A friendly old-timer slips you an extra tip for your trouble.`,
+  `An old-timer pats you on the back and quietly tops up your pay. "Nice work, kid."`,
+  `A grumpy old-timer tosses you a tip. "For the soda fund."`,
+  `The old-timer at the counter winks and adds to your pay. "Don't tell the boss."`,
+  `An old-timer pushes a tip toward you. "You earned it, unlike the last three."`,
+  `A mysterious old-timer slides you a tip. "From a friend of a friend of an Arona."`,
+  `The old-timer treats the whole office to coffee with your bonus... but you're the hero.`,
+];
 
 /**
  * Work a part-time job at the Summit for runes. Short cooldown, no RNG for
@@ -184,16 +167,19 @@ export default class WorkCommand extends Command {
     await addQuestProgress(globalUser.id, "work", 1);
     await addQuestProgress(globalUser.id, "earn", total);
 
-    const resultLines = JOB_RESULTS[jobName] ?? [pay => `You earn ${runes(pay)}.`];
-    const lines = [pick(resultLines)(pay)];
+    const resultLines = JOB_RESULTS[jobName] ?? [`You earn ${runes(pay)}.`];
+    const lines = [pick(resultLines)];
     if (bonus > 0) {
-      lines.push(pick(BONUS_LINES)(bonus));
+      lines.push(pick(BONUS_LINES));
     }
 
     const embed = baseEmbed(commandName)
-      .setTitle("💼 Work")
-      .setDescription(`You earned **${total.toLocaleString()} runes**.\n\n*${lines.join(" ")}*`)
-      .addFields({ name: "Wallet", value: runes(balance.wallet), inline: true });
+      .setTitle("💼 Clock In")
+      .setDescription(
+        `You earned **${total.toLocaleString()} runes**.\n${runes(balance.wallet)} in your wallet.\n\n*${lines.join(
+          " "
+        )}*`
+      );
     return ctx.reply({ embeds: [embed] });
   }
 }
