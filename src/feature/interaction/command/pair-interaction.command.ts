@@ -56,7 +56,7 @@ export default abstract class PairInteractionCommand extends Command {
    */
   private buildEmbed(commandName: string, actor: User, recipient: User, count: number, gif: AnimeGif) {
     const embed = baseEmbed(commandName)
-      .setDescription(`**${actor}** ${this.verb} **${recipient}** for the **${ordinal(count)}** time!`)
+      .setDescription(`${actor} ${this.verb} ${recipient} for the **${ordinal(count)}** time!`)
       .setImage(gif.url);
     if (gif.anime_name) {
       embed.addFields({ name: "Anime", value: gif.anime_name, inline: true });
