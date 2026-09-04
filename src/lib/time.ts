@@ -54,3 +54,23 @@ export namespace TimeUnit {
 export function remainingMs(endsAt: Date, now: Date = new Date()): number {
   return Math.max(0, endsAt.getTime() - now.getTime());
 }
+/**
+ * Format a duration in milliseconds as its largest whole units, e.g. `2d 4h 12m`.
+ */
+export function formatDuration(ms: number): string {
+  const day = TimeUnit.toMillis(TimeUnit.Day, 1);
+  const hour = TimeUnit.toMillis(TimeUnit.Hour, 1);
+  const minute = TimeUnit.toMillis(TimeUnit.Minute, 1);
+  const days = Math.floor(ms / day);
+  const hours = Math.floor((ms % day) / hour);
+  const minutes = Math.floor((ms % hour) / minute);
+  const parts: string[] = [];
+  if (days) {
+    parts.push(`${days}d`);
+  }
+  if (hours) {
+    parts.push(`${hours}h`);
+  }
+  parts.push(`${minutes}m`);
+  return parts.join(" ");
+}
