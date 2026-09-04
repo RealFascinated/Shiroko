@@ -17,17 +17,8 @@ export type InteractionType =
   | "tease"
   | "tickle"
   | "bonk"
-  | "wave"
-  | "cry"
-  | "thumbsup"
   | "blowkiss"
-  | "peck"
-  | "bite"
-  | "highfive"
-  | "clap"
-  | "yeet"
-  | "carry"
-  | "blush";
+  | "bite";
 
 /**
  * Increment the interaction count from `actorId` to `targetId` and return the new count.
