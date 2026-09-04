@@ -12,27 +12,51 @@ import { runesService } from "../runes.service";
 const PATRONS = [
   {
     name: "Arona",
-    chance: 0.5,
+    chance: 0.25,
     range: [1, 20],
     line: `hands over the runes. "That's all I had... go buy a soda or something."`,
+  },
+  {
+    name: "Sora",
+    chance: 0.2,
+    range: [1, 20],
+    line: `counts out the runes with great ceremony. "The General Shop appreciates your patronage."`,
+  },
+  {
+    name: "Arisu",
+    chance: 0.13,
+    range: [1, 20],
+    line: `hands over the runes. "This is a state-of-the-art... coin? Probably."`,
+  },
+  {
+    name: "Chizuru",
+    chance: 0.12,
+    range: [15, 45],
+    line: `adjusts her glasses and hands over a neat little stack. "The Countermeasures Council's budget approves this. Barely."`,
+  },
+  {
+    name: "Hoshino",
+    chance: 0.12,
+    range: [15, 45],
+    line: `hands them over quietly. "...Don't tell anyone I did this, okay?"`,
+  },
+  {
+    name: "Miyabi",
+    chance: 0.08,
+    range: [20, 80],
+    line: `tosses you a handful of coins with a lazy grin. "You won my little game. Consider it your winnings."`,
+  },
+  {
+    name: "Ayane",
+    chance: 0.05,
+    range: [100, 250],
+    line: `flips you a wad of cash without breaking eye contact. "Don't get used to it."`,
   },
   {
     name: "Hifumi",
     chance: 0.05,
     range: [50, 150],
     line: `grins and slips you a fat handful. "Don't tell anyone, okay?"`,
-  },
-  {
-    name: "Sora",
-    chance: 0.4,
-    range: [1, 20],
-    line: `counts out the runes with great ceremony. "The General Shop appreciates your patronage."`,
-  },
-  {
-    name: "Arisu",
-    chance: 0.05,
-    range: [1, 20],
-    line: `hands over the runes. "This is a state-of-the-art... coin? Probably."`,
   },
 ] as const;
 
