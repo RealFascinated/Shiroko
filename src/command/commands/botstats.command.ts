@@ -12,11 +12,11 @@ import { formatDuration } from "../../lib/time";
 import Command, { type ExecuteContext } from "../command";
 
 /**
- * Show the bot's own stats: servers it is in, users it has seen, latency and uptime.
+ * Show the bot's own stats: servers it is in, users it has seen, latency, RAM and uptime.
  */
 export default class BotStatsCommand extends Command {
   constructor() {
-    super("botstats", "Show the bot's stats: servers, users, latency and uptime");
+    super("botstats", "Show the bot's stats: servers, users, status");
   }
 
   public override get userInstallable(): boolean {
@@ -27,6 +27,7 @@ export default class BotStatsCommand extends Command {
     const bot = ctx.client.user!;
     const avatarUrl = bot.displayAvatarURL({ size: 4096, extension: "webp" });
     const bannerUrl = bot.bannerURL({ size: 4096, extension: "webp" });
+    const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${ctx.client.application!.id}&scope=bot%20applications.commands&permissions=8`;
     const [userCount] = await db.select({ value: sql<number>`count(*)` }).from(globalUsers);
 
     const sections: string[][] = [
@@ -38,6 +39,7 @@ export default class BotStatsCommand extends Command {
       [
         `**⚡ Status**`,
         `**Latency:** ${ctx.client.ws.ping}ms`,
+        `**RAM:** ${(process.memoryUsage().rss / 1024 ** 2).toFixed(1)} MB`,
         `**Uptime:** ${formatDuration(process.uptime() * 1000)}`,
       ],
     ];
@@ -53,7 +55,7 @@ export default class BotStatsCommand extends Command {
       embed.setImage(bannerUrl);
     }
 
-    const buttons = [new ButtonBuilder().setLabel("Avatar").setStyle(ButtonStyle.Link).setURL(avatarUrl)];
+    const buttons = [new ButtonBuilder().setLabel("Invite").setStyle(ButtonStyle.Link).setURL(inviteUrl)];
     if (bannerUrl) {
       buttons.push(new ButtonBuilder().setLabel("Banner").setStyle(ButtonStyle.Link).setURL(bannerUrl));
     }
