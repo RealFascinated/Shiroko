@@ -7,4 +7,5 @@ export default class BonkCommand extends PairInteractionCommand {
   protected readonly interactionType = "bonk";
   protected readonly gifCategory = "bonk";
   protected readonly verb = "bonks";
+  protected readonly emoji = "🥴";
 }

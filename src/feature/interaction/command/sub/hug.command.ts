@@ -7,4 +7,5 @@ export default class HugCommand extends PairInteractionCommand {
   protected readonly interactionType = "hug";
   protected readonly gifCategory = "hug";
   protected readonly verb = "hugs";
+  protected readonly emoji = "🤗";
 }

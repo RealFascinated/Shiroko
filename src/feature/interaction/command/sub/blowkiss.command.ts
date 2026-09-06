@@ -7,4 +7,5 @@ export default class BlowkissCommand extends PairInteractionCommand {
   protected readonly interactionType = "blowkiss";
   protected readonly gifCategory = "blowkiss";
   protected readonly verb = "blows a kiss at";
+  protected readonly emoji = "💋";
 }

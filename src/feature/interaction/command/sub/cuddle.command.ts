@@ -7,4 +7,5 @@ export default class CuddleCommand extends PairInteractionCommand {
   protected readonly interactionType = "cuddle";
   protected readonly gifCategory = "cuddle";
   protected readonly verb = "cuddles";
+  protected readonly emoji = "🫂";
 }

@@ -7,4 +7,5 @@ export default class TeaseCommand extends PairInteractionCommand {
   protected readonly interactionType = "tease";
   protected readonly gifCategory = "kabedon";
   protected readonly verb = "teases";
+  protected readonly emoji = "😏";
 }

@@ -7,4 +7,5 @@ export default class BiteCommand extends PairInteractionCommand {
   protected readonly interactionType = "bite";
   protected readonly gifCategory = "bite";
   protected readonly verb = "bites";
+  protected readonly emoji = "🦷";
 }

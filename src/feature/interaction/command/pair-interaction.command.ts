@@ -38,7 +38,7 @@ export default abstract class PairInteractionCommand extends Command {
   protected abstract readonly interactionType: InteractionType;
   protected abstract readonly gifCategory: Parameters<typeof getGif>[0];
   protected abstract readonly verb: string;
-
+  protected abstract readonly emoji: string;
   constructor(id: string, displayName: string) {
     super(id, displayName);
   }
@@ -80,6 +80,7 @@ export default abstract class PairInteractionCommand extends Command {
         .setCustomId(backButtonId(this.interactionType))
         .setLabel(`${titleCase(this.interactionType)} Back!`)
         .setStyle(ButtonStyle.Secondary)
+        .setEmoji(this.emoji)
     );
     const response = await ctx.reply({ embeds: [embed], components: [row] });
 

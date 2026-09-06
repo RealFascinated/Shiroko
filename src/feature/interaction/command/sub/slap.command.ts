@@ -7,4 +7,5 @@ export default class SlapCommand extends PairInteractionCommand {
   protected readonly interactionType = "slap";
   protected readonly gifCategory = "slap";
   protected readonly verb = "slaps";
+  protected readonly emoji = "💥";
 }

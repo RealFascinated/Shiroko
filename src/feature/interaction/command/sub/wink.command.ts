@@ -7,4 +7,5 @@ export default class WinkCommand extends PairInteractionCommand {
   protected readonly interactionType = "wink";
   protected readonly gifCategory = "wink";
   protected readonly verb = "winks at";
+  protected readonly emoji = "😉";
 }
