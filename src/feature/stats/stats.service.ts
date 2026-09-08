@@ -28,12 +28,12 @@ export interface VoiceOccupant {
 }
 
 /**
- * Counts for one display window set: today, this week, last 7 days, total.
+ * Counts for one display window set: today, last 7 days, last 30 days, total.
  */
 export interface StatsSummary {
   today: number;
-  thisWeek: number;
   last7days: number;
+  last30days: number;
   total: number;
 }
 
@@ -50,8 +50,8 @@ export interface VoiceWindow {
  */
 export interface VoiceSummary {
   today: VoiceWindow;
-  thisWeek: VoiceWindow;
   last7days: VoiceWindow;
+  last30days: VoiceWindow;
   total: VoiceWindow;
 }
 
@@ -76,26 +76,26 @@ export interface CardStats {
 
 /**
  * Display window bounds for one read. Computed once per call so every
- * query agrees on where today, this week, and the chart range start.
+ * query agrees on where today, the rolling windows, and the chart start.
  */
 interface StatsWindows {
   today: Date;
-  weekStart: Date;
   last7Start: Date;
+  last30Start: Date;
   seriesStart: Date;
 }
 
 /**
- * Derive the window bounds for `now`: UTC day start, Monday week start
- * (shared with quests), the rolling 7-day start, and the chart start.
+ * Derive the window bounds for `now`: UTC day start, the rolling 7-day
+ * and 30-day starts, and the chart start.
  */
 function statsWindows(now: Date, days = 7): StatsWindows {
   const today = questWindow("daily", now).start;
   const dayMs = 24 * 60 * 60 * 1000;
   return {
     today,
-    weekStart: questWindow("weekly", now).start,
     last7Start: new Date(today.getTime() - 6 * dayMs),
+    last30Start: new Date(today.getTime() - 29 * dayMs),
     seriesStart: new Date(today.getTime() - (days - 1) * dayMs),
   };
 }
@@ -221,12 +221,12 @@ export default class StatsService {
         today: sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.today})`.mapWith(
           Number
         ),
-        thisWeek:
-          sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.weekStart})`.mapWith(
-            Number
-          ),
         last7days:
           sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.last7Start})`.mapWith(
+            Number
+          ),
+        last30days:
+          sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.last30Start})`.mapWith(
             Number
           ),
         total: sql<number>`count(*)`.mapWith(Number),
@@ -235,8 +235,8 @@ export default class StatsService {
       .where(and(eq(messageEvents.userId, userId), eq(messageEvents.guildId, guildId)));
     return {
       today: row?.today ?? 0,
-      thisWeek: row?.thisWeek ?? 0,
       last7days: row?.last7days ?? 0,
+      last30days: row?.last30days ?? 0,
       total: row?.total ?? 0,
     };
   }
@@ -260,20 +260,20 @@ export default class StatsService {
           sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.today}), 0)`.mapWith(
             Number
           ),
-        weekSessions:
-          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.weekStart})`.mapWith(
-            Number
-          ),
-        weekSeconds:
-          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.weekStart}), 0)`.mapWith(
-            Number
-          ),
         last7Sessions:
           sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.last7Start})`.mapWith(
             Number
           ),
         last7Seconds:
           sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.last7Start}), 0)`.mapWith(
+            Number
+          ),
+        last30Sessions:
+          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.last30Start})`.mapWith(
+            Number
+          ),
+        last30Seconds:
+          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.last30Start}), 0)`.mapWith(
             Number
           ),
         totalSessions: sql<number>`count(*)`.mapWith(Number),
@@ -284,8 +284,8 @@ export default class StatsService {
     const live = this.liveVoice(guildId, userId, now);
     return {
       today: this.voiceWindow(row, "today", windows.today, live),
-      thisWeek: this.voiceWindow(row, "week", windows.weekStart, live),
       last7days: this.voiceWindow(row, "last7", windows.last7Start, live),
+      last30days: this.voiceWindow(row, "last30", windows.last30Start, live),
       total: {
         sessions: row?.totalSessions ?? 0,
         seconds: (row?.totalSeconds ?? 0) + (live?.seconds ?? 0),
@@ -302,13 +302,13 @@ export default class StatsService {
       | {
           todaySessions: number;
           todaySeconds: number;
-          weekSessions: number;
-          weekSeconds: number;
           last7Sessions: number;
           last7Seconds: number;
+          last30Sessions: number;
+          last30Seconds: number;
         }
       | undefined,
-    prefix: "today" | "week" | "last7",
+    prefix: "today" | "last7" | "last30",
     start: Date,
     live: { joinedAt: Date; seconds: number } | null
   ): VoiceWindow {

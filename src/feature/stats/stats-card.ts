@@ -102,10 +102,10 @@ async function paintHeader(ctx: SKRSContext2D, data: StatsCardData): Promise<voi
 }
 
 /**
- * Draw the four window tiles: today, this week, last 7 days, total.
+ * Draw the four window tiles: today, last 7 days, last 30 days, total.
  */
 function paintWindowRow(ctx: SKRSContext2D, data: StatsCardData): void {
-  const labels = ["Today", "This week", "Last 7d", "Total"];
+  const labels = ["Today", "Last 7d", "Last 30d", "Total"];
   const tiles = tileValues(data);
   const gap = 20;
   const tileWidth = (WIDTH - 96 - gap * 3) / 4;
@@ -169,7 +169,7 @@ function cardTitle(kind: StatsCardKind): string {
   if (kind === "voice") {
     return "Voice stats";
   }
-  return "Activity stats";
+  return "Message and Voice activity";
 }
 
 /**
@@ -181,28 +181,34 @@ function tileValues(data: StatsCardData): Array<{ value: string; sub?: string }>
   if (data.kind === "messages") {
     return [
       { value: formatCount(data.messages.today) },
-      { value: formatCount(data.messages.thisWeek) },
       { value: formatCount(data.messages.last7days) },
+      { value: formatCount(data.messages.last30days) },
       { value: formatCount(data.messages.total) },
     ];
   }
   if (data.kind === "voice") {
     return [
       { value: formatHours(data.voice.today.seconds), sub: formatSessions(data.voice.today.sessions) },
-      { value: formatHours(data.voice.thisWeek.seconds), sub: formatSessions(data.voice.thisWeek.sessions) },
       {
         value: formatHours(data.voice.last7days.seconds),
         sub: formatSessions(data.voice.last7days.sessions),
+      },
+      {
+        value: formatHours(data.voice.last30days.seconds),
+        sub: formatSessions(data.voice.last30days.sessions),
       },
       { value: formatHours(data.voice.total.seconds), sub: formatSessions(data.voice.total.sessions) },
     ];
   }
   return [
     { value: formatCount(data.messages.today), sub: `${formatHours(data.voice.today.seconds)} voice` },
-    { value: formatCount(data.messages.thisWeek), sub: `${formatHours(data.voice.thisWeek.seconds)} voice` },
     {
       value: formatCount(data.messages.last7days),
       sub: `${formatHours(data.voice.last7days.seconds)} voice`,
+    },
+    {
+      value: formatCount(data.messages.last30days),
+      sub: `${formatHours(data.voice.last30days.seconds)} voice`,
     },
     { value: formatCount(data.messages.total), sub: `${formatHours(data.voice.total.seconds)} voice` },
   ];
