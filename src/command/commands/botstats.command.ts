@@ -24,7 +24,7 @@ export default class BotStatsCommand extends Command {
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
-    const bot = ctx.client.user!;
+    const bot = await ctx.client.user!.fetch();
     const avatarUrl = bot.displayAvatarURL({ size: 4096, extension: "webp" });
     const bannerUrl = bot.bannerURL({ size: 4096, extension: "webp" });
     const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${ctx.client.application!.id}&scope=bot%20applications.commands&permissions=8`;

@@ -33,9 +33,10 @@ export default class UserCommand extends Command {
   }
 
   protected override async onExecuteSlash({ globalUser, guild, ctx, args, commandName }: ExecuteContext) {
-    const target = args.user("user") ?? globalUser.discordUser;
+    const rawTarget = args.user("user") ?? globalUser.discordUser;
     const targetGlobal =
-      target === globalUser.discordUser ? globalUser : await GlobalUsersManager.getUser(target);
+      rawTarget.id === globalUser.id ? globalUser : await GlobalUsersManager.getUser(rawTarget);
+    const target = await rawTarget.fetch();
     return this.replyProfile(commandName, target, targetGlobal, guild, ctx);
   }
 
