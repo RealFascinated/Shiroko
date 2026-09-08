@@ -27,6 +27,18 @@ const VOICE_CHANNEL_ID = "1446633266160603268";
 statsService.registerHandlers(discordClient);
 registerVoiceKeepalive(discordClient, VOICE_CHANNEL_ID);
 
+discordClient.on(Events.GuildCreate, guild => {
+  console.log(
+    `Joined "${guild.name}" (${guild.memberCount} members) — now in ${discordClient.guilds.cache.size} guild(s)`
+  );
+});
+
+discordClient.on(Events.GuildDelete, guild => {
+  console.log(
+    `Left "${guild.name}" (${guild.memberCount} members) — now in ${discordClient.guilds.cache.size} guild(s)`
+  );
+});
+
 discordClient.once(Events.ClientReady, async readyClient => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 
