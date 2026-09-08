@@ -87,7 +87,7 @@ export default abstract class Command {
   public readonly displayName: string;
   public readonly slashCommand: SlashCommandBuilder;
 
-  private readonly subCommands: Map<string, Command> = new Map();
+  public readonly subCommands: Map<string, Command> = new Map();
 
   constructor(id: string, displayName: string) {
     this.id = id;

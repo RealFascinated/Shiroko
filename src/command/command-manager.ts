@@ -73,5 +73,8 @@ export default class CommandManager {
   private registerCommand(command: Command) {
     this.commands.set(command.slashCommand.name, command);
     console.log(`Registered command: ${command.id} - ${command.displayName}`);
+    for (const sub of command.subCommands.values()) {
+      console.log(`  └─ ${sub.id} - ${sub.displayName}`);
+    }
   }
 }
