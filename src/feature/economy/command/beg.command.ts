@@ -2,9 +2,8 @@ import { MessageFlags } from "discord.js";
 import Command, { type ExecuteContext } from "../../../command/command";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, ephemeralErrorReply, errorEmbed, runes } from "../../../lib/embed";
-import { pluralize } from "../../../lib/format";
 import { randInt, randIntRange } from "../../../lib/math";
-import { TimeUnit } from "../../../lib/time";
+import { formatDuration } from "../../../lib/time";
 import { economyConfig } from "../config";
 import { startEconomyCooldown } from "../cooldowns";
 import { runesService } from "../runes.service";
@@ -76,12 +75,11 @@ export default class BegCommand extends Command {
   protected override async onExecuteSlash({ globalUser, ctx, commandName }: ExecuteContext) {
     const cd = await startEconomyCooldown(globalUser.id, "beg", economyConfig.begCooldownMs);
     if (!cd.ok) {
-      const mins = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Minute, 1));
       return ctx.reply(
         ephemeralErrorReply(
           commandName,
           errorEmbed(commandName).setDescription(
-            `You're begging too fast. Come back in ${pluralize("minute", mins)}.`
+            `You're begging too fast. Come back in ${formatDuration(remainingMs(cd.cooldown.endsAt))}.`
           )
         )
       );

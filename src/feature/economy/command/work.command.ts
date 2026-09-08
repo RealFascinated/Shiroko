@@ -2,9 +2,8 @@ import Command, { type ExecuteContext } from "../../../command/command";
 import { stringOption } from "../../../command/option";
 import { remainingMs } from "../../../lib/cooldown/cooldowns";
 import { baseEmbed, ephemeralErrorReply, errorEmbed, runes } from "../../../lib/embed";
-import { pluralize } from "../../../lib/format";
 import { randInt } from "../../../lib/math";
-import { TimeUnit } from "../../../lib/time";
+import { formatDuration } from "../../../lib/time";
 import { pick } from "../../../lib/utils";
 import { addQuestProgress } from "../../quest/quests.service";
 import { economyConfig } from "../config";
@@ -127,12 +126,11 @@ export default class WorkCommand extends Command {
   protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
     const cd = await startEconomyCooldown(globalUser.id, "work", economyConfig.workCooldownMs);
     if (!cd.ok) {
-      const mins = Math.ceil(remainingMs(cd.cooldown.endsAt) / TimeUnit.toMillis(TimeUnit.Minute, 1));
       return ctx.reply(
         ephemeralErrorReply(
           commandName,
           errorEmbed(commandName).setDescription(
-            `You're still on shift cooldown. Come back in ${pluralize("minute", mins)}.`
+            `You're still on shift cooldown. Come back in ${formatDuration(remainingMs(cd.cooldown.endsAt))}.`
           )
         )
       );

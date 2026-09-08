@@ -1,4 +1,5 @@
 import Canvas from "../../lib/canvas";
+import { TimeUnit, formatDuration } from "../../lib/time";
 import type { DaySeries, StatsSummary, VoiceSummary } from "./stats.service";
 
 /**
@@ -9,14 +10,20 @@ import type { DaySeries, StatsSummary, VoiceSummary } from "./stats.service";
 export type StatsCardKind = "messages" | "voice" | "overall";
 
 /**
+ * Whose activity a card covers: one user or the whole server.
+ */
+export type StatsCardScope = "user" | "server";
+
+/**
  * Everything a card paints: who it is for, where the data comes from, and
  * the windowed summaries plus the 7-day chart series (counts for messages,
  * seconds for voice).
  */
 export interface StatsCardData {
   kind: StatsCardKind;
+  scope: StatsCardScope;
   name: string;
-  avatarUrl: string;
+  avatarUrl: string | null;
   guildName: string;
   messages: StatsSummary;
   voice: VoiceSummary;
@@ -49,7 +56,7 @@ async function paintHeader(canvas: Canvas, data: StatsCardData): Promise<void> {
   const y = 36;
   const centerX = x + size / 2;
   const centerY = y + size / 2;
-  const avatar = await Canvas.loadImage(data.avatarUrl);
+  const avatar = data.avatarUrl ? await Canvas.loadImage(data.avatarUrl) : null;
   if (avatar) {
     canvas.circleImage(avatar, centerX, centerY, size / 2);
   } else {
@@ -59,7 +66,7 @@ async function paintHeader(canvas: Canvas, data: StatsCardData): Promise<void> {
   }
   canvas.circleOutline(centerX, centerY, size / 2 + 1, ACCENT, 3);
   canvas.text(canvas.fitText(data.name, 560, 34, 700), x + size + 24, y + 42, 34, "#ffffff", 700);
-  canvas.text(cardTitle(data.kind), x + size + 24, y + 74, 20, ACCENT, 500);
+  canvas.text(cardTitle(data.kind, data.scope), x + size + 24, y + 74, 20, ACCENT, 500);
 }
 
 /**
@@ -137,9 +144,18 @@ function paintFooter(canvas: Canvas, guildName: string): void {
 }
 
 /**
- * Title for the card header per kind.
+ * Title for the card header per kind and scope.
  */
-function cardTitle(kind: StatsCardKind): string {
+function cardTitle(kind: StatsCardKind, scope: StatsCardScope): string {
+  if (scope === "server") {
+    if (kind === "messages") {
+      return "Server message stats";
+    }
+    if (kind === "voice") {
+      return "Server voice stats";
+    }
+    return "Server activity";
+  }
   if (kind === "messages") {
     return "Message stats";
   }
@@ -165,29 +181,41 @@ function tileValues(data: StatsCardData): Array<{ value: string; sub?: string }>
   }
   if (data.kind === "voice") {
     return [
-      { value: formatHours(data.voice.today.seconds), sub: formatSessions(data.voice.today.sessions) },
       {
-        value: formatHours(data.voice.last7days.seconds),
+        value: formatVoiceDuration(data.voice.today.seconds),
+        sub: formatSessions(data.voice.today.sessions),
+      },
+      {
+        value: formatVoiceDuration(data.voice.last7days.seconds),
         sub: formatSessions(data.voice.last7days.sessions),
       },
       {
-        value: formatHours(data.voice.last30days.seconds),
+        value: formatVoiceDuration(data.voice.last30days.seconds),
         sub: formatSessions(data.voice.last30days.sessions),
       },
-      { value: formatHours(data.voice.total.seconds), sub: formatSessions(data.voice.total.sessions) },
+      {
+        value: formatVoiceDuration(data.voice.total.seconds),
+        sub: formatSessions(data.voice.total.sessions),
+      },
     ];
   }
   return [
-    { value: formatCount(data.messages.today), sub: `${formatHours(data.voice.today.seconds)} voice` },
+    {
+      value: formatCount(data.messages.today),
+      sub: `${formatVoiceDuration(data.voice.today.seconds)} voice`,
+    },
     {
       value: formatCount(data.messages.last7days),
-      sub: `${formatHours(data.voice.last7days.seconds)} voice`,
+      sub: `${formatVoiceDuration(data.voice.last7days.seconds)} voice`,
     },
     {
       value: formatCount(data.messages.last30days),
-      sub: `${formatHours(data.voice.last30days.seconds)} voice`,
+      sub: `${formatVoiceDuration(data.voice.last30days.seconds)} voice`,
     },
-    { value: formatCount(data.messages.total), sub: `${formatHours(data.voice.total.seconds)} voice` },
+    {
+      value: formatCount(data.messages.total),
+      sub: `${formatVoiceDuration(data.voice.total.seconds)} voice`,
+    },
   ];
 }
 
@@ -199,14 +227,10 @@ function formatCount(value: number): string {
 }
 
 /**
- * Format voice seconds as compact hours, e.g. `3.5h` or `12m`.
+ * Format voice seconds compactly for tiles, e.g. `3h, 30m`.
  */
-function formatHours(seconds: number): string {
-  if (seconds < 3600) {
-    return `${Math.max(1, Math.round(seconds / 60))}m`;
-  }
-  const hours = seconds / 3600;
-  return `${hours >= 100 ? Math.round(hours) : Math.round(hours * 10) / 10}h`;
+function formatVoiceDuration(seconds: number): string {
+  return formatDuration(TimeUnit.toMillis(TimeUnit.Second, Math.max(1, Math.round(seconds))));
 }
 
 /**

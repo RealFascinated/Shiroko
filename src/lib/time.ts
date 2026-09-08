@@ -55,22 +55,37 @@ export function remainingMs(endsAt: Date, now: Date = new Date()): number {
   return Math.max(0, endsAt.getTime() - now.getTime());
 }
 /**
- * Format a duration in milliseconds as its largest whole units, e.g. `2d 4h 12m`.
+ * Formats a duration in the format "Xd, Xh, Xm, Xs"
+ * showing at most two units for simplicity.
+ *
+ * @param ms - Duration in milliseconds
+ * @param long - Use long unit names ("Days" instead of "d")
+ * @returns The formatted duration
  */
-export function formatDuration(ms: number): string {
-  const day = TimeUnit.toMillis(TimeUnit.Day, 1);
-  const hour = TimeUnit.toMillis(TimeUnit.Hour, 1);
-  const minute = TimeUnit.toMillis(TimeUnit.Minute, 1);
-  const days = Math.floor(ms / day);
-  const hours = Math.floor((ms % day) / hour);
-  const minutes = Math.floor((ms % hour) / minute);
-  const parts: string[] = [];
-  if (days) {
-    parts.push(`${days}d`);
-  }
-  if (hours) {
-    parts.push(`${hours}h`);
-  }
-  parts.push(`${minutes}m`);
-  return parts.join(" ");
+export function formatDuration(ms: number, long: boolean = false): string {
+  let remaining = Math.floor(Math.abs(ms));
+  const dayMs = TimeUnit.toMillis(TimeUnit.Day, 1);
+  const hourMs = TimeUnit.toMillis(TimeUnit.Hour, 1);
+  const minuteMs = TimeUnit.toMillis(TimeUnit.Minute, 1);
+  const secondMs = TimeUnit.toMillis(TimeUnit.Second, 1);
+  const days = Math.floor(remaining / dayMs);
+  remaining %= dayMs;
+  const hours = Math.floor(remaining / hourMs);
+  remaining %= hourMs;
+  const minutes = Math.floor(remaining / minuteMs);
+  remaining %= minuteMs;
+  const seconds = Math.floor(remaining / secondMs);
+  remaining %= secondMs;
+  const units = [
+    { value: days, unit: long ? "Days" : "d" },
+    { value: hours, unit: long ? "Hours" : "h" },
+    { value: minutes, unit: long ? "Minutes" : "m" },
+    { value: seconds, unit: long ? "Seconds" : "s" },
+    { value: remaining, unit: long ? "Milliseconds" : "ms" },
+  ];
+  const result = units
+    .filter(unit => unit.value > 0)
+    .slice(0, 2)
+    .map(unit => `${unit.value}${unit.unit}`);
+  return result.join(", ") || (long ? "0 Seconds" : "0s");
 }
