@@ -78,6 +78,13 @@
       "when": 1787686339860,
       "tag": "0010_white_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788899308688,
+      "tag": "0011_grey_sue_storm",
+      "breakpoints": true
     }
   ]
 }

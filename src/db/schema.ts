@@ -116,6 +116,51 @@ export const economyTransactions = pgTable(
   ]
 );
 
+/**
+ * One row per guild message sent by a user. `id` is the Discord message id,
+ * so redelivered events dedupe on insert. Metadata only; message content is
+ * never stored.
+ */
+export const messageEvents = pgTable(
+  "message_events",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => globalUsers.id, { onDelete: "cascade" }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [
+    index("message_events_user_created_idx").on(table.userId, table.createdAt.desc()),
+    index("message_events_guild_created_idx").on(table.guildId, table.createdAt.desc()),
+  ]
+);
+
+/**
+ * One row per voice session. A row is open while the user is in voice
+ * (`leftAt` is null); leaving sets `leftAt` and `durationSeconds`.
+ */
+export const voiceSessions = pgTable(
+  "voice_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => globalUsers.id, { onDelete: "cascade" }),
+    guildId: text("guild_id").notNull(),
+    channelId: text("channel_id").notNull(),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+    leftAt: timestamp("left_at", { withTimezone: true }),
+    durationSeconds: integer("duration_seconds"),
+  },
+  table => [
+    index("voice_sessions_user_joined_idx").on(table.userId, table.joinedAt.desc()),
+    index("voice_sessions_guild_joined_idx").on(table.guildId, table.joinedAt.desc()),
+  ]
+);
+
 export const schema = {
   globalUsers,
   interactions,
@@ -123,6 +168,8 @@ export const schema = {
   userEconomy,
   quests,
   economyTransactions,
+  messageEvents,
+  voiceSessions,
 };
 
 export type GlobalUserSchema = typeof globalUsers.$inferSelect;
@@ -131,5 +178,7 @@ export type CooldownSchema = typeof cooldowns.$inferSelect;
 export type UserEconomySchema = typeof userEconomy.$inferSelect;
 export type QuestSchema = typeof quests.$inferSelect;
 export type EconomyTransactionSchema = typeof economyTransactions.$inferSelect;
+export type MessageEventSchema = typeof messageEvents.$inferSelect;
+export type VoiceSessionSchema = typeof voiceSessions.$inferSelect;
 export type Pocket = "wallet" | "bank";
 export const now = sql`now()`;
