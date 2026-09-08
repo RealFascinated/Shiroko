@@ -77,6 +77,11 @@ class StatsKindCommand extends Command {
 
   protected override async onExecuteSlash({ globalUser, guild, ctx, args, commandName }: ExecuteContext) {
     const target = args.user("user") ?? globalUser.discordUser;
+    if (target.bot) {
+      return ctx.reply(
+        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("Bots don't have stats."))
+      );
+    }
     return replyStatsCard(ctx, commandName, target, guild?.id ?? ctx.guildId, guild?.name, this.kind);
   }
 }

@@ -590,7 +590,7 @@ export default class StatsService {
    */
   public registerHandlers(client: Client): void {
     client.on(Events.MessageCreate, message => {
-      if (message.author.bot) {
+      if (message.author.bot || message.webhookId) {
         return;
       }
       if (!message.guildId) {
