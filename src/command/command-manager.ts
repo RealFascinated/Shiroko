@@ -5,7 +5,6 @@ import ReactCommand from "../feature/reaction/command/react.command";
 import StatsCommand from "../feature/stats/command/stats.command";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
-import AvatarCommand from "./commands/avatar.command";
 import BotStatsCommand from "./commands/botstats.command";
 import GuildInfoCommand from "./commands/guildinfo.command";
 import PingCommand from "./commands/ping.command";
@@ -18,7 +17,6 @@ export default class CommandManager {
   constructor() {
     this.registerCommand(new TestCommand());
     this.registerCommand(new PingCommand());
-    this.registerCommand(new AvatarCommand());
     this.registerCommand(new UserCommand());
     this.registerCommand(new GuildInfoCommand());
     this.registerCommand(new BotStatsCommand());

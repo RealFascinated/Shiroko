@@ -14,22 +14,42 @@ import type GlobalUser from "../../user/global-user";
 import GlobalUsersManager from "../../user/global-users-manager";
 import Command, { type ExecuteContext } from "../command";
 import { userOption } from "../option";
+import AvatarCommand from "./avatar.command";
+import BannerCommand from "./banner.command";
 
 /**
- * Show a user's profile: first seen, ids, avatar, banner, and server roles
- * when run in a guild.
+ * Show a user's info, avatar, or banner via subcommands.
  */
 export default class UserCommand extends Command {
   constructor() {
-    super("user", "Show a user's profile: avatar, banner and more");
+    super("user", "Show a user's info: avatar, banner and more");
+    this.registerSubCommand(new UserInfoCommand());
+    this.registerSubCommand(new AvatarCommand());
+    this.registerSubCommand(new BannerCommand());
   }
 
   public override get userInstallable(): boolean {
     return true;
   }
 
+  protected override async onExecuteSlash({ ctx }: ExecuteContext) {
+    return ctx.reply({
+      content: "Choose a subcommand: /user info, /user avatar or /user banner",
+    });
+  }
+}
+
+/**
+ * Show a user's info: first seen, ids, avatar, banner, and server roles
+ * when run in a guild.
+ */
+class UserInfoCommand extends Command {
+  constructor() {
+    super("info", "Show a user's info");
+  }
+
   public override get options() {
-    return [userOption(false, "user", "Whose profile to show")];
+    return [userOption(false, "user", "Whose info to show")];
   }
 
   protected override async onExecuteSlash({ globalUser, guild, ctx, args, commandName }: ExecuteContext) {
@@ -37,10 +57,10 @@ export default class UserCommand extends Command {
     const targetGlobal =
       rawTarget.id === globalUser.id ? globalUser : await GlobalUsersManager.getUser(rawTarget);
     const target = await rawTarget.fetch();
-    return this.replyProfile(commandName, target, targetGlobal, guild, ctx);
+    return this.replyInfo(commandName, target, targetGlobal, guild, ctx);
   }
 
-  private async replyProfile(
+  private async replyInfo(
     commandName: string,
     target: User,
     targetGlobal: GlobalUser,
@@ -79,13 +99,9 @@ export default class UserCommand extends Command {
     const lines = sections.map(section => section.join("\n")).join("\n\n");
 
     const embed = baseEmbed(commandName)
-      .setTitle(`👤 ${target.displayName}'s Profile`)
+      .setTitle(`👤 ${target.displayName}'s Info`)
       .setThumbnail(avatarUrl)
       .setDescription(lines);
-
-    if (bannerUrl) {
-      embed.setImage(bannerUrl);
-    }
 
     const buttons = [new ButtonBuilder().setLabel("Avatar").setStyle(ButtonStyle.Link).setURL(avatarUrl)];
     if (bannerUrl) {
