@@ -98,7 +98,9 @@ export const pocketEnum = pgEnum("pocket", ["wallet", "bank"]);
 export const economyTransactions = pgTable(
   "economy_transactions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     actorId: text("actor_id")
       .notNull()
       .references(() => globalUsers.id, { onDelete: "cascade" }),
@@ -145,7 +147,9 @@ export const messageEvents = pgTable(
 export const voiceSessions = pgTable(
   "voice_sessions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     userId: text("user_id")
       .notNull()
       .references(() => globalUsers.id, { onDelete: "cascade" }),
