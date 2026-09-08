@@ -10,7 +10,7 @@ import RichCommand from "../feature/economy/command/rich.command";
 import WorkCommand from "../feature/economy/command/work.command";
 import TestCommand from "../feature/interaction/command/interaction.command";
 import QuestsCommand from "../feature/quest/command/quests.command";
-import ReactCommand from "../feature/reaction/command/react.command";
+import StatsCommand from "../feature/stats/command/stats.command";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import AvatarCommand from "./commands/avatar.command";
@@ -41,8 +41,7 @@ export default class CommandManager {
     this.registerCommand(new PayCommand());
     this.registerCommand(new BotStatsCommand());
     this.registerCommand(new BlehCommand());
-    this.registerCommand(new ReactCommand());
-    console.log(`Registered commands: ${this.commands.size}`);
+    this.registerCommand(new StatsCommand());
   }
 
   /**

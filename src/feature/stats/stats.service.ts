@@ -1,8 +1,10 @@
 import type { Client } from "discord.js";
 import { Events } from "discord.js";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { globalUsers, messageEvents, voiceSessions } from "../../db/schema";
+import { questWindow } from "../quest/quests.service";
+import type { StatsCardKind } from "./stats-card";
 
 /**
  * One guild message to record. `id` is the Discord message id; `createdAt`
@@ -23,6 +25,94 @@ export interface VoiceOccupant {
   userId: string;
   guildId: string;
   channelId: string;
+}
+
+/**
+ * Counts for one display window set: today, this week, last 7 days, total.
+ */
+export interface StatsSummary {
+  today: number;
+  thisWeek: number;
+  last7days: number;
+  total: number;
+}
+
+/**
+ * Voice activity in one window: closed sessions plus any live session.
+ */
+export interface VoiceWindow {
+  sessions: number;
+  seconds: number;
+}
+
+/**
+ * Voice activity across every display window.
+ */
+export interface VoiceSummary {
+  today: VoiceWindow;
+  thisWeek: VoiceWindow;
+  last7days: VoiceWindow;
+  total: VoiceWindow;
+}
+
+/**
+ * Per-day values for the chart, oldest first, with weekday initials drawn
+ * under each bar. Both derive from the same UTC days as the query window.
+ */
+export interface DaySeries {
+  values: number[];
+  dayLabels: string[];
+}
+
+/**
+ * Everything `/stats` paints for one card: both windowed summaries plus
+ * the charted kind's daily series.
+ */
+export interface CardStats {
+  messages: StatsSummary;
+  voice: VoiceSummary;
+  series: DaySeries;
+}
+
+/**
+ * Display window bounds for one read. Computed once per call so every
+ * query agrees on where today, this week, and the chart range start.
+ */
+interface StatsWindows {
+  today: Date;
+  weekStart: Date;
+  last7Start: Date;
+  seriesStart: Date;
+}
+
+/**
+ * Derive the window bounds for `now`: UTC day start, Monday week start
+ * (shared with quests), the rolling 7-day start, and the chart start.
+ */
+function statsWindows(now: Date, days = 7): StatsWindows {
+  const today = questWindow("daily", now).start;
+  const dayMs = 24 * 60 * 60 * 1000;
+  return {
+    today,
+    weekStart: questWindow("weekly", now).start,
+    last7Start: new Date(today.getTime() - 6 * dayMs),
+    seriesStart: new Date(today.getTime() - (days - 1) * dayMs),
+  };
+}
+
+/**
+ * Fill `days` calendar days from `start` with bucketed values, defaulting
+ * empty days to zero. Labels are UTC weekday initials for the chart.
+ */
+function toDaySeries(start: Date, days: number, byDay: Map<string, number>): DaySeries {
+  const values: number[] = [];
+  const dayLabels: string[] = [];
+  for (let offset = 0; offset < days; offset++) {
+    const day = new Date(start.getTime() + offset * 24 * 60 * 60 * 1000);
+    values.push(byDay.get(day.toISOString().slice(0, 10)) ?? 0);
+    dayLabels.push("SMTWTFS"[day.getUTCDay()]!);
+  }
+  return { values, dayLabels };
 }
 
 /**
@@ -51,7 +141,8 @@ interface OpenSession {
 
 /**
  * Records message and voice activity. Tracking is fire-and-forget: callers
- * attach a `.catch` and never await.
+ * attach a `.catch` and never await. Reads serve `/stats`: one aggregate
+ * query per domain plus the charted domain's daily buckets.
  */
 export default class StatsService {
   private openSessions: Map<string, OpenSession> = new Map<string, OpenSession>();
@@ -117,6 +208,217 @@ export default class StatsService {
   }
 
   /**
+   * Message counts in every display window, from a single aggregate query.
+   */
+  public async getMessageWindows(
+    userId: string,
+    guildId: string,
+    now: Date = new Date()
+  ): Promise<StatsSummary> {
+    const windows = statsWindows(now);
+    const [row] = await db
+      .select({
+        today: sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.today})`.mapWith(
+          Number
+        ),
+        thisWeek:
+          sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.weekStart})`.mapWith(
+            Number
+          ),
+        last7days:
+          sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.last7Start})`.mapWith(
+            Number
+          ),
+        total: sql<number>`count(*)`.mapWith(Number),
+      })
+      .from(messageEvents)
+      .where(and(eq(messageEvents.userId, userId), eq(messageEvents.guildId, guildId)));
+    return {
+      today: row?.today ?? 0,
+      thisWeek: row?.thisWeek ?? 0,
+      last7days: row?.last7days ?? 0,
+      total: row?.total ?? 0,
+    };
+  }
+
+  /**
+   * Voice sessions and seconds in every display window, from a single
+   * aggregate query. A live open session contributes its running duration;
+   * its row is already counted in the session totals.
+   */
+  public async getVoiceWindows(
+    userId: string,
+    guildId: string,
+    now: Date = new Date()
+  ): Promise<VoiceSummary> {
+    const windows = statsWindows(now);
+    const [row] = await db
+      .select({
+        todaySessions:
+          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.today})`.mapWith(Number),
+        todaySeconds:
+          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.today}), 0)`.mapWith(
+            Number
+          ),
+        weekSessions:
+          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.weekStart})`.mapWith(
+            Number
+          ),
+        weekSeconds:
+          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.weekStart}), 0)`.mapWith(
+            Number
+          ),
+        last7Sessions:
+          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.last7Start})`.mapWith(
+            Number
+          ),
+        last7Seconds:
+          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.last7Start}), 0)`.mapWith(
+            Number
+          ),
+        totalSessions: sql<number>`count(*)`.mapWith(Number),
+        totalSeconds: sql<number>`coalesce(sum(${voiceSessions.durationSeconds}), 0)`.mapWith(Number),
+      })
+      .from(voiceSessions)
+      .where(and(eq(voiceSessions.userId, userId), eq(voiceSessions.guildId, guildId)));
+    const live = this.liveVoice(guildId, userId, now);
+    return {
+      today: this.voiceWindow(row, "today", windows.today, live),
+      thisWeek: this.voiceWindow(row, "week", windows.weekStart, live),
+      last7days: this.voiceWindow(row, "last7", windows.last7Start, live),
+      total: {
+        sessions: row?.totalSessions ?? 0,
+        seconds: (row?.totalSeconds ?? 0) + (live?.seconds ?? 0),
+      },
+    };
+  }
+
+  /**
+   * Pick one window out of a voice aggregate row, overlaying the live
+   * session's running duration when it started inside the window.
+   */
+  private voiceWindow(
+    row:
+      | {
+          todaySessions: number;
+          todaySeconds: number;
+          weekSessions: number;
+          weekSeconds: number;
+          last7Sessions: number;
+          last7Seconds: number;
+        }
+      | undefined,
+    prefix: "today" | "week" | "last7",
+    start: Date,
+    live: { joinedAt: Date; seconds: number } | null
+  ): VoiceWindow {
+    const liveSeconds = live && live.joinedAt >= start ? live.seconds : 0;
+    return {
+      sessions: (row?.[`${prefix}Sessions`] ?? 0) + (liveSeconds > 0 ? 1 : 0),
+      seconds: (row?.[`${prefix}Seconds`] ?? 0) + liveSeconds,
+    };
+  }
+
+  /**
+   * Per-day message counts for the chart, oldest first, from one grouped
+   * query over the chart range.
+   */
+  public async getMessageSeries(
+    userId: string,
+    guildId: string,
+    days = 7,
+    now: Date = new Date()
+  ): Promise<DaySeries> {
+    const windows = statsWindows(now, days);
+    const byDay = await this.messageBuckets(userId, guildId, windows.seriesStart);
+    return toDaySeries(windows.seriesStart, days, byDay);
+  }
+
+  /**
+   * Per-day voice seconds for the chart, oldest first. Sessions land on
+   * their join day; a live session adds its running duration there.
+   */
+  public async getVoiceSeries(
+    userId: string,
+    guildId: string,
+    days = 7,
+    now: Date = new Date()
+  ): Promise<DaySeries> {
+    const windows = statsWindows(now, days);
+    const byDay = await this.voiceBuckets(userId, guildId, windows.seriesStart);
+    const series = toDaySeries(windows.seriesStart, days, byDay);
+    const live = this.liveVoice(guildId, userId, now);
+    if (live && live.joinedAt >= windows.seriesStart) {
+      const offset = Math.floor(
+        (live.joinedAt.getTime() - windows.seriesStart.getTime()) / (24 * 60 * 60 * 1000)
+      );
+      series.values[offset]! += live.seconds;
+    }
+    return series;
+  }
+
+  /**
+   * Everything one card paints: both windowed summaries plus the charted
+   * kind's daily series. Three queries total.
+   */
+  public async getCardData(
+    userId: string,
+    guildId: string,
+    kind: StatsCardKind,
+    now: Date = new Date()
+  ): Promise<CardStats> {
+    const [messages, voice, series] = await Promise.all([
+      this.getMessageWindows(userId, guildId, now),
+      this.getVoiceWindows(userId, guildId, now),
+      kind === "voice"
+        ? this.getVoiceSeries(userId, guildId, 7, now)
+        : this.getMessageSeries(userId, guildId, 7, now),
+    ]);
+    return { messages, voice, series };
+  }
+
+  /**
+   * Message counts keyed by UTC day (`YYYY-MM-DD`) since `start`.
+   */
+  private async messageBuckets(userId: string, guildId: string, start: Date): Promise<Map<string, number>> {
+    const day = sql<string>`to_char(${messageEvents.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+    const rows = await db
+      .select({ day, count: sql<number>`count(*)`.mapWith(Number) })
+      .from(messageEvents)
+      .where(
+        and(
+          eq(messageEvents.userId, userId),
+          eq(messageEvents.guildId, guildId),
+          gte(messageEvents.createdAt, start)
+        )
+      )
+      .groupBy(day);
+    return new Map(rows.map(row => [row.day, row.count]));
+  }
+
+  /**
+   * Voice seconds keyed by UTC join day (`YYYY-MM-DD`) since `start`.
+   */
+  private async voiceBuckets(userId: string, guildId: string, start: Date): Promise<Map<string, number>> {
+    const day = sql<string>`to_char(${voiceSessions.joinedAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+    const rows = await db
+      .select({
+        day,
+        seconds: sql<number>`coalesce(sum(${voiceSessions.durationSeconds}), 0)`.mapWith(Number),
+      })
+      .from(voiceSessions)
+      .where(
+        and(
+          eq(voiceSessions.userId, userId),
+          eq(voiceSessions.guildId, guildId),
+          gte(voiceSessions.joinedAt, start)
+        )
+      )
+      .groupBy(day);
+    return new Map(rows.map(row => [row.day, row.seconds]));
+  }
+
+  /**
    * Attach message and voice tracking to `client`, and recover open
    * sessions once the client is ready.
    */
@@ -169,8 +471,27 @@ export default class StatsService {
     }
   }
 
+  /**
+   * Key for the in-memory open session of one guild user.
+   */
   private sessionKey(guildId: string, userId: string): string {
     return `${guildId}:${userId}`;
+  }
+
+  /**
+   * Running duration of the in-memory open session, or `null` when the
+   * user is not in voice. Closed rows already hold their durations, so
+   * only the open session needs this overlay.
+   */
+  private liveVoice(guildId: string, userId: string, now: Date): { joinedAt: Date; seconds: number } | null {
+    const open = this.openSessions.get(this.sessionKey(guildId, userId));
+    if (!open) {
+      return null;
+    }
+    return {
+      joinedAt: open.joinedAt,
+      seconds: Math.max(0, Math.floor((now.getTime() - open.joinedAt.getTime()) / 1000)),
+    };
   }
 
   /**
