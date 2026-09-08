@@ -1,4 +1,4 @@
-import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts, loadImage, type Image, type SKRSContext2D } from "@napi-rs/canvas";
 import type { DaySeries, StatsSummary, VoiceSummary } from "./stats.service";
 
 /**
@@ -25,14 +25,29 @@ export interface StatsCardData {
 
 const WIDTH = 900;
 const HEIGHT = 460;
-const FONT = "Noto Sans";
+const FONT = "Geist";
 const ACCENT = "#9b59b6";
 const ACCENT_DIM = "rgba(155, 89, 182, 0.35)";
+
+let fontsRegistered = false;
+
+/**
+ * Register the bundled Geist font once. Production images ship no system
+ * fonts, so canvas text silently renders nothing without this.
+ */
+function ensureFonts(): void {
+  if (fontsRegistered) {
+    return;
+  }
+  GlobalFonts.registerFromPath("assets/fonts/Geist.ttf", "Geist");
+  fontsRegistered = true;
+}
 
 /**
  * Render a stats card for `data` as a PNG buffer.
  */
 export async function renderStatsCard(data: StatsCardData): Promise<Buffer> {
+  ensureFonts();
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d");
   paintBackground(ctx);
@@ -44,15 +59,11 @@ export async function renderStatsCard(data: StatsCardData): Promise<Buffer> {
 }
 
 /**
- * Fill the card background and its subtle border.
+ * Fill the card background.
  */
 function paintBackground(ctx: SKRSContext2D): void {
   ctx.fillStyle = "#1a1626";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  ctx.strokeStyle = "rgba(155, 89, 182, 0.5)";
-  ctx.lineWidth = 2;
-  roundRectPath(ctx, 1, 1, WIDTH - 2, HEIGHT - 2, 24);
-  ctx.stroke();
 }
 
 /**
