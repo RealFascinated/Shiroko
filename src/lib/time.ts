@@ -49,12 +49,6 @@ export namespace TimeUnit {
 }
 
 /**
- * How long until `endsAt`, in whole milliseconds, clamped at 0.
- */
-export function remainingMs(endsAt: Date, now: Date = new Date()): number {
-  return Math.max(0, endsAt.getTime() - now.getTime());
-}
-/**
  * Formats a duration in the format "Xd, Xh, Xm, Xs"
  * showing at most two units for simplicity.
  *

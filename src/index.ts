@@ -3,12 +3,11 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import CommandManager from "./command/command-manager";
 import ContextMenuCommandManager from "./context-menu/context-menu-command-manager";
 import { db } from "./db";
-import { runesService } from "./feature/economy/runes.service";
 import { statsService } from "./feature/stats/stats.service";
 import { env } from "./lib/env";
 import { registerVoiceKeepalive } from "./lib/voice";
 
-export { runesService, statsService };
+export { statsService };
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");

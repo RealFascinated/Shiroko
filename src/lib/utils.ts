@@ -19,12 +19,3 @@ export function first<T>(items: readonly T[]): T {
   }
   return item;
 }
-
-/**
- * A 10-block progress bar for `progress`/`target`, filled to the nearest
- * block. Full when `progress >= target`.
- */
-export function progressBar(progress: number, target: number): string {
-  const filled = Math.min(10, Math.floor((progress / target) * 10));
-  return "█".repeat(filled) + "░".repeat(10 - filled);
-}

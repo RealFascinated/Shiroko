@@ -8,29 +8,24 @@ the news, details carry the numbers, and flavor carries the personality.
 
 Each embed is built from up to three layers, composed top-to-bottom.
 
-| Layer           | Purpose                    | Format                                          | Example                      |
-| --------------- | -------------------------- | ----------------------------------------------- | ---------------------------- |
-| **1 · Summary** | The news, in one bold line | First line of the description, `**bold**`       | "You claimed **120 runes**." |
-| **2 · Details** | Supporting numbers         | `addFields`, or a plain block under the summary | Wallet / Bank fields         |
-| **3 · Flavor**  | Personality, always last   | Italic, `*…*`, separated by a blank line        | "Arona's moody side stirs…"  |
+| Layer           | Purpose                    | Format                                          | Example                    |
+| --------------- | -------------------------- | ----------------------------------------------- | -------------------------- |
+| **1 · Summary** | The news, in one bold line | First line of the description, `**bold**`       | "You hugged **@Bray**."    |
+| **2 · Details** | Supporting numbers         | `addFields`, or a plain block under the summary | Server / Account fields    |
+| **3 · Flavor**  | Personality, always last   | Italic, `*…*`, separated by a blank line        | "Somewhere, Arona smiles." |
 
 Default every embed to layers 1 + 2. Flavor (layer 3) is optional; when present
 it is always the final line of the description.
 
 ### Orphan fields
 
-Discord renders fields _after_ the description, so a lone `Wallet` field lands
+Discord renders fields _after_ the description, so a lone detail field lands
 below the flavor and inverts the layer order. When a card has exactly one
-balance line, fold it into the description as a plain layer-2 line under the
-summary instead of a field:
+detail line, fold it into the description as a plain layer-2 line under the
+summary instead of a field.
 
-> You earned **60 runes**.
-> `425 runes` in your wallet.
->
-> _You patrol the food court looking suitably mysterious._
-
-Fields are for two or more side-by-side details (Wallet / Bank, Fee / You /
-Them). Flavor never restates the numbers the summary already gave.
+Fields are for two or more side-by-side details. Flavor never restates the
+numbers the summary already gave.
 
 ### One-line embeds
 
@@ -43,15 +38,12 @@ Titles follow the grammar "**command result card**": an emoji marking the
 category, then an event-style label. They name what happened, not the command
 that produced it.
 
-| Category           | Emoji    | Examples                            |
-| ------------------ | -------- | ----------------------------------- |
-| Runes / money flow | 💰       | 💰 Balance, 💰 Bank Deposit, 💸 Beg |
-| Chance / RNG       | 🎰       | 🎰 Gamble                           |
-| Streak / claim     | 🍩       | 🍩 Daily Runes                      |
-| Rankings           | 🏆       | 🏆 Richest Runers                   |
-| Fun / games        | 🎱       | 🎱 The 8-Ball Says…                 |
-| Roles / actions    | 🤝       | 🤝 Cuddle, 🤝 Hug                   |
-| Generic tooling    | _(none)_ | Avatar, Pong!                       |
+| Category        | Emoji    | Examples            |
+| --------------- | -------- | ------------------- |
+| Stats           | 📊       | 📊 Activity stats   |
+| Fun / games     | 🎱       | 🎱 The 8-Ball Says… |
+| Roles / actions | 🤝       | 🤝 Cuddle, 🤝 Hug   |
+| Generic tooling | _(none)_ | Avatar, Pong!       |
 
 ## Buttons
 
@@ -92,28 +84,26 @@ ping-capable without repeating names:
 
 > **@Lee** headpats **@Bray** for the **2nd time**!
 
-Titles keep the pretty display name (e.g. _"Budd Dwyer's Avatar"_,
-_"💰 Budd Dwyer's Balance"_); only body text mentions.
+Titles keep the pretty display name (e.g. _"Budd Dwyer's Avatar"_); only
+body text mentions.
 
 ## Trade formatting
 
-Currency is always written via the `runes()` helper, which renders an inline
-code block with thousands separators: `` `1,234 runes` ``. Never hand-write a
-bare number for a rune amount.
+Numbers use thousands separators: `` `48,210` ``. Never hand-write a bare
+count where a formatted one belongs.
 
 ## Footer
 
-One footer, one job: **`<bot name> · /<command>`**, e.g. "Shiroko · /balance".
+One footer, one job: **`<bot name> · /<command>`**, e.g. "Shiroko · /stats".
 The bot name is Discord's default look, so it stays; the command name is the
 useful part. Never repurpose the footer for other data; put that in fields
 (e.g. avatar's user ID) or in layer 3 (e.g. the anime title).
 
 ## Errors and cooldowns
 
-Errors, failed actions, and locked-out cooldowns use `errorEmbed()`: same
-shape rules, but with `Constants.errorColor` (`#e74c3c`) and the same
-footer. Sparse text replies are reserved for bare/short answers with no
-card-shaped content.
+Errors and failed actions use `errorEmbed()`: same shape rules, but with
+`Constants.errorColor` (`#e74c3c`) and the same footer. Sparse text replies
+are reserved for bare/short answers with no card-shaped content.
 
 > **Rule:** errors and warnings are **ephemeral**; the error reply carries
 > `flags: MessageFlags.Ephemeral`, so only the invoking user sees it. Success
@@ -123,9 +113,8 @@ card-shaped content.
 ## Builder reference
 
 ```ts
-baseEmbed("/balance"); // brand purple, footer "Shiroko · /balance"
-errorEmbed("/beg"); // error red, same footer
-runes(n); // `1,234 runes`
+baseEmbed("/stats"); // brand purple, footer "Shiroko · /stats"
+errorEmbed("/stats"); // error red, same footer
 ```
 
 `baseEmbed` and `errorEmbed` return an `EmbedBuilder`, so chaining

@@ -48,13 +48,6 @@ export function footerText(command: string | null = null): string {
 }
 
 /**
- * Format a rune amount consistently: `1,234 runes`.
- */
-export function runes(amount: number): string {
-  return `\`${amount.toLocaleString("en-US")} runes\``;
-}
-
-/**
  * Options for {@link watchButtonPress}.
  */
 export interface WatchButtonOptions {

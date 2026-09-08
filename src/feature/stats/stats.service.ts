@@ -3,7 +3,6 @@ import { Events } from "discord.js";
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { globalUsers, messageEvents, voiceSessions } from "../../db/schema";
-import { questWindow } from "../quest/quests.service";
 import type { StatsCardKind } from "./stats-card";
 
 /**
@@ -90,7 +89,7 @@ interface StatsWindows {
  * and 30-day starts, and the chart start.
  */
 function statsWindows(now: Date, days = 7): StatsWindows {
-  const today = questWindow("daily", now).start;
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const dayMs = 24 * 60 * 60 * 1000;
   return {
     today,
