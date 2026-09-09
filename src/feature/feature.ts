@@ -25,7 +25,7 @@ export default class Feature {
   private eventListeners: Array<{
     event: keyof ClientEvents;
     listener: AnyEventListener;
-    extractGuild: (...args: any[]) => Guild | string | null | undefined;
+    extractGuild: (...args: any[]) => Guild | null | undefined;
   }> = [];
 
   constructor(
@@ -63,14 +63,12 @@ export default class Feature {
   public registerEventListener<T extends keyof ClientEvents>(
     event: T,
     listener: (...args: ClientEvents[T]) => void | Promise<void>,
-    extractGuild?: (...args: ClientEvents[T]) => Guild | string | null | undefined
+    extractGuild?: (...args: ClientEvents[T]) => Guild | null | undefined
   ): void {
     this.eventListeners.push({
       event,
       listener: listener as AnyEventListener,
-      extractGuild: (extractGuild ?? extractGuildFromArgs) as (
-        ...args: any[]
-      ) => Guild | string | null | undefined,
+      extractGuild: (extractGuild ?? extractGuildFromArgs) as (...args: any[]) => Guild | null | undefined,
     });
   }
 

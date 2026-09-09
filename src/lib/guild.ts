@@ -19,18 +19,15 @@ export async function fetchGuildMember(guild: Guild, userId: string): Promise<Gu
 
 /**
  * Best-effort guild lookup for common discord.js shapes. Covers
- * `guildId`, `guild.id`, and `member.guild.id` on any arg. Returns
+ * `guild` and `member.guild` on any arg. Returns
  * `undefined` when no guild is present (DMs, `ClientReady`).
  */
-export function extractGuildFromArgs(...args: unknown[]): Guild | string | null | undefined {
+export function extractGuildFromArgs(...args: unknown[]): Guild | null | undefined {
   for (const arg of args) {
     if (!arg || typeof arg !== "object") {
       continue;
     }
-    const candidate = arg as { guildId?: unknown; guild?: Guild; member?: { guild?: Guild } };
-    if (typeof candidate.guildId === "string") {
-      return candidate.guildId;
-    }
+    const candidate = arg as { guild?: Guild; member?: { guild?: Guild } };
     const guild = candidate.guild ?? candidate.member?.guild;
     if (typeof guild?.id === "string") {
       return guild;

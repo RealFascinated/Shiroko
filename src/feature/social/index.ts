@@ -23,7 +23,7 @@ export type InteractionType =
   | "blowkiss"
   | "bite";
 
-export default class InteractionFeature extends Feature {
+export default class SocialFeature extends Feature {
   constructor() {
     super(FeatureIds.Interaction);
 

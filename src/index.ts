@@ -6,6 +6,7 @@ import { db } from "./db";
 import { statsService } from "./feature/stats/stats.service";
 import { env } from "./lib/env";
 import { registerVoiceKeepalive } from "./lib/voice";
+import FeatureManager from "./feature";
 
 export { statsService };
 
@@ -25,17 +26,7 @@ const contextMenuCommands = new ContextMenuCommandManager();
 commands.registerHandlers(discordClient);
 contextMenuCommands.registerHandlers(discordClient);
 
-discordClient.on(Events.GuildCreate, guild => {
-  console.log(
-    `Joined "${guild.name}" (${guild.memberCount} members) — now in ${discordClient.guilds.cache.size} guild(s)`
-  );
-});
-
-discordClient.on(Events.GuildDelete, guild => {
-  console.log(
-    `Left "${guild.name}" (${guild.memberCount} members) — now in ${discordClient.guilds.cache.size} guild(s)`
-  );
-});
+new FeatureManager();
 
 discordClient.once(Events.ClientReady, async readyClient => {
   console.log(`Ready! Logged in as ${readyClient.user.tag}`);
@@ -47,6 +38,17 @@ discordClient.once(Events.ClientReady, async readyClient => {
   const allCommands = [...commands.build(), ...contextMenuCommands.build()];
   await application.commands.set(allCommands);
   console.log(`Synced ${allCommands.length} command(s)`);
+});
+
+discordClient.on(Events.GuildCreate, guild => {
+  console.log(
+    `Joined "${guild.name}" (${guild.memberCount} members) — now in ${discordClient.guilds.cache.size} guild(s)`
+  );
+});
+discordClient.on(Events.GuildDelete, guild => {
+  console.log(
+    `Left "${guild.name}" (${guild.memberCount} members) — now in ${discordClient.guilds.cache.size} guild(s)`
+  );
 });
 
 discordClient.login(env.DISCORD_BOT_TOKEN);

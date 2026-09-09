@@ -53,7 +53,7 @@ export default class FeatureCommand extends Command {
       );
     }
     const enabled = ctx.options.getBoolean("enabled", true)!;
-    await GuildFeatures.setFeatureEnabled(guild.id, featureId, enabled);
+    await GuildFeatures.setFeatureEnabled(guild, featureId, enabled);
     return ctx.reply({
       embeds: [
         baseEmbed(commandName)

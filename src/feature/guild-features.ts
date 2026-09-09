@@ -11,8 +11,8 @@ export default class GuildFeatures {
    * Whether `featureId` is enabled in `guild`. Stored rows override the
    * feature default; missing rows fall back to it.
    */
-  public static async isFeatureEnabled(guild: Guild | string, featureId: FeatureIds): Promise<boolean> {
-    const guildId = typeof guild === "string" ? guild : guild.id;
+  public static async isFeatureEnabled(guild: Guild, featureId: FeatureIds): Promise<boolean> {
+    const guildId = guild.id;
     const key = `${guildId}:${featureId}`;
     const cached = GuildFeatures.CACHE.get(key);
     if (cached !== undefined) {
@@ -33,11 +33,11 @@ export default class GuildFeatures {
    * Persist an explicit per-guild toggle for `featureId`.
    */
   public static async setFeatureEnabled(
-    guild: Guild | string,
+    guild: Guild,
     featureId: FeatureIds,
     enabled: boolean
   ): Promise<boolean> {
-    const guildId = typeof guild === "string" ? guild : guild.id;
+    const guildId = guild.id;
     const [row] = await db
       .insert(guildFeatures)
       .values({ guildId, featureId, enabled })
