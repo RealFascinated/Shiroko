@@ -41,7 +41,7 @@ export default class BotStatsCommand extends Command {
       [
         `**⚡ Status**`,
         `**Latency:** ${ctx.client.ws.ping}ms`,
-        `**RAM:** ${(process.memoryUsage().rss / 1024 ** 2).toFixed(1)} MB (heap max ${(heapMax / 1024 ** 2).toFixed(1)} MB)`,
+        `**RAM:** ${Math.round(process.memoryUsage().rss / 1024 ** 2)}/${Math.round(heapMax / 1024 ** 2)} MB`,
         `**Uptime:** ${formatDuration(process.uptime() * 1000)}`,
       ],
     ];
