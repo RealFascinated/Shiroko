@@ -12,8 +12,8 @@ const VERIFICATION_LABELS: Record<GuildVerificationLevel, string> = {
 };
 
 /**
- * Show the current server's info: member and channel counts, roles, boosts,
- * safety settings, and history. Guild-only.
+ * Show the current server's info: channel counts, roles, boosts, member
+ * statuses, safety settings, and history. Guild-only.
  */
 export default class GuildInfoCommand extends Command {
   constructor() {
@@ -29,13 +29,29 @@ export default class GuildInfoCommand extends Command {
       channel => channel.type === ChannelType.GuildVoice
     ).size;
 
+    const statusCounts = guild.members.cache.reduce(
+      (counts, member) => {
+        const status = member.presence?.status ?? "offline";
+        counts[status === "invisible" ? "offline" : status]++;
+        return counts;
+      },
+      { online: 0, idle: 0, dnd: 0, offline: 0 }
+    );
+
     const sections: string[][] = [
       [
         "**📊 Server**",
-        `**Members:** ${guild.memberCount.toLocaleString("en-US")}`,
         `**Channels:** ${guild.channels.cache.size} (${textChannels} text · ${voiceChannels} voice)`,
         `**Roles:** ${guild.roles.cache.size}`,
         `**Boosts:** ${guild.premiumSubscriptionCount} (Level ${guild.premiumTier})`,
+      ],
+      [
+        "**👥 Members**",
+        `**Total:** ${guild.memberCount.toLocaleString("en-US")}`,
+        `**Online:** ${statusCounts.online.toLocaleString("en-US")}`,
+        `**Idle:** ${statusCounts.idle.toLocaleString("en-US")}`,
+        `**DND:** ${statusCounts.dnd.toLocaleString("en-US")}`,
+        `**Offline:** ${statusCounts.offline.toLocaleString("en-US")}`,
       ],
       [
         "**🛡️ Safety**",
