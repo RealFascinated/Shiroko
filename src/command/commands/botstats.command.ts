@@ -5,6 +5,7 @@ import {
   type MessageActionRowComponentBuilder,
 } from "discord.js";
 import { sql } from "drizzle-orm";
+import { getHeapStatistics } from "node:v8";
 import { db } from "../../db";
 import { globalUsers } from "../../db/schema";
 import { baseEmbed } from "../../lib/embed";
@@ -26,20 +27,21 @@ export default class BotStatsCommand extends Command {
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const bot = await ctx.client.user!.fetch();
     const avatarUrl = bot.displayAvatarURL({ size: 4096, extension: "webp" });
-    const bannerUrl = bot.bannerURL({ size: 4096, extension: "webp" });
     const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${ctx.client.application!.id}&scope=bot%20applications.commands&permissions=8`;
     const [userCount] = await db.select({ value: sql<number>`count(*)` }).from(globalUsers);
+    const { heap_size_limit: heapMax } = getHeapStatistics();
 
     const sections: string[][] = [
       [
-        `**🌐 Presence**`,
+        `**🌐 Bot**`,
         `**Servers:** ${ctx.client.guilds.cache.size.toLocaleString("en-US")}`,
+        `**Users:** ${ctx.client.users.cache.size.toLocaleString("en-US")}`,
         `**Users Seen:** ${(userCount?.value ?? 0).toLocaleString("en-US")}`,
       ],
       [
         `**⚡ Status**`,
         `**Latency:** ${ctx.client.ws.ping}ms`,
-        `**RAM:** ${(process.memoryUsage().rss / 1024 ** 2).toFixed(1)} MB`,
+        `**RAM:** ${(process.memoryUsage().rss / 1024 ** 2).toFixed(1)} MB (heap max ${(heapMax / 1024 ** 2).toFixed(1)} MB)`,
         `**Uptime:** ${formatDuration(process.uptime() * 1000)}`,
       ],
     ];
@@ -51,14 +53,7 @@ export default class BotStatsCommand extends Command {
       .setThumbnail(avatarUrl)
       .setDescription(lines);
 
-    if (bannerUrl) {
-      embed.setImage(bannerUrl);
-    }
-
     const buttons = [new ButtonBuilder().setLabel("Invite").setStyle(ButtonStyle.Link).setURL(inviteUrl)];
-    if (bannerUrl) {
-      buttons.push(new ButtonBuilder().setLabel("Banner").setStyle(ButtonStyle.Link).setURL(bannerUrl));
-    }
     const row = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(buttons);
 
     return ctx.reply({ embeds: [embed], components: [row] });
