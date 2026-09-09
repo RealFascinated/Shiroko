@@ -1,6 +1,6 @@
-import Command from "../../../command/command";
-import KindCommand from "./stats/sub/kind.command";
-import ServerCommand from "./stats/sub/server.command";
+import Command from "../../../../command/command";
+import KindCommand from "./sub/kind.command";
+import ServerCommand from "./sub/server.command";
 
 /**
  * Show user activity stats as a card: message counts, voice hours, or both.

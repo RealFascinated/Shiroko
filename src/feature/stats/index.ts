@@ -13,13 +13,15 @@ export default class StatsFeature extends Feature {
       if (!message.guildId) {
         return;
       }
-      statsService.recordMessage({
-        id: message.id,
-        userId: message.author.id,
-        guildId: message.guildId,
-        channelId: message.channelId,
-        createdAt: message.createdAt,
-      }).catch(error => console.error("Message stats error:", error));
+      statsService
+        .recordMessage({
+          id: message.id,
+          userId: message.author.id,
+          guildId: message.guildId,
+          channelId: message.channelId,
+          createdAt: message.createdAt,
+        })
+        .catch(error => console.error("Message stats error:", error));
     });
     this.registerEventListener(Events.VoiceStateUpdate, (oldState, newState) => {
       if (newState.id === newState.client.user?.id) {
@@ -29,9 +31,9 @@ export default class StatsFeature extends Feature {
       if (user?.bot) {
         return;
       }
-      statsService.trackVoiceState(newState.id, newState.guild.id, oldState.channelId, newState.channelId).catch(
-        error => console.error("Voice stats error:", error)
-      );
+      statsService
+        .trackVoiceState(newState.id, newState.guild.id, oldState.channelId, newState.channelId)
+        .catch(error => console.error("Voice stats error:", error));
     });
     this.registerEventListener(Events.ClientReady, readyClient => {
       void statsService.recoverOpenSessions(readyClient);

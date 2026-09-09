@@ -1,7 +1,7 @@
-import Command from "../../command";
-import AvatarCommand from "./sub/avatar.command";
-import BannerCommand from "./sub/banner.command";
-import UserInfoCommand from "./sub/user-info.command";
+import Command from "../command";
+import AvatarCommand from "./avatar.command";
+import BannerCommand from "./banner.command";
+import UserInfoCommand from "./user/sub/user-info.command";
 
 /**
  * Show a user's info, avatar, or banner via subcommands.

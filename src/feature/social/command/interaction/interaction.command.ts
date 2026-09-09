@@ -1,5 +1,4 @@
-import Command, { type ExecuteContext } from "../../../../command/command";
-import { baseEmbed } from "../../../../lib/embed";
+import Command from "../../../../command/command";
 import BiteCommand from "./sub/bite.command";
 import BlowkissCommand from "./sub/blowkiss.command";
 import BonkCommand from "./sub/bonk.command";
@@ -41,11 +40,5 @@ export default class InteractionCommand extends Command {
 
   public override get userInstallable(): boolean {
     return true;
-  }
-
-  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
-    return ctx.reply({
-      embeds: [baseEmbed(commandName).setDescription("Choose a subcommand: `/interact hug`")],
-    });
   }
 }

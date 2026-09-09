@@ -101,6 +101,26 @@ export const guildInvites = pgTable(
 );
 
 /**
+ * Per-role bot permission configuration for one guild. `roleId` equals the
+ * guild id for the `@everyone` role. `flags` is a BigInt bitfield stored as
+ * a decimal string (see `PermissionFlags` in `src/permission/permissions.ts`).
+ * `parentRoleId` links to another row in the same guild for additive
+ * permission inheritance; a dangling or missing parent resolves to no
+ * inherited flags (no FK — the link is enforced in the app layer).
+ */
+export const permissionRoles = pgTable(
+  "permission_roles",
+  {
+    guildId: text("guild_id").notNull(),
+    roleId: text("role_id").notNull(),
+    flags: text("flags").notNull().default("0"),
+    parentRoleId: text("parent_role_id"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [primaryKey({ columns: [table.guildId, table.roleId] })]
+);
+
+/**
  * One row per guild join with an attributed invite code. `inviterId` and
  * `code` are null when the join came from outside a tracked invite
  * (vanity URL, OAuth widget, expired single-use code). Totals derive from
@@ -132,6 +152,7 @@ export const schema = {
   guildFeatures,
   guildInvites,
   inviteJoins,
+  permissionRoles,
 };
 
 export type GlobalUserSchema = typeof globalUsers.$inferSelect;
@@ -141,4 +162,5 @@ export type VoiceSessionSchema = typeof voiceSessions.$inferSelect;
 export type GuildFeatureSchema = typeof guildFeatures.$inferSelect;
 export type GuildInviteSchema = typeof guildInvites.$inferSelect;
 export type InviteJoinSchema = typeof inviteJoins.$inferSelect;
+export type PermissionRoleSchema = typeof permissionRoles.$inferSelect;
 export const now = sql`now()`;

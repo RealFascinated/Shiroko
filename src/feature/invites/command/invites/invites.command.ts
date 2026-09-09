@@ -1,6 +1,6 @@
-import Command from "../../../command/command";
-import LeaderboardCommand from "./invites/sub/leaderboard.command";
-import UserCommand from "./invites/sub/user.command";
+import Command from "../../../../command/command";
+import LeaderboardCommand from "./sub/leaderboard.command";
+import UserCommand from "./sub/user.command";
 
 /**
  * Show invite stats: who you (or another user) invited, or the server's

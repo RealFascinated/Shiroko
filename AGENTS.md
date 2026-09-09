@@ -30,6 +30,24 @@ const question = ctx.options.getString("question", true)!;
 
 Every command should be user-installable unless it needs the guild. Override `userInstallable` to return `true` so the command registers for both guild and user installs and can be used in servers and DMs. Only return `false` when the command genuinely needs a guild context.
 
+A command that registers subcommands cannot be invoked directly — Discord always sends a subcommand, so the parent's `onExecuteSlash` is never called. Don't implement a "choose a subcommand" handler or reply on such parents; leave `onExecuteSlash` at its default no-op and put all logic in the subcommands. `executeSlash` already short-circuits: it dispatches to the subcommand, or returns silently if none is supplied.
+
+Subcommands live in their own files under a `sub/` folder next to the parent command file (e.g. `src/command/commands/user/sub/avatar.command.ts`). Never inline subcommand classes into the parent file — the parent only imports and registers them. Shared helpers for those subcommands go in the same `sub/` folder (e.g. `sub/permissions-helpers.ts`).
+
+A command that has subcommands gets its own folder: parent file plus `sub/` (e.g. `src/command/commands/user/user.command.ts` + `src/command/commands/user/sub/`). Standalone commands with no subcommands stay flat files in `src/command/commands/`.
+
+Commands owned by a feature live inside that feature's folder, under `command/` (e.g. `src/feature/stats/command/stats/stats.command.ts`, `src/feature/social/command/react/react.command.ts`). A feature with commands keeps them there — not in `src/command/commands/`. The general commands (`ping`, `user`, `botstats`, `guildinfo`, `/permissions`) stay in `src/command/commands/` (and `src/permission/`).
+
+## Permissions
+
+Bot permissions live entirely under `src/permission/` — the logic in `src/permission/permissions.ts` (the `Permissions` class + `PermissionFlags`), its tests, and the `/permissions` command in `src/permission/command/`. Do not put permission code anywhere else.
+
+- Flags are BigInt bitfields (`1n << n`) named after the command they gate, e.g. `FEATURE_COMMAND`, `PERMISSIONS_COMMAND`. Bits are permanent — never reuse a retired bit. `FLAG_DISPLAY_NAMES` maps each flag to its user-facing label and is the single source of truth for choice labels and `/permissions view` decoding.
+- Commands declare a `requiredFlags: bigint` getter (default `0n` = anyone). `CommandManager` enforces it after the feature check; the guild owner and members with Discord `Administrator` (when `ALLOW_ADMIN_BYPASS` is on) bypass all checks.
+- Effective flags: a role's own flags OR'd with its parent's effective flags (additive inheritance, cycle-safe), then OR'd across all the member's roles.
+- Cache resolution per guild (`loadGuild`) with invalidation on role events — mirror the existing pattern, don't add ad-hoc checks.
+- Subcommands of `/permissions` live in `src/permission/command/sub/`, and shared helpers in the same folder (e.g. `sub/permissions-helpers.ts`). Only the parent imports `Command` from `src/command/command` — `../../command` would resolve to `src/command/index.ts` (`CommandManager`).
+
 ## Read the Subsystem
 
 Read the subsystem before you write code. A change sits inside a framework, manager, registry, or feature area — explore base classes, registration paths, config hooks, and existing implementations first.

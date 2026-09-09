@@ -1,6 +1,6 @@
-import { baseEmbed } from "../../lib/embed";
-import Command, { type ExecuteContext } from "../command";
-import { userOption } from "../option";
+import Command, { type ExecuteContext } from "../../../../command/command";
+import { userOption } from "../../../../command/option";
+import { baseEmbed } from "../../../../lib/embed";
 
 export default class BannerCommand extends Command {
   constructor() {

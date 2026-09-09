@@ -112,6 +112,17 @@ export default abstract class Command {
   }
 
   /**
+   * Bot permission flags required to run this command in a guild. `0n`
+   * means anyone. Owner and (optionally) Discord `Administrator` bypass
+   * this; see `Permissions` in `src/permission/permissions.ts`. Only the
+   * top-level command's flags are checked by `CommandManager` — subcommand
+   * flags are not consulted.
+   */
+  public get requiredFlags(): bigint {
+    return 0n;
+  }
+
+  /**
    * Register a subcommand that this command exposes in Discord.
    *
    * Discord forbids mixing top-level options and subcommands on one command,
@@ -148,23 +159,37 @@ export default abstract class Command {
     return this.slashCommand;
   }
 
-  public async executeSlash(context: ExecuteContext): Promise<FollowUpReturn> {
+  public async executeSlash(context: ExecuteContext): Promise<FollowUpReturn | void> {
     const { ctx } = context;
     const subCommandName = ctx.options.getSubcommand(false);
-    if (subCommandName) {
-      const subCommand = this.subCommands.get(subCommandName);
+    if (this.subCommands.size > 0) {
+      // A command with subcommands cannot be invoked directly — Discord
+      // always supplies one. Dispatch it; if we somehow can't, do nothing
+      // (the parent has no executable body).
+      const subCommand = subCommandName ? this.subCommands.get(subCommandName) : undefined;
       if (subCommand) {
         return subCommand.executeSlash(context);
       }
+      return;
     }
     const reply = await this.onExecuteSlash(context);
+    if (reply === undefined) {
+      return;
+    }
     if (isFollowUp(reply)) {
       return finishFollowUp(context, reply);
     }
     return reply;
   }
 
-  protected abstract onExecuteSlash(context: ExecuteContext): Promise<FollowUpReturn>;
+  /**
+   * Executable body for a standalone command. Commands with subcommands
+   * never reach this — `executeSlash` short-circuits and dispatches to the
+   * subcommand instead, so the default no-op is fine for them.
+   */
+  protected async onExecuteSlash(_context: ExecuteContext): Promise<FollowUpReturn | void> {
+    return;
+  }
 
   private addOption(builder: OptionHolder, option: CommandOptionBuilder): void {
     switch (option.type) {

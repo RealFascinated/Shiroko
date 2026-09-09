@@ -7,6 +7,7 @@ import FeatureManager from "./feature";
 import { statsService } from "./feature/stats/stats.service";
 import { env } from "./lib/env";
 import { registerVoiceKeepalive } from "./lib/voice";
+import Permissions from "./permission/permissions";
 
 export { statsService };
 
@@ -31,6 +32,7 @@ const commands = new CommandManager();
 const contextMenuCommands = new ContextMenuCommandManager();
 commands.registerHandlers(discordClient);
 contextMenuCommands.registerHandlers(discordClient);
+Permissions.registerHandlers(discordClient);
 
 new FeatureManager();
 

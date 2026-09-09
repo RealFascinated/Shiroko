@@ -1,6 +1,6 @@
 import { Events, type Client } from "discord.js";
 import Feature, { FeatureIds } from "../feature";
-import InvitesCommand from "./command/invites.command";
+import InvitesCommand from "./command/invites/invites.command";
 import { invitesService } from "./invites.service";
 
 /**

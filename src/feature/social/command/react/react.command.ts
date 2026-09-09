@@ -1,5 +1,4 @@
-import Command, { type ExecuteContext } from "../../../../command/command";
-import { baseEmbed } from "../../../../lib/embed";
+import Command from "../../../../command/command";
 import AngryCommand from "./sub/angry.command";
 import BlehCommand from "./sub/bleh.command";
 import BlushCommand from "./sub/blush.command";
@@ -33,11 +32,5 @@ export default class ReactCommand extends Command {
 
   public override get userInstallable(): boolean {
     return true;
-  }
-
-  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
-    return ctx.reply({
-      embeds: [baseEmbed(commandName).setDescription("Choose a reaction: `/react cry`")],
-    });
   }
 }

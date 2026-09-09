@@ -2,14 +2,16 @@ import type { Client } from "discord.js";
 import { Events, MessageFlags, type SlashCommandBuilder } from "discord.js";
 import FeatureCommand from "../feature/feature-command";
 import GuildFeatures from "../feature/guild-features";
-import ReactCommand from "../feature/social/command/react/react.command";
-import StatsCommand from "../feature/stats/command/stats.command";
+import StatsCommand from "../feature/stats/command/stats/stats.command";
+import { fetchGuildMember } from "../lib/guild";
+import PermissionsCommand from "../permission/command/permissions.command";
+import Permissions, { hasFlags } from "../permission/permissions";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import BotStatsCommand from "./commands/botstats.command";
 import GuildInfoCommand from "./commands/guildinfo.command";
 import PingCommand from "./commands/ping.command";
-import UserCommand from "./commands/user.command";
+import UserCommand from "./commands/user/user.command";
 import ParsedArguments from "./parsed-arguments";
 
 export default class CommandManager {
@@ -22,6 +24,7 @@ export default class CommandManager {
     CommandManager.registerCommand(new BotStatsCommand());
     CommandManager.registerCommand(new StatsCommand());
     CommandManager.registerCommand(new FeatureCommand());
+    CommandManager.registerCommand(new PermissionsCommand());
   }
 
   /**
@@ -57,6 +60,18 @@ export default class CommandManager {
         if (!enabled) {
           interaction.reply({
             content: `The \`${command.featureId}\` feature is disabled in this server.`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+      }
+
+      if (guild && command.requiredFlags !== 0n) {
+        const member = await fetchGuildMember(guild, interaction.user.id);
+        const flags = member ? await Permissions.memberFlags(guild, member) : 0n;
+        if (!hasFlags(flags, command.requiredFlags)) {
+          interaction.reply({
+            content: "You don't have permission to use this command.",
             flags: MessageFlags.Ephemeral,
           });
           return;

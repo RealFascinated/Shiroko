@@ -1,5 +1,4 @@
 import type { Client } from "discord.js";
-import { Events } from "discord.js";
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { globalUsers, messageEvents, voiceSessions } from "../../db/schema";
