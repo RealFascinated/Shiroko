@@ -3,10 +3,10 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import CommandManager from "./command";
 import ContextMenuCommandManager from "./context-menu/context-menu-command-manager";
 import { db } from "./db";
+import FeatureManager from "./feature";
 import { statsService } from "./feature/stats/stats.service";
 import { env } from "./lib/env";
 import { registerVoiceKeepalive } from "./lib/voice";
-import FeatureManager from "./feature";
 
 export { statsService };
 
@@ -14,7 +14,13 @@ await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");
 
 export const discordClient = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildInvites,
+  ],
 });
 
 // temp (for now?)

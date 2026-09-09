@@ -84,12 +84,54 @@ export const guildFeatures = pgTable(
   table => [primaryKey({ columns: [table.guildId, table.featureId] })]
 );
 
+/**
+ * One row per guild invite code, snapshotting its current use count so
+ * joins can be diffed against the live cache after a restart.
+ */
+export const guildInvites = pgTable(
+  "guild_invites",
+  {
+    guildId: text("guild_id").notNull(),
+    code: text("code").notNull(),
+    inviterId: text("inviter_id"),
+    uses: integer("uses").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [primaryKey({ columns: [table.guildId, table.code] })]
+);
+
+/**
+ * One row per guild join with an attributed invite code. `inviterId` and
+ * `code` are null when the join came from outside a tracked invite
+ * (vanity URL, OAuth widget, expired single-use code). Totals derive from
+ * `count()`/`groupBy` — there is no counter column to desync.
+ */
+export const inviteJoins = pgTable(
+  "invite_joins",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    guildId: text("guild_id").notNull(),
+    memberId: text("member_id").notNull(),
+    inviterId: text("inviter_id"),
+    code: text("code"),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [
+    index("invite_joins_guild_joined_idx").on(table.guildId, table.joinedAt.desc()),
+    index("invite_joins_inviter_idx").on(table.guildId, table.inviterId),
+  ]
+);
+
 export const schema = {
   globalUsers,
   interactions,
   messageEvents,
   voiceSessions,
   guildFeatures,
+  guildInvites,
+  inviteJoins,
 };
 
 export type GlobalUserSchema = typeof globalUsers.$inferSelect;
@@ -97,4 +139,6 @@ export type InteractionSchema = typeof interactions.$inferSelect;
 export type MessageEventSchema = typeof messageEvents.$inferSelect;
 export type VoiceSessionSchema = typeof voiceSessions.$inferSelect;
 export type GuildFeatureSchema = typeof guildFeatures.$inferSelect;
+export type GuildInviteSchema = typeof guildInvites.$inferSelect;
+export type InviteJoinSchema = typeof inviteJoins.$inferSelect;
 export const now = sql`now()`;

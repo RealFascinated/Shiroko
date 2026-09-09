@@ -6,6 +6,7 @@ import GuildFeatures from "./guild-features";
 
 export enum FeatureIds {
   Interaction = "interaction",
+  Invites = "invites",
   Stats = "stats",
 }
 
