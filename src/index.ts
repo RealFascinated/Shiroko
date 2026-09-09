@@ -4,12 +4,9 @@ import CommandManager from "./command";
 import ContextMenuCommandManager from "./context-menu/context-menu-command-manager";
 import { db } from "./db";
 import FeatureManager from "./feature";
-import { statsService } from "./feature/stats/stats.service";
 import { env } from "./lib/env";
 import { registerVoiceKeepalive } from "./lib/voice";
 import Permissions from "./permission/permissions";
-
-export { statsService };
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");
