@@ -1,5 +1,5 @@
-import Command, { type ExecuteContext } from "../../../command/command";
-import { baseEmbed } from "../../../lib/embed";
+import Command, { type ExecuteContext } from "../../../../command/command";
+import { baseEmbed } from "../../../../lib/embed";
 import AngryCommand from "./sub/angry.command";
 import BlehCommand from "./sub/bleh.command";
 import BlushCommand from "./sub/blush.command";

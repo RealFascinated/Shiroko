@@ -1,6 +1,6 @@
 import { Client, Events, GatewayIntentBits } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import CommandManager from "./command/command-manager";
+import CommandManager from "./command";
 import ContextMenuCommandManager from "./context-menu/context-menu-command-manager";
 import { db } from "./db";
 import { statsService } from "./feature/stats/stats.service";
@@ -16,16 +16,14 @@ export const discordClient = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages],
 });
 
-const commands = new CommandManager();
-commands.registerHandlers(discordClient);
-
-const contextMenuCommands = new ContextMenuCommandManager();
-contextMenuCommands.registerHandlers(discordClient);
-
+// temp (for now?)
 const VOICE_CHANNEL_ID = "1446633266160603268";
-
-statsService.registerHandlers(discordClient);
 registerVoiceKeepalive(discordClient, VOICE_CHANNEL_ID);
+
+const commands = new CommandManager();
+const contextMenuCommands = new ContextMenuCommandManager();
+commands.registerHandlers(discordClient);
+contextMenuCommands.registerHandlers(discordClient);
 
 discordClient.on(Events.GuildCreate, guild => {
   console.log(

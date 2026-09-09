@@ -8,8 +8,8 @@ import {
   type MessageActionRowComponentBuilder,
   type User,
 } from "discord.js";
-import { fetchGuildMember } from "../../lib/discord";
 import { baseEmbed } from "../../lib/embed";
+import { fetchGuildMember } from "../../lib/guild";
 import type GlobalUser from "../../user/global-user";
 import GlobalUsersManager from "../../user/global-users-manager";
 import Command, { type ExecuteContext } from "../command";

@@ -584,47 +584,10 @@ export default class StatsService {
   }
 
   /**
-   * Attach message and voice tracking to `client`, and recover open
-   * sessions once the client is ready.
-   */
-  public registerHandlers(client: Client): void {
-    client.on(Events.MessageCreate, message => {
-      if (message.author.bot || message.webhookId) {
-        return;
-      }
-      if (!message.guildId) {
-        return;
-      }
-      this.recordMessage({
-        id: message.id,
-        userId: message.author.id,
-        guildId: message.guildId,
-        channelId: message.channelId,
-        createdAt: message.createdAt,
-      }).catch(error => console.error("Message stats error:", error));
-    });
-    client.on(Events.VoiceStateUpdate, (oldState, newState) => {
-      if (newState.id === client.user?.id) {
-        return;
-      }
-      const user = newState.member?.user ?? oldState.member?.user;
-      if (user?.bot) {
-        return;
-      }
-      this.trackVoiceState(newState.id, newState.guild.id, oldState.channelId, newState.channelId).catch(
-        error => console.error("Voice stats error:", error)
-      );
-    });
-    client.once(Events.ClientReady, readyClient => {
-      void this.recoverOpenSessions(readyClient);
-    });
-  }
-
-  /**
    * Close sessions orphaned by a restart, then open sessions for users
    * already in voice.
    */
-  private async recoverOpenSessions(client: Client): Promise<void> {
+  public async recoverOpenSessions(client: Client): Promise<void> {
     try {
       const staleClosed = await this.closeStaleSessions();
       if (staleClosed > 0) {

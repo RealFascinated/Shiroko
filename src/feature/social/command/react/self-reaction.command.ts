@@ -1,6 +1,6 @@
-import Command, { type ExecuteContext } from "../../../command/command";
-import { getGif, type GifCategory } from "../../../lib/anime";
-import { baseEmbed } from "../../../lib/embed";
+import Command, { type ExecuteContext } from "../../../../command/command";
+import { getGif, type GifCategory } from "../../../../lib/anime";
+import { baseEmbed } from "../../../../lib/embed";
 
 /**
  * Base class for self-reactions: no options, the invoking user "acts on

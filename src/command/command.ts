@@ -19,6 +19,7 @@ import {
   type SlashCommandStringOption,
   type SlashCommandUserOption,
 } from "discord.js";
+import type { FeatureIds } from "../feature/feature";
 import type GlobalUser from "../user/global-user";
 import type { CommandOptionBuilder } from "./option";
 import type ParsedArguments from "./parsed-arguments";
@@ -86,6 +87,7 @@ export default abstract class Command {
   public readonly id: string;
   public readonly displayName: string;
   public readonly slashCommand: SlashCommandBuilder;
+  public featureId?: FeatureIds;
 
   public readonly subCommands: Map<string, Command> = new Map();
 

@@ -1,7 +1,8 @@
 import type { Client } from "discord.js";
-import { Events, type SlashCommandBuilder } from "discord.js";
-import TestCommand from "../feature/interaction/command/interaction.command";
-import ReactCommand from "../feature/reaction/command/react.command";
+import { Events, MessageFlags, type SlashCommandBuilder } from "discord.js";
+import FeatureCommand from "../feature/feature-command";
+import GuildFeatures from "../feature/guild-features";
+import ReactCommand from "../feature/social/command/react/react.command";
 import StatsCommand from "../feature/stats/command/stats.command";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
@@ -12,23 +13,22 @@ import UserCommand from "./commands/user.command";
 import ParsedArguments from "./parsed-arguments";
 
 export default class CommandManager {
-  private commands = new Map<string, Command>();
+  private static COMMANDS = new Map<string, Command>();
 
   constructor() {
-    this.registerCommand(new TestCommand());
-    this.registerCommand(new PingCommand());
-    this.registerCommand(new UserCommand());
-    this.registerCommand(new GuildInfoCommand());
-    this.registerCommand(new BotStatsCommand());
-    this.registerCommand(new ReactCommand());
-    this.registerCommand(new StatsCommand());
+    CommandManager.registerCommand(new PingCommand());
+    CommandManager.registerCommand(new UserCommand());
+    CommandManager.registerCommand(new GuildInfoCommand());
+    CommandManager.registerCommand(new BotStatsCommand());
+    CommandManager.registerCommand(new StatsCommand());
+    CommandManager.registerCommand(new FeatureCommand());
   }
 
   /**
    * Build every local slash command for registration.
    */
   public build(): SlashCommandBuilder[] {
-    return Array.from(this.commands.values()).map(command => command.build());
+    return Array.from(CommandManager.COMMANDS.values()).map(command => command.build());
   }
 
   /**
@@ -41,7 +41,7 @@ export default class CommandManager {
         return;
       }
       const { commandName } = interaction;
-      const command = this.commands.get(commandName);
+      const command = CommandManager.COMMANDS.get(commandName);
       if (!command) {
         console.log(`Unknown command: ${commandName}`);
         return;
@@ -50,6 +50,17 @@ export default class CommandManager {
       const guild = interaction.guild;
       if (!guild && !command.userInstallable) {
         return;
+      }
+
+      if (guild && command.featureId) {
+        const enabled = await GuildFeatures.isFeatureEnabled(guild, command.featureId);
+        if (!enabled) {
+          interaction.reply({
+            content: `The \`${command.featureId}\` feature is disabled in this server.`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
       }
 
       try {
@@ -68,8 +79,8 @@ export default class CommandManager {
     });
   }
 
-  private registerCommand(command: Command) {
-    this.commands.set(command.slashCommand.name, command);
+  public static registerCommand(command: Command) {
+    CommandManager.COMMANDS.set(command.slashCommand.name, command);
     console.log(`Registered command: ${command.id} - ${command.displayName}`);
     for (const sub of command.subCommands.values()) {
       console.log(`  └─ ${sub.id} - ${sub.displayName}`);

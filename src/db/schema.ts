@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const globalUsers = pgTable("global_users", {
   id: text("id").primaryKey(),
@@ -69,15 +69,32 @@ export const voiceSessions = pgTable(
   ]
 );
 
+/**
+ * Explicit per-guild feature toggles. Missing rows fall back to the
+ * feature's default; stored rows override it.
+ */
+export const guildFeatures = pgTable(
+  "guild_features",
+  {
+    guildId: text("guild_id").notNull(),
+    featureId: text("feature_id").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [primaryKey({ columns: [table.guildId, table.featureId] })]
+);
+
 export const schema = {
   globalUsers,
   interactions,
   messageEvents,
   voiceSessions,
+  guildFeatures,
 };
 
 export type GlobalUserSchema = typeof globalUsers.$inferSelect;
 export type InteractionSchema = typeof interactions.$inferSelect;
 export type MessageEventSchema = typeof messageEvents.$inferSelect;
 export type VoiceSessionSchema = typeof voiceSessions.$inferSelect;
+export type GuildFeatureSchema = typeof guildFeatures.$inferSelect;
 export const now = sql`now()`;

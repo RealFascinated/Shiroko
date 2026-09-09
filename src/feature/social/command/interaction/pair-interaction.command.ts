@@ -8,14 +8,14 @@ import {
   type MessageActionRowComponentBuilder,
   type User,
 } from "discord.js";
-import Command, { type ExecuteContext } from "../../../command/command";
-import { userOption } from "../../../command/option";
-import { getGif, type AnimeGif } from "../../../lib/anime";
-import { baseEmbed, watchButtonPress } from "../../../lib/embed";
-import { ordinal, titleCase } from "../../../lib/format";
-import GlobalUsersManager from "../../../user/global-users-manager";
-import { interactionConfig } from "../config";
-import { incrementInteraction, type InteractionType } from "../interactions";
+import InteractionFeature, { type InteractionType } from "../..";
+import Command, { type ExecuteContext } from "../../../../command/command";
+import { userOption } from "../../../../command/option";
+import { getGif, type AnimeGif } from "../../../../lib/anime";
+import { baseEmbed, watchButtonPress } from "../../../../lib/embed";
+import { ordinal, titleCase } from "../../../../lib/format";
+import { TimeUnit } from "../../../../lib/time";
+import GlobalUsersManager from "../../../../user/global-users-manager";
 
 /** Discriminator for this test command, e.g. `interaction-back:hug`. */
 const BACK_BUTTON_PREFIX = "interaction-back";
@@ -69,7 +69,11 @@ export default abstract class PairInteractionCommand extends Command {
       return ctx.reply({ content: `You can't ${this.verb} yourself! :(`, flags: MessageFlags.Ephemeral });
     }
     const targetUser = await GlobalUsersManager.getUser(target);
-    const count = await incrementInteraction(globalUser.id, targetUser.id, this.interactionType);
+    const count = await InteractionFeature.incrementInteraction(
+      globalUser.id,
+      targetUser.id,
+      this.interactionType
+    );
     const gif = await getGif(this.gifCategory);
     const embed = this.buildEmbed(commandName, globalUser.discordUser, target, count, gif);
 
@@ -86,7 +90,7 @@ export default abstract class PairInteractionCommand extends Command {
       await watchButtonPress(response, {
         customId: backButtonId(this.interactionType),
         userId: target.id,
-        windowMs: interactionConfig.backButtonWindowMs,
+        windowMs: TimeUnit.toMillis(TimeUnit.Hour, 3),
         onPress: button => this.returnInteraction(button, globalUser.discordUser, commandName),
       });
     }
@@ -105,7 +109,11 @@ export default abstract class PairInteractionCommand extends Command {
     commandName: string
   ): Promise<void> {
     const presserUser = await GlobalUsersManager.getUser(button.user);
-    const count = await incrementInteraction(presserUser.id, originalActor.id, this.interactionType);
+    const count = await InteractionFeature.incrementInteraction(
+      presserUser.id,
+      originalActor.id,
+      this.interactionType
+    );
     const gif = await getGif(this.gifCategory);
     const embed = this.buildEmbed(commandName, presserUser.discordUser, originalActor, count, gif);
     await button.followUp({ embeds: [embed] });
