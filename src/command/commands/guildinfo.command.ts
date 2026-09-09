@@ -1,19 +1,10 @@
-import { ChannelType, GuildVerificationLevel } from "discord.js";
+import { ChannelType } from "discord.js";
 import { baseEmbed } from "../../lib/embed";
 import Command, { type ExecuteContext } from "../command";
 
-/** Human labels for Discord's verification levels. */
-const VERIFICATION_LABELS: Record<GuildVerificationLevel, string> = {
-  [GuildVerificationLevel.None]: "None",
-  [GuildVerificationLevel.Low]: "Low",
-  [GuildVerificationLevel.Medium]: "Medium",
-  [GuildVerificationLevel.High]: "High",
-  [GuildVerificationLevel.VeryHigh]: "Very High",
-};
-
 /**
  * Show the current server's info: channel counts, roles, boosts, member
- * statuses, safety settings, and history. Guild-only.
+ * statuses, and history. Guild-only.
  */
 export default class GuildInfoCommand extends Command {
   constructor() {
@@ -54,12 +45,7 @@ export default class GuildInfoCommand extends Command {
         `**Offline:** ${statusCounts.offline.toLocaleString("en-US")}`,
       ],
       [
-        "**🛡️ Safety**",
-        `**Verification:** ${VERIFICATION_LABELS[guild.verificationLevel]}`,
-        `**Max Members:** ${guild.maximumMembers?.toLocaleString("en-US") ?? "Unlimited"}`,
-      ],
-      [
-        "**🗓️ History**",
+        "**️ History**",
         `**Created:** <t:${Math.floor(guild.createdTimestamp / 1000)}:R>`,
         `**Bot Joined:** <t:${Math.floor(guild.joinedTimestamp / 1000)}:R>`,
         `**Owner:** <@${guild.ownerId}>`,
