@@ -1,5 +1,5 @@
-import { PermissionFlags } from "../permissions";
 import Command from "../../command/command";
+import { PermissionFlags } from "../permissions";
 import ClearCommand from "./sub/clear.command";
 import InheritCommand from "./sub/inherit.command";
 import SetCommand from "./sub/set.command";

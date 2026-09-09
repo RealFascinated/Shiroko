@@ -4,7 +4,7 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
 import Permissions, { flagLabels } from "../../permissions";
 
 /**
- * Change only a role's parent link, leaving own flags untouched.
+ * Change only a role's parent link, leaving own permissions untouched.
  */
 export default class PermissionsInheritCommand extends Command {
   constructor() {
@@ -43,7 +43,7 @@ export default class PermissionsInheritCommand extends Command {
             .setDescription(
               `**${role.name}** now inherits from ${
                 parent ? `@${parent.name}` : "nothing"
-              }. Effective flags: ${flagLabels(effective).join(", ") || "no flags"}.`
+              }. Effective permissions: ${flagLabels(effective).join(", ") || "no permissions"}.`
             ),
         ],
       });

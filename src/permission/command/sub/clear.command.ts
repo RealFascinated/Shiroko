@@ -4,7 +4,7 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
 import Permissions from "../../permissions";
 
 /**
- * Delete a role's permission row entirely; it then resolves to no flags.
+ * Delete a role's permission row entirely; it then resolves to no permissions.
  */
 export default class PermissionsClearCommand extends Command {
   constructor() {
@@ -35,7 +35,7 @@ export default class PermissionsClearCommand extends Command {
       embeds: [
         baseEmbed(commandName)
           .setTitle("🔒 Permissions Cleared")
-          .setDescription(`**${role.name}** now defaults to no flags.`),
+          .setDescription(`**${role.name}** now defaults to no permissions.`),
       ],
     });
   }
