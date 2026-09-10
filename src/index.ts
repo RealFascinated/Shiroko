@@ -1,12 +1,23 @@
-import { Client, Events, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, type Guild } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import CommandManager from "./command";
-import ContextMenuCommandManager from "./context-menu/context-menu-command-manager";
+import CommandManager, { SlashCommandListener } from "./command";
+import ContextMenuCommandManager, {
+  ContextMenuCommandListener,
+} from "./context-menu/context-menu-command-manager";
 import { db } from "./db";
+import EventBridge from "./event/event-bridge";
+import { EventBus } from "./event/event-bus";
+import { EventHandler } from "./event/event-handler";
+import { EventListener } from "./event/event-listener";
+import BotReadyEvent from "./event/events/bot-ready.event";
+import GuildJoinedEvent from "./event/events/guild-joined.event";
+import GuildLeftEvent from "./event/events/guild-left.event";
 import FeatureManager from "./feature";
+import { InvitesListeners } from "./feature/invites";
+import { StatsListeners } from "./feature/stats";
 import { env } from "./lib/env";
-import { registerVoiceKeepalive } from "./lib/voice";
-import Permissions from "./permission/permissions";
+import { VoiceKeepaliveListener } from "./lib/voice";
+import { PermissionsListeners } from "./permission/permissions";
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");
@@ -22,40 +33,62 @@ export const discordClient = new Client({
   ],
 });
 
+new EventBridge(discordClient).registerHandlers();
+
+/**
+ * Guild lifecycle logging and one-time command sync on ready. Lives here
+ * because it's the entry-level wiring: ready-sync pushes the command set
+ * to Discord and logs join/leave.
+ */
+class LifecycleListeners extends EventListener {
+  constructor() {
+    super();
+    EventBus.subscribe(this);
+  }
+
+  @EventHandler(BotReadyEvent)
+  public async onBotReady(event: BotReadyEvent): Promise<void> {
+    const client = event.client;
+    console.log(`Ready! Logged in as ${client.user?.tag}`);
+
+    const application = client.application;
+    if (!application) {
+      throw new Error("Application is not available");
+    }
+    const allCommands = [...new CommandManager().build(), ...new ContextMenuCommandManager().build()];
+    await application.commands.set(allCommands);
+    console.log(`Synced ${allCommands.length} command(s)`);
+  }
+
+  @EventHandler(GuildJoinedEvent)
+  public async onGuildJoined(event: GuildJoinedEvent): Promise<void> {
+    const client = (event.guildData as Guild & { client: Client }).client;
+    console.log(
+      `Joined "${event.guildData.name}" (${event.guildData.memberCount} members) — now in ${client.guilds.cache.size} guild(s)`
+    );
+  }
+
+  @EventHandler(GuildLeftEvent)
+  public async onGuildLeft(event: GuildLeftEvent): Promise<void> {
+    const client = (event.guildData as Guild & { client: Client }).client;
+    console.log(
+      `Left "${event.guildData.name}" (${event.guildData.memberCount} members) — now in ${client.guilds.cache.size} guild(s)`
+    );
+  }
+}
+
 // temp (for now?)
 const VOICE_CHANNEL_ID = "1446633266160603268";
-registerVoiceKeepalive(discordClient, VOICE_CHANNEL_ID);
+new VoiceKeepaliveListener(VOICE_CHANNEL_ID);
 
-const commands = new CommandManager();
-const contextMenuCommands = new ContextMenuCommandManager();
-commands.registerHandlers(discordClient);
-contextMenuCommands.registerHandlers(discordClient);
-Permissions.registerHandlers(discordClient);
+new LifecycleListeners();
+new StatsListeners();
+new InvitesListeners();
+new PermissionsListeners();
+new SlashCommandListener();
+new ContextMenuCommandListener();
 
 new FeatureManager();
-
-discordClient.once(Events.ClientReady, async readyClient => {
-  console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-
-  const application = readyClient.application;
-  if (!application) {
-    throw new Error("Application is not available");
-  }
-  const allCommands = [...commands.build(), ...contextMenuCommands.build()];
-  await application.commands.set(allCommands);
-  console.log(`Synced ${allCommands.length} command(s)`);
-});
-
-discordClient.on(Events.GuildCreate, guild => {
-  console.log(
-    `Joined "${guild.name}" (${guild.memberCount} members) — now in ${discordClient.guilds.cache.size} guild(s)`
-  );
-});
-discordClient.on(Events.GuildDelete, guild => {
-  console.log(
-    `Left "${guild.name}" (${guild.memberCount} members) — now in ${discordClient.guilds.cache.size} guild(s)`
-  );
-});
 
 discordClient.login(env.DISCORD_BOT_TOKEN);
 

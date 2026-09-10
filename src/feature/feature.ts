@@ -1,21 +1,17 @@
-import type { Client, ClientEvents, Guild } from "discord.js";
-import CommandManager from "../command";
 import type Command from "../command/command";
-import { extractGuildFromArgs } from "../lib/guild";
-import GuildFeatures from "./guild-features";
+import { FeatureIds } from "./feature-ids";
 
-export enum FeatureIds {
-  Interaction = "interaction",
-  Invites = "invites",
-  Stats = "stats",
-}
+export { FeatureIds };
 
 type FeatureOptions = {
   defaultEnabled?: boolean;
 };
 
-type AnyEventListener = (...args: any[]) => void | Promise<void>;
-
+/**
+ * A bot feature: an id used for per-guild toggles, optional default,
+ * and the commands it owns. Event behavior lives in `@EventHandler`
+ * listeners (see `src/event/`), not here.
+ */
 export default class Feature {
   private static REGISTRY = new Map<FeatureIds, Feature>();
 
@@ -23,11 +19,6 @@ export default class Feature {
   public readonly options: FeatureOptions;
 
   public commands: Command[] = [];
-  private eventListeners: Array<{
-    event: keyof ClientEvents;
-    listener: AnyEventListener;
-    extractGuild: (...args: any[]) => Guild | null | undefined;
-  }> = [];
 
   constructor(
     id: FeatureIds,
@@ -53,45 +44,10 @@ export default class Feature {
   public registerCommand(command: Command): void {
     command.featureId = this.id;
     this.commands.push(command);
-    CommandManager.registerCommand(command);
-  }
-
-  /**
-   * Store a client event listener owned by this feature. Listeners attach
-   * when `registerHandlers` runs. `extractGuild` selects the guild used for
-   * the per-guild toggle; return `undefined` for global events that always run.
-   */
-  public registerEventListener<T extends keyof ClientEvents>(
-    event: T,
-    listener: (...args: ClientEvents[T]) => void | Promise<void>,
-    extractGuild?: (...args: ClientEvents[T]) => Guild | null | undefined
-  ): void {
-    this.eventListeners.push({
-      event,
-      listener: listener as AnyEventListener,
-      extractGuild: (extractGuild ?? extractGuildFromArgs) as (...args: any[]) => Guild | null | undefined,
+    // Dynamic import breaks the static cycle: `command/index.ts` imports
+    // feature commands, which import `GuildFeatures` → `feature.ts`.
+    void import("../command").then(({ default: CommandManager }) => {
+      CommandManager.registerCommand(command);
     });
-  }
-
-  /**
-   * Attach every stored event listener to `client`.
-   */
-  public registerHandlers(client: Client): void {
-    for (const { event, listener, extractGuild } of this.eventListeners) {
-      client.on(event, async (...args: any[]) => {
-        try {
-          const guild = extractGuild(...args);
-          if (guild !== undefined && guild !== null) {
-            const isFeatureEnabled = await GuildFeatures.isFeatureEnabled(guild, this.id);
-            if (!isFeatureEnabled) {
-              return;
-            }
-          }
-          await listener(...args);
-        } catch (error) {
-          console.error(`Error in ${this.id} feature event listener for ${event}:`, error);
-        }
-      });
-    }
   }
 }

@@ -1,60 +1,76 @@
-import { Events, type Client } from "discord.js";
-import Feature, { FeatureIds } from "../feature";
+import type { Client } from "discord.js";
+import { EventBus } from "../../event/event-bus";
+import { EventHandler } from "../../event/event-handler";
+import { EventListener } from "../../event/event-listener";
+import BotReadyEvent from "../../event/events/bot-ready.event";
+import GuildJoinedEvent from "../../event/events/guild-joined.event";
+import InviteCreatedEvent from "../../event/events/invite-created.event";
+import InviteDeletedEvent from "../../event/events/invite-deleted.event";
+import MemberGuildJoinEvent from "../../event/events/member-guild-join.event";
+import { FeatureIds } from "../feature-ids";
+import Feature from "../feature.ts";
 import InvitesCommand from "./command/invites/invites.command";
 import { invitesService } from "./invites.service";
 
 /**
- * Tracks who invited whom via invite-code diffing.
- *
- * Responsibilities:
- * - Seed each guild's invite snapshot on `ClientReady` and `GuildCreate`.
- * - Maintain the snapshot on `InviteCreate` / `InviteDelete`.
- * - Attribute `GuildMemberAdd` joins by re-fetching invites and diffing
- *   `uses` against the cached baseline; joins with no delta (vanity URLs,
- *   OAuth widget, expired single-use codes, or a bot without `ManageGuild`)
- *   are recorded as unknown.
- *
- * When the bot lacks `ManageGuild`, `guild.invites.fetch()` throws, the
- * cache stays empty, and every join is recorded unknown — surfaced by the
- * `/invites` command as an error hint.
+ * The invites feature: `/invites` command plus invite tracking.
  */
 export default class InvitesFeature extends Feature {
   constructor() {
     super(FeatureIds.Invites);
 
     this.registerCommand(new InvitesCommand());
+  }
+}
 
-    this.registerEventListener(Events.ClientReady, async readyClient => {
-      await this.seedAllGuilds(readyClient);
-    });
+/**
+ * Keeps the invite snapshot seeded and maintains it on create/delete, and
+ * attributes `GuildMemberAdd` joins by diffing the cached baseline against
+ * a fresh fetch.
+ */
+export class InvitesListeners extends EventListener {
+  constructor() {
+    super();
+    EventBus.subscribe(this);
+  }
 
-    this.registerEventListener(Events.GuildCreate, async guild => {
-      await invitesService.refreshGuild(guild);
-    });
+  /**
+   * Seed every guild's baseline on startup so joins diff against a fresh
+   * snapshot.
+   */
+  @EventHandler(BotReadyEvent)
+  public async onBotReady(event: BotReadyEvent): Promise<void> {
+    await this.seedAllGuilds(event.client);
+  }
 
-    this.registerEventListener(Events.InviteCreate, async invite => {
-      if (!invite.guild) {
-        return;
-      }
-      await invitesService.handleInviteCreate(invite);
-    });
+  /**
+   * Seed a new guild's baseline when the bot joins it.
+   */
+  @EventHandler(GuildJoinedEvent)
+  public async onGuildJoined(event: GuildJoinedEvent): Promise<void> {
+    await invitesService.refreshGuild(event.guildData);
+  }
 
-    this.registerEventListener(Events.InviteDelete, async invite => {
-      if (!invite.guild) {
-        return;
-      }
-      await invitesService.handleInviteDelete(invite);
-    });
+  @EventHandler(InviteCreatedEvent)
+  public async onInviteCreated(event: InviteCreatedEvent): Promise<void> {
+    await invitesService.handleInviteCreate(event.invite);
+  }
 
-    this.registerEventListener(Events.GuildMemberAdd, async member => {
-      if (member.user.bot) {
-        return;
-      }
-      const guild = member.guild;
-      const baseline = invitesService.snapshot(guild.id);
-      const attribution = await invitesService.diffJoin(guild, baseline);
-      await invitesService.recordJoin(guild.id, member.id, attribution);
-    });
+  @EventHandler(InviteDeletedEvent)
+  public async onInviteDeleted(event: InviteDeletedEvent): Promise<void> {
+    await invitesService.handleInviteDelete(event.invite);
+  }
+
+  /**
+   * Attribute a join by diffing the current baseline against a fresh
+   * invite fetch, then record it (even when unknown).
+   */
+  @EventHandler(MemberGuildJoinEvent)
+  public async onMemberGuildJoin(event: MemberGuildJoinEvent): Promise<void> {
+    const guild = event.member.guild;
+    const baseline = invitesService.snapshot(guild.id);
+    const attribution = await invitesService.diffJoin(guild, baseline);
+    await invitesService.recordJoin(guild.id, event.member.id, attribution);
   }
 
   /**

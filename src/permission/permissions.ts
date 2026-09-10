@@ -1,7 +1,13 @@
-import { Events, PermissionFlagsBits, type Client, type Guild, type GuildMember } from "discord.js";
+import { PermissionFlagsBits, type Guild, type GuildMember } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { permissionRoles } from "../db/schema";
+import { EventBus } from "../event/event-bus";
+import { EventHandler } from "../event/event-handler";
+import { EventListener } from "../event/event-listener";
+import MemberRolesUpdatedEvent from "../event/events/member-roles-updated.event";
+import RoleDeletedEvent from "../event/events/role-deleted.event";
+import RoleUpdatedEvent from "../event/events/role-updated.event";
 
 /**
  * One bit per bot permission; named after the command it gates. Bits are
@@ -167,26 +173,6 @@ export default class Permissions {
   }
 
   /**
-   * Attach role-event listeners that invalidate the cache and keep the DB
-   * consistent, mirroring `Feature.registerEventListener`.
-   */
-  public static registerHandlers(client: Client): void {
-    client.on(Events.GuildRoleUpdate, role => {
-      Permissions.clearRole(role.guild.id, role.id);
-    });
-
-    client.on(Events.GuildRoleDelete, async role => {
-      await Permissions.onRoleDeleted(role.guild.id, role.id);
-    });
-
-    client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
-      if (oldMember.roles.cache.size !== newMember.roles.cache.size) {
-        Permissions.clearGuild(newMember.guild.id);
-      }
-    });
-  }
-
-  /**
    * Effective flags for one role (own | ancestors), with cycle safety.
    */
   public static async roleEffectiveFlags(guildId: string, roleId: string): Promise<bigint> {
@@ -306,3 +292,32 @@ export default class Permissions {
 }
 
 export type { RoleConfig };
+
+/**
+ * Keeps the permission role cache consistent with gateway role/member
+ * events. The invalidation hooks the old `Permissions.registerHandlers`
+ * attached are now event listeners.
+ */
+export class PermissionsListeners extends EventListener {
+  constructor() {
+    super();
+    EventBus.subscribe(this);
+  }
+
+  @EventHandler(RoleUpdatedEvent)
+  public async onRoleUpdated(event: RoleUpdatedEvent): Promise<void> {
+    await Permissions.clearRole(event.guildData.id, event.roleId);
+  }
+
+  @EventHandler(RoleDeletedEvent)
+  public async onRoleDeleted(event: RoleDeletedEvent): Promise<void> {
+    await Permissions.onRoleDeleted(event.guildData.id, event.roleId);
+  }
+
+  @EventHandler(MemberRolesUpdatedEvent)
+  public async onMemberRolesUpdated(event: MemberRolesUpdatedEvent): Promise<void> {
+    if (event.oldMember.roles.cache.size !== event.newMember.roles.cache.size) {
+      await Permissions.clearGuild(event.newMember.guild.id);
+    }
+  }
+}

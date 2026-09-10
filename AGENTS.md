@@ -48,6 +48,66 @@ Bot permissions live entirely under `src/permission/` — the logic in `src/perm
 - Cache resolution per guild (`loadGuild`) with invalidation on role events — mirror the existing pattern, don't add ad-hoc checks.
 - Subcommands of `/permissions` live in `src/permission/command/sub/`, and shared helpers in the same folder (e.g. `sub/permissions-helpers.ts`). Only the parent imports `Command` from `src/command/command` — `../../command` would resolve to `src/command/index.ts` (`CommandManager`).
 
+## Events
+
+Internal event system in `src/event/` (Docs: `DESIGN.md`, see "Internal Events"). It models Meteor's Orbit: typed event classes posted to a bus, listeners subscribe via `@EventHandler` annotations. **No code outside `src/event/event-bridge.ts` ever calls `client.on`** — the bridge is the single adapter from the discord.js gateway to the bus.
+
+### Adding a new event
+
+1. **Define the event class** in `src/event/events/<name>.event.ts`, extending `Event` and wrapping the raw payload + resolved context (guild, userId, optionally a pre-resolved `GlobalUser`). Export it from `src/event/events/index.ts`.
+
+```ts
+import type { Guild, VoiceState } from "discord.js";
+import Event from "../event";
+import { FeatureIds } from "../../feature/feature-ids";
+
+export default class VoiceSessionEndedEvent extends Event {
+  public override readonly userId: string;
+  public readonly guildData: Guild;
+  public readonly channelId: string | null;
+
+  constructor(options: { userId: string; guild: Guild; channelId: string | null }) {
+    super({ guild: options.guild, userId: options.userId, featureId: FeatureIds.Stats });
+    this.userId = options.userId;
+    this.guildData = options.guild;
+    this.channelId = options.channelId;
+  }
+}
+```
+
+2. **Bridge it** in `src/event/event-bridge.ts`: add one `client.on(<Events.X>, ...)` that posts the new event. Keep it minimal — the bridge is the only place gateway payloads are touched; filtering (bot/webhook/DM) is fine here or in the event constructor.
+
+3. **Listen** via a class extending `EventListener`:
+
+```ts
+import { EventBus } from "../event-bus";
+import { EventListener } from "../event-listener";
+import { EventHandler } from "../event-handler";
+import { MessageCreatedEvent } from "../events/message-created.event";
+
+export class MyListeners extends EventListener {
+  constructor() {
+    super();
+    EventBus.subscribe(this);
+  }
+
+  @EventHandler(MessageCreatedEvent)
+  public async onMessageCreated(event: MessageCreatedEvent): Promise<void> { ... }
+}
+```
+
+Co-locate the listener class with the code it serves: a feature listener (e.g. `StatsListeners`) lives in that feature's `index.ts` beside the feature class, `PermissionsListeners` lives in `src/permission/permissions.ts`, the slash-dispatch listener in `src/command/index.ts`, the context-menu one in `src/context-menu/context-menu-command-manager.ts`, voice keepalive in `src/lib/voice.ts`, lifecycle in `src/index.ts`. Instantiate each listener once in `src/index.ts` near the other listeners.
+
+### Rules
+
+- **`@EventHandler` takes the event class explicitly** — standard decorators can't infer the param type at runtime (no `emitDecoratorMetadata`). Signature: `@EventHandler(MyEvent, { featureId?: FeatureIds })`.
+- **Feature gating is per-listener**: pass `{ featureId: FeatureIds.X }` and the bus checks `GuildFeatures.isFeatureEnabled(event.guild, featureId)` before dispatch. Leave it out for ungated listeners. Prefer per-listener over baking the feature into the event class.
+- **`this` is bound**: the bus binds each handler to its listener instance, so `this.myHelper()` works inside handlers.
+- **Resolve global users via `GlobalUsersManager.getCached(user)`** — cached per process; never call `getUser` directly from hot paths (per-message events).
+- **Dispatch order**: handlers run in subscription order (priority tier reserved for later). Multiple listeners for one event are fine.
+- **Lifecycle**: listeners subscribe in their constructor via `EventBus.subscribe(this)`; remove via `EventBus.unsubscribe(listener)`.
+- **Import discipline** (avoid cycles): listeners import from leaf modules (`../event-bus`, `../event-listener`, `../event-handler`, `../events/<name>.event`), never the `src/event/index.ts` barrel which only re-exports the core (`Event`, `EventBus`, `EventHandler`, `EventListener`). Feature code imports `FeatureIds` from `./feature-ids` (leaf), and `Feature` never statically imports `CommandManager` (dynamic import to dodge the command/feature cycle).
+
 ## Read the Subsystem
 
 Read the subsystem before you write code. A change sits inside a framework, manager, registry, or feature area — explore base classes, registration paths, config hooks, and existing implementations first.

@@ -1,4 +1,3 @@
-import { discordClient } from "..";
 import type Feature from "./feature";
 import InvitesFeature from "./invites";
 import SocialFeature from "./social";
@@ -11,8 +10,6 @@ export default class FeatureManager {
     FeatureManager.registerFeature(new StatsFeature());
     FeatureManager.registerFeature(new SocialFeature());
     FeatureManager.registerFeature(new InvitesFeature());
-
-    FeatureManager.FEATURES.forEach((feature) => feature.registerHandlers(discordClient));
   }
 
   public static registerFeature(feature: Feature): void {

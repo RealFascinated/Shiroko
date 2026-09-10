@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { interactions } from "../../db/schema";
-import Feature, { FeatureIds } from "../feature";
+import { FeatureIds } from "../feature-ids";
+import Feature from "../feature.ts";
 import InteractionCommand from "./command/interaction/interaction.command";
 import ReactCommand from "./command/react/react.command";
 

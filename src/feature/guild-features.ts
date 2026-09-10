@@ -2,7 +2,8 @@ import type { Guild } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { guildFeatures } from "../db/schema";
-import Feature, { type FeatureIds } from "./feature";
+import Feature from "./feature";
+import type { FeatureIds } from "./feature-ids";
 
 export default class GuildFeatures {
   private static CACHE = new Map<string, boolean>();
