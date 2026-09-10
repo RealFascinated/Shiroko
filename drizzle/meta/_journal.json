@@ -120,6 +120,41 @@
       "when": 1788985613552,
       "tag": "0016_sweet_franklin_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789044227624,
+      "tag": "0017_remarkable_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789045000000,
+      "tag": "0018_rename_message_cooldown_seconds",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789048000000,
+      "tag": "0019_levelling_balance",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789051041162,
+      "tag": "0020_concerned_santa_claus",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789051287265,
+      "tag": "0021_quiet_reptil",
+      "breakpoints": true
     }
   ]
 }

@@ -34,8 +34,8 @@ export interface InviteLeaderRow {
  * widget, and expired single-use invites shift no `uses` counter. Those
  * land in `invite_joins` with `(inviter_id, code)` null.
  *
- * The service records best-effort — callers attach `.catch` and never
- * await — and falls back to unknown attribution when the bot lacks
+ * The service records best-effort: callers attach `.catch` and never
+ * await. It falls back to unknown attribution when the bot lacks
  * `ManageGuild` (so the cache stays empty and every join is unknown).
  */
 export default class InvitesService {
@@ -108,7 +108,7 @@ export default class InvitesService {
    * The fetch is intentionally sequential with the caller's member join
    * handling; the event loop is single-threaded so no other invite diff
    * can interleave. Multiple members joining at once resolve to whatever
-   * their respective diffs saw — best-effort, not exact.
+   * their respective diffs saw. Best-effort, not exact.
    */
   public async diffJoin(guild: Guild, snapshot: Map<string, number>): Promise<JoinAttribution | null> {
     let invites: Map<string, Invite>;

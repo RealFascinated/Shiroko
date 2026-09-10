@@ -18,7 +18,7 @@ export default class InvitesUserCommand extends Command {
     return [userOption(false, "user", "Whose invites to show (defaults to you)")];
   }
 
-  protected override async onExecuteSlash({ globalUser, guild, ctx, args, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ user, guild, ctx, args, commandName }: ExecuteContext) {
     if (!guild) {
       return ctx.reply(
         ephemeralErrorReply(
@@ -27,7 +27,7 @@ export default class InvitesUserCommand extends Command {
         )
       );
     }
-    const target = args.user("user") ?? globalUser.discordUser;
+    const target = args.user("user") ?? user.discordUser;
     const canTrack = await invitesService.canTrack(guild);
     const [row] = await db
       .select({ invites: count(inviteJoins.inviterId) })
@@ -40,7 +40,7 @@ export default class InvitesUserCommand extends Command {
         `${target} has invited **${total}** member${total === 1 ? "" : "s"} to **${guild.name}**.`
       );
     if (!canTrack) {
-      embed.setFooter({ text: "Missing Manage Guild permission — some joins may be untracked." });
+      embed.setFooter({ text: "Missing Manage Guild permission; some joins may be untracked." });
     }
     return ctx.reply({ embeds: [embed] });
   }

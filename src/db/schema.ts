@@ -6,6 +6,26 @@ export const globalUsers = pgTable("global_users", {
   firstSeen: timestamp("first_seen", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * One row per user per guild. The per-guild view of a global user:
+ * `lastMessageAt` is the timestamp of the user's most recent message in
+ * the guild, used to gate the levelling message-XP cooldown. Row creation
+ * is idempotent (INSERT ... ON CONFLICT DO NOTHING), so a row may exist
+ * before any level data is tracked.
+ */
+export const guildUsers = pgTable(
+  "guild_users",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => globalUsers.id, { onDelete: "cascade" }),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true }),
+    firstSeen: timestamp("first_seen", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [primaryKey({ columns: [table.guildId, table.userId] })]
+);
+
 export const interactions = pgTable(
   "interactions",
   {
@@ -106,7 +126,7 @@ export const guildInvites = pgTable(
  * a decimal string (see `PermissionFlags` in `src/permission/permissions.ts`).
  * `parentRoleId` links to another row in the same guild for additive
  * permission inheritance; a dangling or missing parent resolves to no
- * inherited flags (no FK — the link is enforced in the app layer).
+ * inherited flags (no FK; the link is enforced in the app layer).
  */
 export const permissionRoles = pgTable(
   "permission_roles",
@@ -124,7 +144,7 @@ export const permissionRoles = pgTable(
  * One row per guild join with an attributed invite code. `inviterId` and
  * `code` are null when the join came from outside a tracked invite
  * (vanity URL, OAuth widget, expired single-use code). Totals derive from
- * `count()`/`groupBy` — there is no counter column to desync.
+ * `count()`/`groupBy`; there is no counter column to desync.
  */
 export const inviteJoins = pgTable(
   "invite_joins",
@@ -144,8 +164,66 @@ export const inviteJoins = pgTable(
   ]
 );
 
+/**
+ /**
+ * One row per user per guild for levelling. `xp` is cumulative; the level
+ * is always derived from `xp` under the guild's current curve at read time
+ * (see `levelForXp`), so there is no stored level column to go stale.
+ * The message-XP cooldown is gated by `guild_users.last_message_at`.
+ */
+export const userLevels = pgTable(
+  "user_levels",
+  {
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => globalUsers.id, { onDelete: "cascade" }),
+    xp: integer("xp").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [
+    primaryKey({ columns: [table.guildId, table.userId] }),
+    index("user_levels_guild_xp_idx").on(table.guildId, table.xp.desc()),
+  ]
+);
+
+/**
+ * One reward row per (guild, level). `type` discriminates the reward kind;
+ * only "Role" exists today; future kinds add a variant, not a new table.
+ * `roleId` is set for Role rewards.
+ */
+export const levelRewards = pgTable(
+  "level_rewards",
+  {
+    guildId: text("guild_id").notNull(),
+    level: integer("level").notNull(),
+    type: text("type").notNull(),
+    roleId: text("role_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [primaryKey({ columns: [table.guildId, table.level] })]
+);
+
+/**
+ * Per-guild levelling configuration. Missing rows fall back to the defaults
+ * below. `ignoredChannelIds` is a JSON array of Discord channel ids.
+ * `announceChannelId` is null/absent when level-ups should not be announced;
+ * when set, level-ups are posted to that channel.
+ */
+export const levelConfigs = pgTable("level_configs", {
+  guildId: text("guild_id").primaryKey(),
+  curve: text("curve").notNull().default("normal"),
+  messageXp: integer("message_xp").notNull().default(10),
+  messageCooldownSeconds: integer("message_cooldown_seconds").notNull().default(60),
+  voiceXpPerMin: integer("voice_xp_per_min").notNull().default(5),
+  ignoredChannelIds: text("ignored_channel_ids").notNull().default("[]"),
+  announceChannelId: text("announce_channel_id"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const schema = {
   globalUsers,
+  guildUsers,
   interactions,
   messageEvents,
   voiceSessions,
@@ -153,9 +231,13 @@ export const schema = {
   guildInvites,
   inviteJoins,
   permissionRoles,
+  userLevels,
+  levelRewards,
+  levelConfigs,
 };
 
 export type GlobalUserSchema = typeof globalUsers.$inferSelect;
+export type GuildUserSchema = typeof guildUsers.$inferSelect;
 export type InteractionSchema = typeof interactions.$inferSelect;
 export type MessageEventSchema = typeof messageEvents.$inferSelect;
 export type VoiceSessionSchema = typeof voiceSessions.$inferSelect;
@@ -163,4 +245,7 @@ export type GuildFeatureSchema = typeof guildFeatures.$inferSelect;
 export type GuildInviteSchema = typeof guildInvites.$inferSelect;
 export type InviteJoinSchema = typeof inviteJoins.$inferSelect;
 export type PermissionRoleSchema = typeof permissionRoles.$inferSelect;
+export type UserLevelSchema = typeof userLevels.$inferSelect;
+export type LevelRewardSchema = typeof levelRewards.$inferSelect;
+export type LevelConfigSchema = typeof levelConfigs.$inferSelect;
 export const now = sql`now()`;

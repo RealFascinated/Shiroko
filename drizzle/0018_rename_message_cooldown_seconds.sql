@@ -1,0 +1,1 @@
+ALTER TABLE "level_configs" RENAME COLUMN "message_cooldown_s" TO "message_cooldown_seconds";

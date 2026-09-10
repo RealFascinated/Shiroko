@@ -15,8 +15,8 @@ export default class BannerCommand extends Command {
     return [userOption(false, "user", "Whose banner to show")];
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
-    const target = await (args.user("user") ?? globalUser.discordUser).fetch();
+  protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
+    const target = await (args.user("user") ?? user.discordUser).fetch();
     const bannerUrl = target.bannerURL({ size: 4096, extension: "webp" });
 
     if (!bannerUrl) {

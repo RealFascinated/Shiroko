@@ -1,6 +1,6 @@
 import "reflect-metadata";
+import { EventBus, EventHandler, EventListener } from "./event";
 import Event from "./event/event";
-import { EventHandler, EventListener, EventBus } from "./event";
 
 class TestEventA extends Event {
   public readonly value: string;

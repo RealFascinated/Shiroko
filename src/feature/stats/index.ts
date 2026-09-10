@@ -45,7 +45,7 @@ export class StatsListeners extends EventListener {
       return;
     }
     const user = event.message.author;
-    const globalUser = await GlobalUsersManager.getCached(user);
+    const globalUser = await GlobalUsersManager.getUser(user);
     void this.record(new MessageCreatedEvent(event.message, event.guild, globalUser));
   }
 
@@ -81,8 +81,8 @@ export class StatsListeners extends EventListener {
       return;
     }
     await statsService.trackVoiceState(
+      guild,
       newState.id,
-      guild.id,
       oldState?.channelId ?? null,
       newState.channelId,
       new Date()

@@ -110,7 +110,7 @@ async function fetchResponse<T>(path: string): Promise<NekosResponse<T>> {
  * Fetch a random image from an image category.
  *
  * @param category - Which image category to pull from.
- * @param amount - Number of images to request (clamped to 1–20); only the first is returned.
+ * @param amount - Number of images to request (clamped to 1-20); only the first is returned.
  * @returns A single random image from the category.
  */
 export async function getImage(category: ImageCategory, amount = 1): Promise<AnimeImage> {
@@ -121,7 +121,7 @@ export async function getImage(category: ImageCategory, amount = 1): Promise<Ani
  * Fetch a random GIF from a GIF category.
  *
  * @param category - Which GIF category to pull from.
- * @param amount - Number of GIFs to request (clamped to 1–20); only the first is returned.
+ * @param amount - Number of GIFs to request (clamped to 1-20); only the first is returned.
  * @returns A single random GIF from the category.
  */
 export async function getGif(category: GifCategory, amount = 1): Promise<AnimeGif> {
@@ -132,7 +132,7 @@ export async function getGif(category: GifCategory, amount = 1): Promise<AnimeGi
  * Search images by metadata (artist name, source title, ...).
  *
  * @param query - Search terms to match against image metadata.
- * @param amount - Number of images to request (clamped to 1–20); only the first is returned.
+ * @param amount - Number of images to request (clamped to 1-20); only the first is returned.
  * @returns The first matching image.
  */
 export async function searchImages(query: string, amount = 1): Promise<AnimeImage> {
@@ -149,7 +149,7 @@ export async function searchImages(query: string, amount = 1): Promise<AnimeImag
  * Search GIFs by metadata (anime name, ...).
  *
  * @param query - Search terms to match against GIF metadata.
- * @param amount - Number of GIFs to request (clamped to 1–20); only the first is returned.
+ * @param amount - Number of GIFs to request (clamped to 1-20); only the first is returned.
  * @returns The first matching GIF.
  */
 export async function searchGifs(query: string, amount = 1): Promise<AnimeGif> {

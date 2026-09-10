@@ -48,7 +48,7 @@ export default class PermissionsViewCommand extends Command {
     if (configs.size === 0) {
       return ctx.reply({
         embeds: [
-          baseEmbed(commandName).setDescription("No permissions configured — defaults to no permissions."),
+          baseEmbed(commandName).setDescription("No permissions configured; defaults to no permissions."),
         ],
       });
     }
@@ -68,7 +68,7 @@ export default class PermissionsViewCommand extends Command {
   ): Promise<InteractionResponse<boolean> | void> {
     const config = configs.get(roleId);
     const effective = Permissions.resolveEffective(configs, roleId);
-    const parentName = config?.parent ? this.roleName(guild, config.parent) : "—";
+    const parentName = config?.parent ? this.roleName(guild, config.parent) : "None";
     const entries = FLAG_DISPLAY_NAMES.map(({ flag, label }) => ({
       label,
       state: (effective & flag) === flag,
@@ -88,7 +88,7 @@ export default class PermissionsViewCommand extends Command {
             )
             .addFields({
               name: "Permissions",
-              value: lines.join("\n") || "—",
+              value: lines.join("\n") || "None",
             }),
         ],
       };
@@ -120,7 +120,7 @@ export default class PermissionsViewCommand extends Command {
         const role = guild.roles.cache.get(roleId);
         const roleName = role?.name === "@everyone" ? "@everyone" : (role?.name ?? `<@&${roleId}>`);
         const flags = flagLabels(effective).join(", ") || "no permissions";
-        return `**${roleName}** — ${flags}${config.parent ? ` (inherits from ${this.roleName(guild, config.parent)})` : ""}`;
+        return `**${roleName}**: ${flags}${config.parent ? ` (inherits from ${this.roleName(guild, config.parent)})` : ""}`;
       });
       return {
         embeds: [baseEmbed(commandName).setTitle("🔒 Role Permissions").setDescription(lines.join("\n"))],

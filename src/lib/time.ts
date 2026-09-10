@@ -83,3 +83,11 @@ export function formatDuration(ms: number, long: boolean = false): string {
     .map(unit => `${unit.value}${unit.unit}`);
   return result.join(", ") || (long ? "0 Seconds" : "0s");
 }
+
+/**
+ * A `Date` shifted back by `seconds`, used to enforce message-XP cooldowns
+ * in SQL (the stored timestamp must be older than this).
+ */
+export function nowMinus(seconds: number, from: Date = new Date()): Date {
+  return new Date(from.getTime() - seconds * 1000);
+}

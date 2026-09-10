@@ -8,7 +8,7 @@ import type Event from "./event";
  *
  * Standard decorators can't read the parameter type at runtime (no
  * `emitDecoratorMetadata` in this project), so the event class is passed
- * explicitly — which also reads clearly at the call site:
+ * explicitly, which also reads clearly at the call site:
  *
  * ```ts
  * @EventHandler(MessageCreatedEvent)

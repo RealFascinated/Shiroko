@@ -65,8 +65,8 @@ export class ContextMenuCommandListener extends EventListener {
     }
 
     try {
-      const globalUser = await GlobalUsersManager.getCached(interaction.user);
-      await command.execute({ globalUser, guild: interaction.guild, ctx: interaction });
+      const globalUser = await GlobalUsersManager.getUser(interaction.user);
+      await command.execute({ user: globalUser, guild: interaction.guild, ctx: interaction });
     } catch (error) {
       console.error(`Error executing context menu command "${commandName}":`, error);
     }

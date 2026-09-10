@@ -1,0 +1,1 @@
+ALTER TABLE "user_levels" DROP COLUMN "last_message_xp_at";

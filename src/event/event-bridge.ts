@@ -18,7 +18,7 @@ import VoiceStateChangedEvent from "./events/voice-state-changed.event";
  * The single adapter between the discord.js gateway and the internal event
  * bus. One listener per client event, converting raw payloads into wrapped
  * {@link Event} objects with guild/global-user context pre-resolved where
- * cheap. Listeners never touch `client.on` directly — they subscribe to the
+ * cheap. Listeners never touch `client.on` directly; they subscribe to the
  * bus.
  */
 export default class EventBridge {

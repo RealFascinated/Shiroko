@@ -1,4 +1,4 @@
-/** Ordinal suffixes indexed by last digit: 0th, 1st, 2nd, 3rd, 4th–9th. */
+/** Ordinal suffixes indexed by last digit: 0th, 1st, 2nd, 3rd, 4th-9th. */
 const ORDINAL_SUFFIXES = ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"];
 
 /**

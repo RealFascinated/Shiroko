@@ -30,7 +30,7 @@ export default abstract class Event {
 
   /**
    * The pre-resolved global user for this event, if the bridge resolved
-   * one. `null` means "not resolved yet" — call {@link getGlobalUser} to
+   * one. `null` means "not resolved yet"; call {@link getGlobalUser} to
    * fetch lazily.
    */
   public get globalUser(): GlobalUser | null {

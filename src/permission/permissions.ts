@@ -11,7 +11,7 @@ import RoleUpdatedEvent from "../event/events/role-updated.event";
 
 /**
  * One bit per bot permission; named after the command it gates. Bits are
- * permanent — once a flag is assigned, its bit is never reused for another
+ * permanent; once a flag is assigned, its bit is never reused for another
  * meaning (existing rows persist indefinitely).
  *
  * A frozen const object rather than a TS enum: TS enums only support
@@ -20,15 +20,17 @@ import RoleUpdatedEvent from "../event/events/role-updated.event";
 export const PermissionFlags = Object.freeze({
   FEATURE_COMMAND: 1n << 1n,
   PERMISSIONS_COMMAND: 1n << 2n,
+  LEVELS_CONFIG_COMMAND: 1n << 3n,
 } as const satisfies Record<string, bigint>);
 
 /**
- * Single source of truth for user-facing, formatted flag names — used both
+ * Single source of truth for user-facing, formatted flag names, used both
  * for `/permissions` choice labels and for decoding flags in `/view`.
  */
 export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: string }> = [
   { flag: PermissionFlags.FEATURE_COMMAND, label: "Feature Command" },
   { flag: PermissionFlags.PERMISSIONS_COMMAND, label: "Permissions Command" },
+  { flag: PermissionFlags.LEVELS_CONFIG_COMMAND, label: "Levelling Config Command" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];
@@ -41,7 +43,7 @@ export function flagLabels(flags: bigint): string[] {
   return FLAG_DISPLAY_NAMES.filter(({ flag }) => (flags & flag) === flag).map(({ label }) => label);
 }
 
-/** Every known flag OR'd together — the "all permissions" grant. */
+/** Every known flag OR'd together; the "all permissions" grant. */
 export const ALL_FLAGS = FLAG_DISPLAY_NAMES.reduce((all, { flag }) => all | flag, 0n);
 
 export function hasFlags(flags: bigint, required: bigint): boolean {
@@ -130,7 +132,7 @@ export default class Permissions {
   }
 
   /**
-   * Move (or clear) a role's parent link — used when a Discord role is
+   * Move (or clear) a role's parent link. Used when a Discord role is
    * deleted. Descendants of the deleted role become standalone. Returns the
    * updated rows.
    */

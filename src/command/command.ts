@@ -25,7 +25,7 @@ import type { CommandOptionBuilder } from "./option";
 import type ParsedArguments from "./parsed-arguments";
 
 export interface ExecuteContext {
-  globalUser: GlobalUser;
+  user: GlobalUser;
   guild: Guild | null;
   ctx: ChatInputCommandInteraction;
   args: ParsedArguments;
@@ -115,7 +115,7 @@ export default abstract class Command {
    * Bot permission flags required to run this command in a guild. `0n`
    * means anyone. Owner and (optionally) Discord `Administrator` bypass
    * this; see `Permissions` in `src/permission/permissions.ts`. Only the
-   * top-level command's flags are checked by `CommandManager` — subcommand
+   * top-level command's flags are checked by `CommandManager`; subcommand
    * flags are not consulted.
    */
   public get requiredFlags(): bigint {
@@ -163,7 +163,7 @@ export default abstract class Command {
     const { ctx } = context;
     const subCommandName = ctx.options.getSubcommand(false);
     if (this.subCommands.size > 0) {
-      // A command with subcommands cannot be invoked directly — Discord
+      // A command with subcommands cannot be invoked directly; Discord
       // always supplies one. Dispatch it; if we somehow can't, do nothing
       // (the parent has no executable body).
       const subCommand = subCommandName ? this.subCommands.get(subCommandName) : undefined;
@@ -184,7 +184,7 @@ export default abstract class Command {
 
   /**
    * Executable body for a standalone command. Commands with subcommands
-   * never reach this — `executeSlash` short-circuits and dispatches to the
+   * never reach this; `executeSlash` short-circuits and dispatches to the
    * subcommand instead, so the default no-op is fine for them.
    */
   protected async onExecuteSlash(_context: ExecuteContext): Promise<FollowUpReturn | void> {

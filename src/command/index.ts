@@ -76,27 +76,30 @@ export class SlashCommandListener extends EventListener {
       console.log(`Unknown command: ${commandName}`);
       return;
     }
+    const subCommandName = interaction.options.getSubcommand(false);
+    const resolved = subCommandName ? command.subCommands.get(subCommandName) : undefined;
 
     const guild = interaction.guild;
-    if (!guild && !command.userInstallable) {
+    if (!guild && !(resolved ?? command).userInstallable) {
       return;
     }
 
-    if (guild && command.featureId) {
-      const enabled = await GuildFeatures.isFeatureEnabled(guild, command.featureId);
+    if (guild && (resolved ?? command).featureId) {
+      const enabled = await GuildFeatures.isFeatureEnabled(guild, (resolved ?? command).featureId!);
       if (!enabled) {
         await interaction.reply({
-          content: `The \`${command.featureId}\` feature is disabled in this server.`,
+          content: `The \`${(resolved ?? command).featureId}\` feature is disabled in this server.`,
           flags: MessageFlags.Ephemeral,
         });
         return;
       }
     }
 
-    if (guild && command.requiredFlags !== 0n) {
+    const gate = resolved ?? command;
+    if (guild && gate.requiredFlags !== 0n) {
       const member = await fetchGuildMember(guild, interaction.user.id);
       const flags = member ? await Permissions.memberFlags(guild, member) : 0n;
-      if (!hasFlags(flags, command.requiredFlags)) {
+      if (!hasFlags(flags, gate.requiredFlags)) {
         await interaction.reply({
           content: "You don't have permission to use this command.",
           flags: MessageFlags.Ephemeral,
@@ -106,10 +109,10 @@ export class SlashCommandListener extends EventListener {
     }
 
     try {
-      const user = await GlobalUsersManager.getCached(interaction.user);
+      const user = await GlobalUsersManager.getUser(interaction.user);
       const args = new ParsedArguments(interaction.options);
       await command.executeSlash({
-        globalUser: user,
+        user,
         guild: guild,
         ctx: interaction,
         args,

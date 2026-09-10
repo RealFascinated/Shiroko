@@ -63,19 +63,15 @@ export default abstract class PairInteractionCommand extends Command {
     return embed;
   }
 
-  protected override async onExecuteSlash({ globalUser, ctx, args, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
     const target = args.user("target")!;
-    if (target.id === globalUser.discordUser.id) {
+    if (target.id === user.discordUser.id) {
       return ctx.reply({ content: `You can't ${this.verb} yourself! :(`, flags: MessageFlags.Ephemeral });
     }
     const targetUser = await GlobalUsersManager.getUser(target);
-    const count = await SocialFeature.incrementInteraction(
-      globalUser.id,
-      targetUser.id,
-      this.interactionType
-    );
+    const count = await SocialFeature.incrementInteraction(user.id, targetUser.id, this.interactionType);
     const gif = await getGif(this.gifCategory);
-    const embed = this.buildEmbed(commandName, globalUser.discordUser, target, count, gif);
+    const embed = this.buildEmbed(commandName, user.discordUser, target, count, gif);
 
     const row = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
       new ButtonBuilder()
@@ -91,7 +87,7 @@ export default abstract class PairInteractionCommand extends Command {
         customId: backButtonId(this.interactionType),
         userId: target.id,
         windowMs: TimeUnit.toMillis(TimeUnit.Hour, 3),
-        onPress: button => this.returnInteraction(button, globalUser.discordUser, commandName),
+        onPress: button => this.returnInteraction(button, user.discordUser, commandName),
       });
     }
 

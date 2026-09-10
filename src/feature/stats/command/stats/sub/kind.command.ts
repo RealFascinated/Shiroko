@@ -21,8 +21,8 @@ export default class StatsKindCommand extends Command {
     return [userOption(false, "user", "Whose stats to show (defaults to you)")];
   }
 
-  protected override async onExecuteSlash({ globalUser, guild, ctx, args, commandName }: ExecuteContext) {
-    const target = args.user("user") ?? globalUser.discordUser;
+  protected override async onExecuteSlash({ user, guild, ctx, args, commandName }: ExecuteContext) {
+    const target = args.user("user") ?? user.discordUser;
     if (target.bot) {
       return ctx.reply(
         ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("Bots don't have stats."))

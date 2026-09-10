@@ -28,10 +28,9 @@ export default class UserInfoCommand extends Command {
     return [userOption(false, "user", "Whose info to show")];
   }
 
-  protected override async onExecuteSlash({ globalUser, guild, ctx, args, commandName }: ExecuteContext) {
-    const rawTarget = args.user("user") ?? globalUser.discordUser;
-    const targetGlobal =
-      rawTarget.id === globalUser.id ? globalUser : await GlobalUsersManager.getUser(rawTarget);
+  protected override async onExecuteSlash({ user, guild, ctx, args, commandName }: ExecuteContext) {
+    const rawTarget = args.user("user") ?? user.discordUser;
+    const targetGlobal = rawTarget.id === user.id ? user : await GlobalUsersManager.getUser(rawTarget);
     const target = await rawTarget.fetch();
     return this.replyInfo(commandName, target, targetGlobal, guild, ctx);
   }

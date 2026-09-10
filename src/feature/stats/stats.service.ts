@@ -1,7 +1,10 @@
-import type { Client } from "discord.js";
+import type { Client, Guild } from "discord.js";
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { globalUsers, messageEvents, voiceSessions } from "../../db/schema";
+import { EventBus } from "../../event/event-bus";
+import VoiceSessionEndedEvent from "../../event/events/voice-session-ended.event";
+import VoiceSessionStartedEvent from "../../event/events/voice-session-started.event";
 import type { StatsCardKind } from "./stats-card";
 
 /**
@@ -164,11 +167,13 @@ export default class StatsService {
 
   /**
    * Advance `userId`'s voice state: close on leave/move, open on join/move.
-   * No-ops (mute/deafen) carry equal channels and are ignored.
+   * No-ops (mute/deafen) carry equal channels and are ignored. Session
+   * start/end are posted as `VoiceSessionStartedEvent` / `VoiceSessionEndedEvent`
+   * so progression consumers (levelling, etc.) can react.
    */
   public async trackVoiceState(
+    guild: Guild,
     userId: string,
-    guildId: string,
     oldChannelId: string | null,
     newChannelId: string | null,
     now: Date = new Date()
@@ -177,10 +182,10 @@ export default class StatsService {
       return;
     }
     if (oldChannelId !== null) {
-      await this.closeSession(guildId, userId, now);
+      await this.closeSession(guild, userId, now);
     }
     if (newChannelId !== null) {
-      await this.openSession(guildId, userId, newChannelId, now);
+      await this.openSession(guild, userId, newChannelId, now);
     }
   }
 
@@ -197,11 +202,20 @@ export default class StatsService {
   }
 
   /**
-   * Open sessions for users already in voice at startup.
+   * Open sessions for users already in voice at startup, so their running
+   * time keeps counting and future leaves close normally.
    */
-  public async seedOpenSessions(occupants: VoiceOccupant[], now: Date = new Date()): Promise<void> {
+  public async seedOpenSessions(
+    client: Client,
+    occupants: VoiceOccupant[],
+    now: Date = new Date()
+  ): Promise<void> {
     for (const occupant of occupants) {
-      await this.openSession(occupant.guildId, occupant.userId, occupant.channelId, now);
+      const guild = client.guilds.cache.get(occupant.guildId);
+      if (!guild) {
+        continue;
+      }
+      await this.openSession(guild, occupant.userId, occupant.channelId, now);
     }
   }
 
@@ -592,7 +606,7 @@ export default class StatsService {
       if (staleClosed > 0) {
         console.log(`Closed ${staleClosed} stale voice session(s)`);
       }
-      await this.seedOpenSessions(collectVoiceOccupants(client));
+      await this.seedOpenSessions(client, collectVoiceOccupants(client));
     } catch (error) {
       console.error("Voice stats recovery error:", error);
     }
@@ -653,9 +667,10 @@ export default class StatsService {
   /**
    * Open a voice session, closing a duplicate open first.
    */
-  private async openSession(guildId: string, userId: string, channelId: string, now: Date): Promise<void> {
+  private async openSession(guild: Guild, userId: string, channelId: string, now: Date): Promise<void> {
+    const guildId = guild.id;
     if (this.openSessions.has(this.sessionKey(guildId, userId))) {
-      await this.closeSession(guildId, userId, now);
+      await this.closeSession(guild, userId, now);
     }
     await this.ensureUser(userId);
     const [row] = await db
@@ -663,33 +678,43 @@ export default class StatsService {
       .values({ userId, guildId, channelId, joinedAt: now })
       .returning({ id: voiceSessions.id });
     this.openSessions.set(this.sessionKey(guildId, userId), { sessionId: row!.id, joinedAt: now });
+    await EventBus.post(new VoiceSessionStartedEvent({ userId, guild, channelId, joinedAt: now }));
   }
   /**
    * Close the open session, falling back to the newest open row when the
-   * in-memory map missed it (e.g. joined before a restart).
+   * in-memory map missed it (e.g. joined before a restart). Emits
+   * `VoiceSessionEndedEvent` for progression consumers.
    */
-  private async closeSession(guildId: string, userId: string, now: Date): Promise<void> {
+  private async closeSession(guild: Guild, userId: string, now: Date): Promise<void> {
+    const guildId = guild.id;
     const open = this.openSessions.get(this.sessionKey(guildId, userId));
     this.openSessions.delete(this.sessionKey(guildId, userId));
+    let joinedAt: Date;
     if (open) {
-      await this.finishSession(open.sessionId, open.joinedAt, now);
-      return;
-    }
-    const [row] = await db
-      .select()
-      .from(voiceSessions)
-      .where(
-        and(
-          eq(voiceSessions.userId, userId),
-          eq(voiceSessions.guildId, guildId),
-          isNull(voiceSessions.leftAt)
+      joinedAt = open.joinedAt;
+      await this.finishSession(open.sessionId, joinedAt, now);
+    } else {
+      const [row] = await db
+        .select()
+        .from(voiceSessions)
+        .where(
+          and(
+            eq(voiceSessions.userId, userId),
+            eq(voiceSessions.guildId, guildId),
+            isNull(voiceSessions.leftAt)
+          )
         )
-      )
-      .orderBy(desc(voiceSessions.joinedAt))
-      .limit(1);
-    if (row) {
-      await this.finishSession(row.id, row.joinedAt, now);
+        .orderBy(desc(voiceSessions.joinedAt))
+        .limit(1);
+      if (!row) {
+        return;
+      }
+      joinedAt = row.joinedAt;
+      await this.finishSession(row.id, joinedAt, now);
     }
+    await EventBus.post(
+      new VoiceSessionEndedEvent({ userId, guild, channelId: null, joinedAt, leftAt: now })
+    );
   }
 
   /**

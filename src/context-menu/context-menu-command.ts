@@ -11,7 +11,7 @@ import {
 import type GlobalUser from "../user/global-user";
 
 export interface ContextMenuExecuteContext {
-  globalUser: GlobalUser;
+  user: GlobalUser;
   guild: Guild | null;
   ctx: UserContextMenuCommandInteraction | MessageContextMenuCommandInteraction;
 }

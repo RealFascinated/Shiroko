@@ -4,7 +4,7 @@ import UserCommand from "./sub/user.command";
 
 /**
  * Show invite stats: who you (or another user) invited, or the server's
- * invite leaderboard. Guild-only — invite tracking is per-guild.
+ * invite leaderboard. Guild-only, since invite tracking is per-guild.
  */
 export default class InvitesCommand extends Command {
   constructor() {
