@@ -211,11 +211,13 @@ src/feature/levels/
         ├── leaderboard.command.ts
         └── level-config/sub/
             ├── view.command.ts      # show current config
-            ├── message.command.ts
-            ├── voice.command.ts
-            ├── announce.command.ts
+            ├── message-xp.command.ts
+            ├── message-xp-cooldown.command.ts
+            ├── voice-xp.command.ts
+            ├── announce-channel.command.ts
             ├── ignored-channels.command.ts
-            └── reward.command.ts
+            ├── add-role.command.ts
+            └── remove-role.command.ts
 ```
 
 - `LevelsFeature` registers in `FeatureManager` (in `src/feature/index.ts`),
@@ -229,11 +231,13 @@ src/feature/levels/
   each is configured independently and the confirmation always echoes the
   resulting config:
   - **`/level-config view`** shows the current config.
-  - **`/level-config message`** tunes message XP and the cooldown.
-  - **`/level-config voice`** tunes voice XP per minute.
-  - **`/level-config announce`** sets or clears the level-up announce channel.
+  - **`/level-config message-xp`** tunes XP per eligible message.
+  - **`/level-config message-xp-cooldown`** sets the seconds between XP-granting messages.
+  - **`/level-config voice-xp`** tunes voice XP per minute.
+  - **`/level-config announce-channel`** sets or clears the level-up announce channel.
   - **`/level-config ignored-channels`** adds or removes XP-ignored channels.
-  - **`/level-config reward`** sets or clears the role granted at a level.
+  - **`/level-config add-role`** sets the role granted at a level.
+  - **`/level-config remove-role`** removes the role reward at a level.
 
 ## 7. Anti-farm
 
@@ -250,8 +254,8 @@ src/feature/levels/
   today. Keeping levels across a ban/rejoin would need dropping the cascade;
   deferred, existing convention wins for now.
 - **Announcement format**: level-ups post to a configured channel (via
-  `/level-config announce`). DM-based announcements or per-user opt-out are not
-  implemented; `LevelUpEvent` is where those would hook in.
+  `/level-config announce-channel`). DM-based announcements or per-user
+  opt-out are not implemented; `LevelUpEvent` is where those would hook in.
 
 ## 9. Design decisions
 

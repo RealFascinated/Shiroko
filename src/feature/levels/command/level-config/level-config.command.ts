@@ -1,19 +1,21 @@
 import { PermissionFlagsBits } from "discord.js";
 import Command from "../../../../command/command";
 import { PermissionFlags } from "../../../../permission/permissions";
-import AnnounceCommand from "./sub/announce.command";
+import AddRoleCommand from "./sub/add-role.command";
+import AnnounceChannelCommand from "./sub/announce-channel.command";
 import IgnoredChannelsCommand from "./sub/ignored-channels.command";
-import MessageCommand from "./sub/message.command";
-import RewardCommand from "./sub/reward.command";
+import MessageXpCooldownCommand from "./sub/message-xp-cooldown.command";
+import MessageXpCommand from "./sub/message-xp.command";
+import RemoveRoleCommand from "./sub/remove-role.command";
 import ViewCommand from "./sub/view.command";
-import VoiceCommand from "./sub/voice.command";
+import VoiceXpCommand from "./sub/voice-xp.command";
 
 /**
  * Admin configuration for the levelling feature, one subcommand per
- * setting so each can be configured independently: message rate and
- * cooldown, voice rate, announce channel, ignored channels, rewards.
- * Guild-only; every subcommand gates on the LEVELS flag via its own
- * `requiredFlags`, mirroring `/permissions`.
+ * setting so each can be configured independently: message XP rate,
+ * message cooldown, voice XP rate, announce channel, ignored channels,
+ * level-up reward roles. Guild-only; the parent gates the whole command
+ * on the LEVELS flag, mirroring `/permissions`.
  */
 export default class LevelConfigCommand extends Command {
   constructor() {
@@ -21,11 +23,13 @@ export default class LevelConfigCommand extends Command {
     this.slashCommand.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
     this.registerSubCommand(new ViewCommand());
-    this.registerSubCommand(new MessageCommand());
-    this.registerSubCommand(new VoiceCommand());
-    this.registerSubCommand(new AnnounceCommand());
+    this.registerSubCommand(new MessageXpCommand());
+    this.registerSubCommand(new MessageXpCooldownCommand());
+    this.registerSubCommand(new VoiceXpCommand());
+    this.registerSubCommand(new AnnounceChannelCommand());
     this.registerSubCommand(new IgnoredChannelsCommand());
-    this.registerSubCommand(new RewardCommand());
+    this.registerSubCommand(new AddRoleCommand());
+    this.registerSubCommand(new RemoveRoleCommand());
   }
 
   public override get requiredFlags(): bigint {

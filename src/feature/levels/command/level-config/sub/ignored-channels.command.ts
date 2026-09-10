@@ -1,7 +1,6 @@
 import Command, { type ExecuteContext } from "../../../../../command/command";
 import { channelOption, stringOption, type CommandOptionBuilder } from "../../../../../command/option";
 import { baseEmbed } from "../../../../../lib/embed";
-import { PermissionFlags } from "../../../../../permission/permissions";
 import { levelsService } from "../../../levels.service";
 import { configSummaryLines } from "./view.command";
 
@@ -17,10 +16,6 @@ const ACTION_CHOICES: Record<string, string> = {
 export default class IgnoredChannelsCommand extends Command {
   constructor() {
     super("ignored-channels", "Add or remove XP-ignored channels");
-  }
-
-  public override get requiredFlags(): bigint {
-    return PermissionFlags.LEVELS_CONFIG_COMMAND;
   }
 
   public override get options(): CommandOptionBuilder[] {

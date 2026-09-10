@@ -2,7 +2,6 @@ import { ChannelType } from "discord.js";
 import Command, { type ExecuteContext } from "../../../../../command/command";
 import { channelOption, type CommandOptionBuilder } from "../../../../../command/option";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../lib/embed";
-import { PermissionFlags } from "../../../../../permission/permissions";
 import { levelsService } from "../../../levels.service";
 import { configSummaryLines } from "./view.command";
 
@@ -10,13 +9,9 @@ import { configSummaryLines } from "./view.command";
  * Set where level-ups are announced, or clear the announcement channel.
  * Omitting the channel clears it.
  */
-export default class AnnounceCommand extends Command {
+export default class AnnounceChannelCommand extends Command {
   constructor() {
-    super("announce", "Set or clear the level-up announce channel");
-  }
-
-  public override get requiredFlags(): bigint {
-    return PermissionFlags.LEVELS_CONFIG_COMMAND;
+    super("announce-channel", "Set or clear the level-up announce channel");
   }
 
   public override get options(): CommandOptionBuilder[] {

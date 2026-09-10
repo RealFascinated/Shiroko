@@ -95,7 +95,10 @@ export class SlashCommandListener extends EventListener {
       }
     }
 
-    const gate = resolved ?? command;
+    // A subcommand that declares its own gate wins; otherwise the whole
+    // command inherits the parent's gate, so a gate usually lives on the
+    // parent (e.g. `/permissions`, `/level-config`).
+    const gate = resolved && resolved.requiredFlags !== 0n ? resolved : command;
     if (guild && gate.requiredFlags !== 0n) {
       const member = await fetchGuildMember(guild, interaction.user.id);
       const flags = member ? await Permissions.memberFlags(guild, member) : 0n;

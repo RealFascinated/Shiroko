@@ -30,7 +30,7 @@ export default class LeaderboardCommand extends Command {
     const lines = rows.map((row, index) => {
       const member = members.get(row.userId);
       const name = member?.displayName ?? `<@${row.userId}>`;
-      return `**${ordinal(index + 1)}.** ${name}: **level ${levelForXp(row.xp)}** (${row.xp} XP)`;
+      return `**${ordinal(index + 1)}.** ${name}: **${levelForXp(row.xp)}** (${row.xp.toLocaleString("en-US")} XP)`;
     });
     const embed = baseEmbed(commandName)
       .setTitle(`📊 Levelling Leaderboard: ${guild.name}`)

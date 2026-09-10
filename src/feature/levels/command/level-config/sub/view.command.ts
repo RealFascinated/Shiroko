@@ -27,10 +27,6 @@ export default class ViewCommand extends Command {
     super("view", "Show the current levelling config");
   }
 
-  public override get requiredFlags(): bigint {
-    return 0n;
-  }
-
   protected override async onExecuteSlash({ guild, ctx, commandName }: ExecuteContext) {
     if (!guild) {
       return;

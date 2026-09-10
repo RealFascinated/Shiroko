@@ -1,7 +1,6 @@
 import Command, { type ExecuteContext } from "../../../../../command/command";
 import { integerOption, type CommandOptionBuilder } from "../../../../../command/option";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../lib/embed";
-import { PermissionFlags } from "../../../../../permission/permissions";
 import { levelsService } from "../../../levels.service";
 import { configSummaryLines } from "./view.command";
 
@@ -9,13 +8,9 @@ import { configSummaryLines } from "./view.command";
  * Set the XP rate per whole minute of voice time. Voice XP is awarded at
  * session end, so minutes are always whole.
  */
-export default class VoiceCommand extends Command {
+export default class VoiceXpCommand extends Command {
   constructor() {
-    super("voice", "Set voice XP per minute");
-  }
-
-  public override get requiredFlags(): bigint {
-    return PermissionFlags.LEVELS_CONFIG_COMMAND;
+    super("voice-xp", "Set voice XP per minute");
   }
 
   public override get options(): CommandOptionBuilder[] {
