@@ -2,7 +2,7 @@ import Command, { type ExecuteContext } from "../../../../../command/command";
 import { channelOption, stringOption, type CommandOptionBuilder } from "../../../../../command/option";
 import { baseEmbed } from "../../../../../lib/embed";
 import { levelsService } from "../../../levels.service";
-import { configSummaryLines } from "./view.command";
+import { configSummaryLines } from "./config-helpers";
 
 const ACTION_CHOICES: Record<string, string> = {
   add: "Add to the ignored list",

@@ -2,7 +2,7 @@ import Command, { type ExecuteContext } from "../../../../../command/command";
 import { integerOption, roleOption, type CommandOptionBuilder } from "../../../../../command/option";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../lib/embed";
 import { levelsService } from "../../../levels.service";
-import { configSummaryLines } from "./view.command";
+import { configSummaryLines } from "./config-helpers";
 
 /**
  * Grant a role when a member reaches a milestone level. Already-set

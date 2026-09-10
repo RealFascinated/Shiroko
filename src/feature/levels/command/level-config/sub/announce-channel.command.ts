@@ -3,7 +3,7 @@ import Command, { type ExecuteContext } from "../../../../../command/command";
 import { channelOption, type CommandOptionBuilder } from "../../../../../command/option";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../lib/embed";
 import { levelsService } from "../../../levels.service";
-import { configSummaryLines } from "./view.command";
+import { configSummaryLines } from "./config-helpers";
 
 /**
  * Set where level-ups are announced, or clear the announcement channel.

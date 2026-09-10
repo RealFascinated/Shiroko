@@ -2,8 +2,9 @@
  * Pure XP math. A single fixed curve: the quadratic
  *   xpForLevel(l) = a·l² + b·l + c   (total XP required to REACH level l)
  *
- * `levelForXp` is its inverse (floor level for a total), and `xpForNext`
- * the delta to the next level. All functions are pure; no IO, no cache.
+ * `levelForXp` is its inverse (floor level for a total), and `progressToNext`
+ * the fraction of the current level's span already filled. All functions are
+ * pure; no IO, no cache.
  *
  * The curve uses `c = 0` so new users start at level 1 with 0 XP. The
  * first level-up arrives after a few messages instead of a long silent
@@ -19,13 +20,6 @@ const C = 0;
  */
 export function xpForLevel(level: number): number {
   return A * level * level + B * level + C;
-}
-
-/**
- * XP required to advance from `level` to `level + 1`.
- */
-export function xpForNext(level: number): number {
-  return xpForLevel(level + 1) - xpForLevel(level);
 }
 
 /**

@@ -12,6 +12,7 @@ export interface RankState {
   level: number;
   xp: number;
   guildRank: number | null;
+  totalTracked: number;
   nextLevelXp: number;
   progress: number;
 }
@@ -67,7 +68,7 @@ export default class LevelsService {
    */
   public async getConfig(guildId: string): Promise<LevelConfig> {
     const [row] = await db.select().from(levelConfigs).where(eq(levelConfigs.guildId, guildId));
-    return row ? toConfig(row) : { ...DEFAULT_CONFIG };
+    return row ?? { ...DEFAULT_CONFIG };
   }
 
   /**
@@ -76,24 +77,25 @@ export default class LevelsService {
   public async setConfig(guildId: string, updates: Partial<LevelConfig>): Promise<LevelConfig> {
     const current = await this.getConfig(guildId);
     const next: LevelConfig = { ...current, ...updates };
+    const values = {
+      guildId,
+      messageXp: next.messageXp,
+      messageCooldownSeconds: next.messageCooldownSeconds,
+      voiceXpPerMin: next.voiceXpPerMin,
+      ignoredChannelIds: next.ignoredChannelIds,
+      announceChannelId: next.announceChannelId,
+    };
     await db
       .insert(levelConfigs)
-      .values({
-        guildId,
-        messageXp: next.messageXp,
-        messageCooldownSeconds: next.messageCooldownSeconds,
-        voiceXpPerMin: next.voiceXpPerMin,
-        ignoredChannelIds: JSON.stringify(next.ignoredChannelIds),
-        announceChannelId: next.announceChannelId,
-      })
+      .values(values)
       .onConflictDoUpdate({
         target: levelConfigs.guildId,
         set: {
-          messageXp: next.messageXp,
-          messageCooldownSeconds: next.messageCooldownSeconds,
-          voiceXpPerMin: next.voiceXpPerMin,
-          ignoredChannelIds: JSON.stringify(next.ignoredChannelIds),
-          announceChannelId: next.announceChannelId,
+          messageXp: values.messageXp,
+          messageCooldownSeconds: values.messageCooldownSeconds,
+          voiceXpPerMin: values.voiceXpPerMin,
+          ignoredChannelIds: values.ignoredChannelIds,
+          announceChannelId: values.announceChannelId,
         },
       });
     return next;
@@ -147,10 +149,12 @@ export default class LevelsService {
     if (minutes === 0) {
       return this.getLevel(guild.id, userId);
     }
-    // Voice grants have no cooldown, so `grant` always writes; the result
-    // is guaranteed non-null.
-    const granted = await this.grant(guild, userId, minutes * config.voiceXpPerMin, now);
-    return granted!;
+    // Voice grants have no cooldown, so `grant` always writes; fall back
+    // to a fresh read only if the upsert unexpectedly returned no row.
+    return (
+      (await this.grant(guild, userId, minutes * config.voiceXpPerMin, now)) ??
+      this.getLevel(guild.id, userId)
+    );
   }
 
   /**
@@ -179,10 +183,34 @@ export default class LevelsService {
    */
   public async getRankState(guildId: string, userId: string): Promise<RankState> {
     const entry = await this.getLevel(guildId, userId);
-    const rank = await this.guildRank(guildId, userId);
+    const { position, total } = await this.rankAndTotal(guildId, entry.xp);
     const nextLevelXp = xpForLevel(entry.level + 1);
     const progress = progressToNext(entry.xp);
-    return { ...entry, guildRank: rank, nextLevelXp, progress };
+    return { ...entry, guildRank: position, totalTracked: total, nextLevelXp, progress };
+  }
+
+  /**
+   * One aggregate query for the user's 1-based rank and the number of
+   * users the guild tracks, so rank cards make a single round-trip. Rank
+   * counts users with strictly more XP; ties on XP fall back to whoever
+   * updated last, but a stable order only really matters when users are
+   * exactly tied. `position` is `null` for users with no XP yet.
+   */
+  private async rankAndTotal(
+    guildId: string,
+    xp: number
+  ): Promise<{ position: number | null; total: number }> {
+    const [row] = await db
+      .select({
+        ahead: sql<number>`count(*) filter (where ${userLevels.xp} > ${xp})`.mapWith(Number),
+        total: sql<number>`count(*)`.mapWith(Number),
+      })
+      .from(userLevels)
+      .where(eq(userLevels.guildId, guildId));
+    return {
+      position: xp === 0 ? null : (row?.ahead ?? 0) + 1,
+      total: row?.total ?? 0,
+    };
   }
 
   /**
@@ -199,19 +227,24 @@ export default class LevelsService {
   }
 
   /**
-   * 1-based rank by XP among tracked users in a guild (or `null` when the
-   * user has no row yet).
+   * The guild's first `Role` reward at a level strictly above `atLevel`,
+   * or `null` when none is configured. Powers the "next reward at level X"
+   * line on rank cards.
    */
-  public async guildRank(guildId: string, userId: string): Promise<number | null> {
-    const entry = await this.getLevel(guildId, userId);
-    if (entry.xp === 0) {
-      return null;
-    }
+  public async nextReward(guildId: string, atLevel: number): Promise<RewardRow | null> {
     const [row] = await db
-      .select({ count: sql<number>`count(*)`.mapWith(Number) })
-      .from(userLevels)
-      .where(and(eq(userLevels.guildId, guildId), sql`${userLevels.xp} > ${entry.xp}`));
-    return (row?.count ?? 0) + 1;
+      .select()
+      .from(levelRewards)
+      .where(
+        and(
+          eq(levelRewards.guildId, guildId),
+          eq(levelRewards.type, "Role"),
+          sql`${levelRewards.level} > ${atLevel}`
+        )
+      )
+      .orderBy(levelRewards.level)
+      .limit(1);
+    return row ?? null;
   }
 
   /**
@@ -235,6 +268,19 @@ export default class LevelsService {
     await db
       .delete(levelRewards)
       .where(and(eq(levelRewards.guildId, guildId), eq(levelRewards.level, level)));
+  }
+
+  /**
+   * Every reward row for a guild, ordered by level ascending. Powers the
+   * `/levels rewards` listing.
+   */
+  public async rewards(guildId: string): Promise<RewardRow[]> {
+    const rows = await db
+      .select()
+      .from(levelRewards)
+      .where(eq(levelRewards.guildId, guildId))
+      .orderBy(levelRewards.level);
+    return rows;
   }
 
   /**
@@ -300,31 +346,6 @@ export default class LevelsService {
       await EventBus.post(new LevelUpEvent({ userId, guild, prevLevel: lvl - 1, newLevel: lvl }));
     }
     return persisted;
-  }
-}
-
-function toConfig(row: {
-  messageXp: number;
-  messageCooldownSeconds: number;
-  voiceXpPerMin: number;
-  ignoredChannelIds: string;
-  announceChannelId: string | null;
-}): LevelConfig {
-  return {
-    messageXp: row.messageXp,
-    messageCooldownSeconds: row.messageCooldownSeconds,
-    voiceXpPerMin: row.voiceXpPerMin,
-    ignoredChannelIds: parseIgnoredIds(row.ignoredChannelIds),
-    announceChannelId: row.announceChannelId ?? null,
-  };
-}
-
-function parseIgnoredIds(raw: string): string[] {
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
-  } catch {
-    return [];
   }
 }
 
