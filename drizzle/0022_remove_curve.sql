@@ -1,0 +1,1 @@
+ALTER TABLE "level_configs" DROP COLUMN "curve";

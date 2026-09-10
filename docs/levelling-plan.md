@@ -1,7 +1,7 @@
 # Levelling System Plan
 
 A per-guild levelling feature for Shiroko. Users earn XP from guild activity
-(messages, voice time), level up along a configurable curve, and unlock
+(messages, voice time), level up along a fixed curve, and unlock
 rewards at milestone levels. Built as a **consumer of the stats feature's
 derived events**. Levelling never touches the discord.js gateway directly.
 
@@ -25,7 +25,7 @@ this work.**
 XP is **cumulative**. After each grant:
 
 1. The service recomputes the level from the cached/new XP total under the
-   current curve (see §3).
+   fixed curve (see §2).
 2. Every level crossed ≥ the old level emits one `LevelUpEvent`
    (`prevLevel`, `newLevel`, `guild`, `userId`).
 
@@ -51,32 +51,29 @@ One `level_config` row per guild:
 
 | Setting                    | Default | Notes                                                   |
 | -------------------------- | ------- | ------------------------------------------------------- |
-| `curve`                    | normal  | `normal` / `easy` / `hard`; selects preset              |
 | `message_xp`               | 10      | XP per eligible message                                 |
 | `message_cooldown_seconds` | 60      | Seconds between XP-granting messages (min 10, enforced) |
 | `voice_xp_per_min`         | 5       | XP per whole minute of voice                            |
 | `ignored_channel_ids`      | `[]`    | Channels (e.g. `#bots`) that never grant XP             |
 | `announce_channel_id`      | `null`  | Channel for level-up announcements (null = none)        |
 
-## 2. XP curves
+## 2. XP curve
 
-A curve is one quadratic function: `xpForLevel(l) = a·l² + b·l + c`, with
-pure helpers `levelForXp` (inverse) and `xpForNext` (delta to the next
-level). All presets use `c = 0` so a new user starts at level 1 with 0 XP;
-the first level-up lands after a few messages, not a long silent stretch.
-Three presets:
+The curve is one fixed quadratic function: `xpForLevel(l) = a·l² + b·l + c`,
+with pure helpers `levelForXp` (inverse) and `xpForNext` (delta to the next
+level). It uses `c = 0` so a new user starts at level 1 with 0 XP; the first
+level-up lands after a few messages, not a long silent stretch. The curve is
+hardcoded, not configurable per guild.
 
-| Curve  | a   | b   | c   | XP to L2 (delta) | Relative pace |
-| ------ | --- | --- | --- | ---------------- | ------------- |
-| normal | 5   | 50  | 0   | 55               | 1×            |
-| easy   | 3   | 30  | 0   | 33               | ~0.6× (fast)  |
-| hard   | 8   | 80  | 0   | 88               | ~1.6× (grind) |
+| a   | b   | c   | XP to L2 (delta) |
+| --- | --- | --- | ---------------- |
+| 5   | 50  | 0   | 55               |
 
 ```
     total XP
-      │           hard ─────────────
-      │        normal ───────
-      │     easy ───
+      │        ───────
+      │     ───────
+      │  ────
       └──────────────────────────────▶ level
 ```
 
@@ -91,25 +88,22 @@ idempotent (`INSERT ... ON CONFLICT DO NOTHING`).
 
 ### Level snapshot (`UserLevelSnapshot`)
 
-`{ level, xp, curve }` derived **fresh from `user_levels` on every read**
-under the guild's current curve. There is **no in-memory cache and no
-stored level column**; the level and curve always travel with the xp
-total, so a read never mixes a stale curve with a fresh total.
+`{ level, xp }` derived **fresh from `user_levels` on every read**. There is
+**no in-memory cache and no stored level column**; the level always travels
+with the xp total.
 
-- **Read**: `LevelsService.getLevel` reads `user_levels` + `level_config`
-  straight from the DB on every call.
+- **Read**: `LevelsService.getLevel` reads `user_levels` straight from the
+  DB on every call.
 - **Write** (`grantXp`): upserts `user_levels` in one statement and
-  derives the level from the returned total under the current curve.
-  Message grants additionally stamp `guild_users.last_message_at`.
+  derives the level from the returned total. Message grants additionally
+  stamp `guild_users.last_message_at`.
 - **Config** (`getConfig`/`setConfig`): **not cached**; read straight from
   `level_config` on every request.
 - **Schema changes**: `bunx drizzle-kit generate` evolution, no backfill
   needed.
 
-Invariant: **`level` is always derived from `xp` under the current curve**;
-a read never mixes a stale curve with a fresh total because the level,
-xp, and curve ship together (as a single snapshot), and every read
-re-derives from the DB.
+Invariant: **`level` is always derived from `xp`**; every read re-derives
+from the DB, so the same `xp` maps to the same level for everyone.
 
 ## 4. Schema
 
@@ -155,7 +149,6 @@ export const levelRewards = pgTable(
 
 export const levelConfigs = pgTable("level_configs", {
   guildId: text("guild_id").primaryKey(),
-  curve: text("curve").notNull().default("normal"),
   messageXp: integer("message_xp").notNull().default(10),
   messageCooldownSeconds: integer("message_cooldown_seconds").notNull().default(60),
   voiceXpPerMin: integer("voice_xp_per_min").notNull().default(5),
@@ -171,7 +164,8 @@ no user FK.
 
 Migration: `0019_levelling_balance` drops the `user_levels.level` column
 (level is always derived from `xp`), adds `level_configs.announce_channel_id`,
-and bumps `voice_xp_per_min` default to 5.
+and bumps `voice_xp_per_min` default to 5. `0022_remove_curve` drops the
+`level_configs.curve` column; the curve is now fixed.
 
 ## 5. Events
 
@@ -208,26 +202,38 @@ src/feature/levels/
 ├── index.ts                 # LevelsFeature + LevelsListeners (EventBus.subscribe)
 ├── levels.service.ts        # grantXp / getRankState / leaderboard / config (DB, uncached)
 ├── user-level-snapshot.ts   # UserLevelSnapshot (immutable level/xp/curve read model)
-├── xp.ts                    # pure curve math (xpForLevel, levelForXp, xpForNext, presets)
+├── xp.ts                    # pure XP math (xpForLevel, levelForXp, xpForNext)
 └── command/
-    ├── levels.command.ts    # parent "levels" (reward + curve + voice + message + rank + leaderboard)
-    └── sub/
+    ├── levels.command.ts     # parent "levels" (rank + leaderboard)
+    ├── level-config.command.ts  # parent "level-config" (admin: rates/channels/rewards)
+    └── sub/                   # per-command subcommand folders
         ├── rank.command.ts
         ├── leaderboard.command.ts
-        └── config.command.ts    # admin: reward/curve/voice/message subcommands
+        └── level-config/sub/
+            ├── view.command.ts      # show current config
+            ├── message.command.ts
+            ├── voice.command.ts
+            ├── announce.command.ts
+            ├── ignored-channels.command.ts
+            └── reward.command.ts
 ```
 
 - `LevelsFeature` registers in `FeatureManager` (in `src/feature/index.ts`),
   with `FeatureIds.Levels = "levels"` in `feature-ids.ts`.
 - `LevelsListeners` instantiates once in `src/index.ts`, mirroring
   `StatsListeners`.
-- **`/levels`** is admin-gated (`requiredFlags`), guild-only, with
-  subcommands, mirroring `/permissions`.
-- **`/levels reward`** sets a level's reward role (admin, `Manage Roles`
-  checked). **`/levels curve`** picks the preset. **`/levels voice`** and
-  **`/levels message`** tune the rates and cooldown. **`/levels rank`** shows
-  your (or another user's) level card. **`/levels leaderboard`** shows the
-  top XP holders.
+- **`/levels`** shows a user's level card and the leaderboard; open to
+  everyone (feature-gated only).
+- **`/level-config`** is admin-gated (`requiredFlags` = `LEVELS_CONFIG_COMMAND`)
+  and guild-only, mirroring `/permissions`. One subcommand per setting, so
+  each is configured independently and the confirmation always echoes the
+  resulting config:
+  - **`/level-config view`** shows the current config.
+  - **`/level-config message`** tunes message XP and the cooldown.
+  - **`/level-config voice`** tunes voice XP per minute.
+  - **`/level-config announce`** sets or clears the level-up announce channel.
+  - **`/level-config ignored-channels`** adds or removes XP-ignored channels.
+  - **`/level-config reward`** sets or clears the role granted at a level.
 
 ## 7. Anti-farm
 
@@ -244,7 +250,7 @@ src/feature/levels/
   today. Keeping levels across a ban/rejoin would need dropping the cascade;
   deferred, existing convention wins for now.
 - **Announcement format**: level-ups post to a configured channel (via
-  `/levels config`). DM-based announcements or per-user opt-out are not
+  `/level-config announce`). DM-based announcements or per-user opt-out are not
   implemented; `LevelUpEvent` is where those would hook in.
 
 ## 9. Design decisions
@@ -254,8 +260,7 @@ src/feature/levels/
   affects stats.
 - **`level_rewards` is typed** (reward-type discrimininated) even though only
   `Role` exists. Adding currency/item rewards is a new type, not a table.
-- **Cached curve + level + xp travel together**; one cache entry, no
-  mixed-source reads, no curve recompute on hot paths.
+- **Level + xp travel together**; one read, no recompute on hot paths.
 - **No un-granting**: levels are monotonic; rewards only ever add.
 - **Failure-tolerant role grants**: a dead role or missing permission logs
   and continues; the level-up is never rolled back.

@@ -5,13 +5,12 @@ import { levelConfigs, levelRewards, userLevels } from "../../db/schema";
 import { EventBus } from "../../event/event-bus";
 import LevelUpEvent from "../../event/events/level-up.event";
 import GuildUsersManager from "../../user/guild-users-manager";
-import UserLevelSnapshot from "./user-level-snapshot";
-import { DEFAULT_CURVE, levelForXp, progressToNext, xpForLevel, type XpCurve } from "./xp";
+import type UserLevelSnapshot from "./user-level-snapshot";
+import { levelForXp, progressToNext, xpForLevel } from "./xp";
 
 export interface RankState {
   level: number;
   xp: number;
-  curve: XpCurve;
   guildRank: number | null;
   nextLevelXp: number;
   progress: number;
@@ -34,7 +33,6 @@ export interface RewardRow {
  * on every request; deliberately not cached.
  */
 export interface LevelConfig {
-  curve: XpCurve;
   messageXp: number;
   messageCooldownSeconds: number;
   voiceXpPerMin: number;
@@ -43,7 +41,6 @@ export interface LevelConfig {
 }
 
 export const DEFAULT_CONFIG: LevelConfig = {
-  curve: DEFAULT_CURVE,
   messageXp: 10,
   messageCooldownSeconds: 60,
   voiceXpPerMin: 5,
@@ -53,9 +50,9 @@ export const DEFAULT_CONFIG: LevelConfig = {
 
 /**
  * Levelling service. Grants XP for messages and voice, detects level-ups
- * against the guild's current curve, persists the new (xp, level) pair
- * via one upsert, and emits `LevelUpEvent` for every level crossed so
- * reward granters and announcements can react independently.
+ * under the fixed curve, persists the new (xp, level) pair via one
+ * upsert, and emits `LevelUpEvent` for every level crossed so reward
+ * granters and announcements can react independently.
  *
  * Message grants are rate-limited by the guild user's `lastMessageAt`;
  * ignored channels never grant. Voice grants use whole minutes from
@@ -83,7 +80,6 @@ export default class LevelsService {
       .insert(levelConfigs)
       .values({
         guildId,
-        curve: next.curve,
         messageXp: next.messageXp,
         messageCooldownSeconds: next.messageCooldownSeconds,
         voiceXpPerMin: next.voiceXpPerMin,
@@ -93,7 +89,6 @@ export default class LevelsService {
       .onConflictDoUpdate({
         target: levelConfigs.guildId,
         set: {
-          curve: next.curve,
           messageXp: next.messageXp,
           messageCooldownSeconds: next.messageCooldownSeconds,
           voiceXpPerMin: next.voiceXpPerMin,
@@ -159,45 +154,34 @@ export default class LevelsService {
   }
 
   /**
-   * The (level, xp, curve) pair for a user in a guild, derived fresh from
-   * `user_levels` under the guild's current curve. No cache — every read
-   * hits the DB.
+   * The (level, xp) pair for a user in a guild, derived fresh from
+   * `user_levels`. No cache — every read hits the DB.
    *
-   * **Level is always derived from `xp` under the current curve**. Reads
-   * never trust a stored level, so they stay consistent after a curve
-   * change: the same `xp` maps to the same level for everyone.
+   * **Level is always derived from `xp`**. Reads never trust a stored
+   * level, so they stay consistent: the same `xp` maps to the same level
+   * for everyone.
    */
   public async getLevel(guildId: string, userId: string): Promise<UserLevelSnapshot> {
     const [row] = await db
       .select()
       .from(userLevels)
       .where(and(eq(userLevels.guildId, guildId), eq(userLevels.userId, userId)));
-    const config = await this.getConfig(guildId);
     const xp = row?.xp ?? 0;
     return {
       xp,
-      level: levelForXp(xp, config.curve),
-      curve: config.curve,
+      level: levelForXp(xp),
     };
   }
 
   /**
-   * The guild's currently-active curve. Used by reads that derive levels
-   * from raw XP (e.g. the leaderboard).
-   */
-  public async getCurve(guildId: string): Promise<XpCurve> {
-    return (await this.getConfig(guildId)).curve;
-  }
-
-  /**
-   * A user's rank card data: cached level/xp/curve plus rank, the XP
-   * required for the next level, and progress toward it.
+   * A user's rank card data: cached level/xp plus rank, the XP required
+   * for the next level, and progress toward it.
    */
   public async getRankState(guildId: string, userId: string): Promise<RankState> {
     const entry = await this.getLevel(guildId, userId);
     const rank = await this.guildRank(guildId, userId);
-    const nextLevelXp = xpForLevel(entry.level + 1, entry.curve);
-    const progress = progressToNext(entry.xp, entry.curve);
+    const nextLevelXp = xpForLevel(entry.level + 1);
+    const progress = progressToNext(entry.xp);
     return { ...entry, guildRank: rank, nextLevelXp, progress };
   }
 
@@ -285,11 +269,10 @@ export default class LevelsService {
     if (amount <= 0) {
       return this.getLevel(guild.id, userId);
     }
-    const config = await this.getConfig(guild.id);
     const before = await this.getLevel(guild.id, userId);
 
     // Atomic upsert: the DB owns the xp total under concurrency; level
-    // derives from the returned total under the current curve.
+    // derives from the returned total.
     const [row] = await db
       .insert(userLevels)
       .values({ guildId: guild.id, userId, xp: amount })
@@ -303,17 +286,16 @@ export default class LevelsService {
       return null;
     }
 
-    const persistedLevel = levelForXp(row.xp, config.curve);
+    const persistedLevel = levelForXp(row.xp);
     const persisted: UserLevelSnapshot = {
       xp: row.xp,
       level: persistedLevel,
-      curve: config.curve,
     };
 
     // Emit every level crossed. The pre-grant level is derived from the
     // pre-grant xp (which clamps new users to level 1) so a first grant
     // that jumps multiple levels still emits 1→2.
-    const startLevel = levelForXp(before.xp, config.curve);
+    const startLevel = levelForXp(before.xp);
     for (let lvl = startLevel + 1; lvl <= persisted.level; lvl++) {
       await EventBus.post(new LevelUpEvent({ userId, guild, prevLevel: lvl - 1, newLevel: lvl }));
     }
@@ -322,26 +304,19 @@ export default class LevelsService {
 }
 
 function toConfig(row: {
-  curve: string;
   messageXp: number;
   messageCooldownSeconds: number;
   voiceXpPerMin: number;
   ignoredChannelIds: string;
   announceChannelId: string | null;
 }): LevelConfig {
-  const curve = isPersistedCurve(row.curve) ? row.curve : DEFAULT_CURVE;
   return {
-    curve,
     messageXp: row.messageXp,
     messageCooldownSeconds: row.messageCooldownSeconds,
     voiceXpPerMin: row.voiceXpPerMin,
     ignoredChannelIds: parseIgnoredIds(row.ignoredChannelIds),
     announceChannelId: row.announceChannelId ?? null,
   };
-}
-
-function isPersistedCurve(value: string): value is XpCurve {
-  return value === "normal" || value === "easy" || value === "hard";
 }
 
 function parseIgnoredIds(raw: string): string[] {

@@ -7,6 +7,7 @@ import VoiceSessionEndedEvent from "../../event/events/voice-session-ended.event
 import { baseEmbed } from "../../lib/embed";
 import { FeatureIds } from "../feature-ids";
 import Feature from "../feature.ts";
+import LevelConfigCommand from "./command/level-config/level-config.command";
 import LevelsCommand from "./command/levels/levels.command";
 import { levelsService } from "./levels.service";
 
@@ -20,6 +21,7 @@ export default class LevelsFeature extends Feature {
     super(FeatureIds.Levels);
 
     this.registerCommand(new LevelsCommand());
+    this.registerCommand(new LevelConfigCommand());
   }
 }
 

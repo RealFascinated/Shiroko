@@ -165,10 +165,9 @@ export const inviteJoins = pgTable(
 );
 
 /**
- /**
  * One row per user per guild for levelling. `xp` is cumulative; the level
- * is always derived from `xp` under the guild's current curve at read time
- * (see `levelForXp`), so there is no stored level column to go stale.
+ * is always derived from `xp` at read time (see `levelForXp`), so there
+ * is no stored level column to go stale.
  * The message-XP cooldown is gated by `guild_users.last_message_at`.
  */
 export const userLevels = pgTable(
@@ -212,7 +211,6 @@ export const levelRewards = pgTable(
  */
 export const levelConfigs = pgTable("level_configs", {
   guildId: text("guild_id").primaryKey(),
-  curve: text("curve").notNull().default("normal"),
   messageXp: integer("message_xp").notNull().default(10),
   messageCooldownSeconds: integer("message_cooldown_seconds").notNull().default(60),
   voiceXpPerMin: integer("voice_xp_per_min").notNull().default(5),

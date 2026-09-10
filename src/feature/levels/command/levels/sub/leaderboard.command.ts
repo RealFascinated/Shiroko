@@ -26,11 +26,11 @@ export default class LeaderboardCommand extends Command {
         )
       );
     }
-    const [members, curve] = await Promise.all([guild.members.fetch(), levelsService.getCurve(guildId)]);
+    const members = await guild.members.fetch();
     const lines = rows.map((row, index) => {
       const member = members.get(row.userId);
       const name = member?.displayName ?? `<@${row.userId}>`;
-      return `**${ordinal(index + 1)}.** ${name}: **level ${levelForXp(row.xp, curve)}** (${row.xp} XP)`;
+      return `**${ordinal(index + 1)}.** ${name}: **level ${levelForXp(row.xp)}** (${row.xp} XP)`;
     });
     const embed = baseEmbed(commandName)
       .setTitle(`📊 Levelling Leaderboard: ${guild.name}`)
