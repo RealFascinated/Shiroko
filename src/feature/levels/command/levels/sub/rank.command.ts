@@ -66,9 +66,10 @@ export default class RankCommand extends Command {
       );
     }
 
-    // Top three get a podium tint; the footer and theme still come from
-    // baseEmbed, so only the color changes.
-    const podiumColor = rank.guildRank !== null ? PODIUM_COLORS[rank.guildRank as 1 | 2 | 3] : null;
+    // Top three get a podium tint; their color is typed so a rank outside
+    // the top three falls back to the embed's default.
+    const podiumColor =
+      rank.guildRank !== null && rank.guildRank <= 3 ? PODIUM_COLORS[rank.guildRank as 1 | 2 | 3] : null;
     const embed = baseEmbed(commandName)
       .setColor(podiumColor)
       .setTitle("📊 Level Rank")
