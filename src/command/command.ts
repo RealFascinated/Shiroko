@@ -90,6 +90,7 @@ export default abstract class Command {
   public featureId?: FeatureIds;
 
   public readonly subCommands: Map<string, Command> = new Map();
+  public parent?: Command;
 
   constructor(id: string, displayName: string) {
     this.id = id;
@@ -106,9 +107,14 @@ export default abstract class Command {
    *
    * When `true`, the command is registered for both guild and user installs
    * and usable in servers, DMs with the bot, and private channels.
+   *
+   * Subcommands inherit this from their parent unless they override it, so
+   * a user-installable family only needs the override on the parent (e.g.
+   * `/interact`); the dispatch gate and `build()` both resolve through the
+   * parent chain.
    */
   public get userInstallable(): boolean {
-    return false;
+    return this.parent?.userInstallable ?? false;
   }
 
   /**
@@ -129,6 +135,7 @@ export default abstract class Command {
    * so a command with subcommands should not declare its own `options`.
    */
   public registerSubCommand(command: Command): void {
+    command.parent = this;
     this.subCommands.set(command.id, command);
   }
 
