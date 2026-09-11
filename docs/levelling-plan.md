@@ -59,21 +59,23 @@ One `level_config` row per guild:
 
 ## 2. XP curve
 
-The curve is one fixed quadratic function: `xpForLevel(l) = a·l² + b·l + c`,
-with pure helpers `levelForXp` (inverse) and `xpForNext` (delta to the next
-level). It uses `c = 0` so a new user starts at level 1 with 0 XP; the first
-level-up lands after a few messages, not a long silent stretch. The curve is
-hardcoded, not configurable per guild.
+The curve is one fixed exponential function: `xpForLevel(l) = BASE·(RATE^l − 1)`,
+with pure helpers `levelForXp` (inverse, via log) and `progressToNext`. The
+`− 1` keeps a new user at level 1 with 0 XP; the first level-up lands after a
+few minutes of chatting. The curve is hardcoded, not configurable per guild.
+Thresholds are rounded to whole XP so rank cards never show decimals.
 
-| a   | b   | c   | XP to L2 (delta) |
-| --- | --- | --- | ---------------- |
-| 5   | 50  | 0   | 55               |
+| BASE | RATE | XP to L2 (delta) | XP to L25 |
+| ---- | ---- | ---------------- | --------- |
+| 500  | 1.15 | 86               | 15,959    |
 
 ```
     total XP
-      │        ───────
-      │     ───────
-      │  ────
+      │              ┌────
+      │           ┌───┘
+      │        ┌──┘
+      │     ┌─┘
+      │   ┌┘
       └──────────────────────────────▶ level
 ```
 
