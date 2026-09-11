@@ -15,8 +15,10 @@ export default abstract class SelfReactionCommand extends Command {
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const gif = await getGif(this.gifCategory);
-    return ctx.reply({
-      embeds: [baseEmbed(commandName).setTitle(`${ctx.user.displayName} ${this.phrase}`).setImage(gif.url)],
-    });
+    const embed = baseEmbed(commandName).setTitle(`${ctx.user.displayName} ${this.phrase}`).setImage(gif.url);
+    if (gif.anime_name) {
+      embed.addFields({ name: "Anime", value: gif.anime_name, inline: true });
+    }
+    return ctx.reply({ embeds: [embed] });
   }
 }
