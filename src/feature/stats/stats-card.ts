@@ -1,4 +1,5 @@
 import Canvas from "../../lib/canvas";
+import { pluralise } from "../../lib/format";
 import { TimeUnit, formatDuration } from "../../lib/time";
 import type { DaySeries, StatsSummary, VoiceSummary } from "./stats.service";
 
@@ -237,5 +238,5 @@ function formatVoiceDuration(seconds: number): string {
  * Format a session count as `1 session` or `4 sessions`.
  */
 function formatSessions(sessions: number): string {
-  return `${sessions} session${sessions === 1 ? "" : "s"}`;
+  return `${sessions} ${pluralise(sessions, "session")}`;
 }

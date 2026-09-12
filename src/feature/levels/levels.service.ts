@@ -1,9 +1,11 @@
 import type { Guild } from "discord.js";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { levelConfigs, levelRewards, userLevels } from "../../db/schema";
 import { EventBus } from "../../event/event-bus";
 import LevelUpEvent from "../../event/events/level-up.event";
+import LeaderboardManager from "../../leaderboard";
+import { LeaderboardId } from "../../leaderboard/leaderboard";
 import GuildUsersManager from "../../user/guild-users-manager";
 import type UserLevelSnapshot from "./user-level-snapshot";
 import { levelForXp, progressToNext, xpForLevel } from "./xp";
@@ -15,11 +17,6 @@ export interface RankState {
   totalTracked: number;
   nextLevelXp: number;
   progress: number;
-}
-
-export interface LeaderboardRow {
-  userId: string;
-  xp: number;
 }
 
 export interface RewardRow {
@@ -178,52 +175,25 @@ export default class LevelsService {
   }
 
   /**
-   * A user's rank card data: cached level/xp plus rank, the XP required
-   * for the next level, and progress toward it.
+   * A user's rank card data: level/xp plus the guild's leaderboard
+   * standing, the XP required for the next level, and progress toward
+   * it.
    */
   public async getRankState(guildId: string, userId: string): Promise<RankState> {
-    const entry = await this.getLevel(guildId, userId);
-    const { position, total } = await this.rankAndTotal(guildId, entry.xp);
-    const nextLevelXp = xpForLevel(entry.level + 1);
-    const progress = progressToNext(entry.xp);
-    return { ...entry, guildRank: position, totalTracked: total, nextLevelXp, progress };
-  }
-
-  /**
-   * One aggregate query for the user's 1-based rank and the number of
-   * users the guild tracks, so rank cards make a single round-trip. Rank
-   * counts users with strictly more XP; ties on XP fall back to whoever
-   * updated last, but a stable order only really matters when users are
-   * exactly tied. `position` is `null` for users with no XP yet.
-   */
-  private async rankAndTotal(
-    guildId: string,
-    xp: number
-  ): Promise<{ position: number | null; total: number }> {
-    const [row] = await db
-      .select({
-        ahead: sql<number>`count(*) filter (where ${userLevels.xp} > ${xp})`.mapWith(Number),
-        total: sql<number>`count(*)`.mapWith(Number),
-      })
-      .from(userLevels)
-      .where(eq(userLevels.guildId, guildId));
+    const position = await LeaderboardManager.getLeaderboard(LeaderboardId.Level).getPosition(
+      guildId,
+      userId
+    );
+    const xp = position.row?.value ?? 0;
+    const level = levelForXp(xp);
     return {
-      position: xp === 0 ? null : (row?.ahead ?? 0) + 1,
-      total: row?.total ?? 0,
+      xp,
+      level,
+      guildRank: position.position,
+      totalTracked: position.total,
+      nextLevelXp: xpForLevel(level + 1),
+      progress: progressToNext(xp),
     };
-  }
-
-  /**
-   * The top `limit` XP holders in a guild (by stored xp, descending).
-   */
-  public async leaderboard(guildId: string, limit: number): Promise<LeaderboardRow[]> {
-    const rows = await db
-      .select({ userId: userLevels.userId, xp: userLevels.xp })
-      .from(userLevels)
-      .where(eq(userLevels.guildId, guildId))
-      .orderBy(desc(userLevels.xp))
-      .limit(limit);
-    return rows.map(row => ({ userId: row.userId, xp: row.xp }));
   }
 
   /**

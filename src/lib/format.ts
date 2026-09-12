@@ -12,6 +12,15 @@ export function ordinal(n: number): string {
 }
 
 /**
+ * Pluralise `word` for `count`: singular when `count` is 1, otherwise
+ * `word` with an "s" appended.
+ * Examples: `pluralise(1, "invite")` -> "invite", `pluralise(3, "invite")` -> "invites".
+ */
+export function pluralise(count: number, word: string): string {
+  return count === 1 ? word : `${word}s`;
+}
+
+/**
  * Uppercase the first letter of `word`, leaving the rest untouched.
  * Examples: `titleCase("hug")` -> "Hug", `titleCase("holdhands")` -> "Holdhands".
  */

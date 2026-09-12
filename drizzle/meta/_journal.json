@@ -169,6 +169,13 @@
       "when": 1789058442003,
       "tag": "0023_steep_chameleon",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789243994812,
+      "tag": "0024_steady_professor_monster",
+      "breakpoints": true
     }
   ]
 }

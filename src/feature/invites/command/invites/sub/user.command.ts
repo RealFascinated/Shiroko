@@ -4,6 +4,7 @@ import { userOption } from "../../../../../command/option";
 import { db } from "../../../../../db";
 import { inviteJoins } from "../../../../../db/schema";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../lib/embed";
+import { pluralise } from "../../../../../lib/format";
 import { invitesService } from "../../../invites.service";
 
 /**
@@ -37,7 +38,7 @@ export default class InvitesUserCommand extends Command {
     const embed = baseEmbed(commandName)
       .setTitle("📨 Invites")
       .setDescription(
-        `${target} has invited **${total}** member${total === 1 ? "" : "s"} to **${guild.name}**.`
+        `${target} has invited **${total}** ${pluralise(total, "member")} to **${guild.name}**.`
       );
     if (!canTrack) {
       embed.setFooter({ text: "Missing Manage Guild permission; some joins may be untracked." });

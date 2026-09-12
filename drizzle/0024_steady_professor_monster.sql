@@ -1,0 +1,2 @@
+CREATE INDEX "message_events_guild_user_idx" ON "message_events" USING btree ("guild_id","user_id");--> statement-breakpoint
+CREATE INDEX "voice_sessions_guild_user_idx" ON "voice_sessions" USING btree ("guild_id","user_id");

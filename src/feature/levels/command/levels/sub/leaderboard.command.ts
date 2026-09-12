@@ -1,7 +1,8 @@
 import Command, { type ExecuteContext } from "../../../../../command/command";
+import LeaderboardManager from "../../../../../leaderboard";
+import { LeaderboardId } from "../../../../../leaderboard/leaderboard";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../lib/embed";
 import { ordinal } from "../../../../../lib/format";
-import { levelsService } from "../../../levels.service";
 import { levelForXp } from "../../../xp";
 
 /**
@@ -17,8 +18,8 @@ export default class LeaderboardCommand extends Command {
       return;
     }
     const guildId = guild.id;
-    const rows = await levelsService.leaderboard(guildId, 10);
-    if (rows.length === 0) {
+    const page = await LeaderboardManager.getLeaderboard(LeaderboardId.Level).getPage(guildId, 1);
+    if (page.rows.length === 0) {
       return ctx.reply(
         ephemeralErrorReply(
           commandName,
@@ -26,14 +27,11 @@ export default class LeaderboardCommand extends Command {
         )
       );
     }
-    const members = await guild.members.fetch();
-    const lines = rows.map((row, index) => {
-      const member = members.get(row.userId);
-      const name = member?.displayName ?? `<@${row.userId}>`;
-      return `**${ordinal(index + 1)}.** ${name}: **${levelForXp(row.xp)}** (${row.xp.toLocaleString("en-US")} XP)`;
+    const lines = page.rows.map((row, index) => {
+      return `**${ordinal(index + 1)}.** <@${row.id}>: **${levelForXp(row.value)}** (${row.value.toLocaleString("en-US")} XP)`;
     });
     const embed = baseEmbed(commandName)
-      .setTitle(`📊 Levelling Leaderboard: ${guild.name}`)
+      .setTitle("📊 Levelling Leaderboard")
       .setDescription(lines.join("\n"));
     return ctx.reply({ embeds: [embed] });
   }

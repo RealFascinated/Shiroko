@@ -1,5 +1,5 @@
 import { PermissionFlagsBits, type Guild, type Invite } from "discord.js";
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { guildInvites, inviteJoins } from "../../db/schema";
 
@@ -11,14 +11,6 @@ export type JoinAttribution = {
   code: string;
   inviterId: string | null;
 };
-
-/**
- * A row of the /invites leaderboard, aggregated per inviting user.
- */
-export interface InviteLeaderRow {
-  inviterId: string;
-  invites: number;
-}
 
 /**
  * Live invite tracking for one guild: snapshots `uses` per code in memory
@@ -190,23 +182,6 @@ export default class InvitesService {
     } catch {
       return false;
     }
-  }
-
-  /**
-   * Leaderboard rows for `guildId`: total invited members per inviter,
-   * most-invited first. Unknown joins (null inviter) are excluded.
-   */
-  public async leaderboard(guildId: string): Promise<InviteLeaderRow[]> {
-    const rows = await db
-      .select({
-        inviterId: inviteJoins.inviterId,
-        invites: sql<number>`count(*)`.mapWith(Number),
-      })
-      .from(inviteJoins)
-      .where(and(eq(inviteJoins.guildId, guildId), isNotNull(inviteJoins.inviterId)))
-      .groupBy(inviteJoins.inviterId)
-      .orderBy(desc(sql`count(*)`));
-    return rows.map(row => ({ inviterId: row.inviterId as string, invites: row.invites }));
   }
 
   /**

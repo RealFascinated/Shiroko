@@ -1,6 +1,8 @@
 import Command, { type ExecuteContext } from "../../../../../command/command";
+import LeaderboardManager from "../../../../../leaderboard";
+import { LeaderboardId } from "../../../../../leaderboard/leaderboard";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../lib/embed";
-import { ordinal } from "../../../../../lib/format";
+import { ordinal, pluralise } from "../../../../../lib/format";
 import { invitesService } from "../../../invites.service";
 
 /**
@@ -21,8 +23,8 @@ export default class InvitesLeaderboardCommand extends Command {
         )
       );
     }
-    const rows = await invitesService.leaderboard(guildId);
-    if (rows.length === 0) {
+    const page = await LeaderboardManager.getLeaderboard(LeaderboardId.Invites).getPage(guildId, 1);
+    if (page.rows.length === 0) {
       return ctx.reply(
         ephemeralErrorReply(
           commandName,
@@ -30,15 +32,10 @@ export default class InvitesLeaderboardCommand extends Command {
         )
       );
     }
-    const members = await guild?.members.fetch();
-    const lines = rows.slice(0, 10).map((row, index) => {
-      const member = members?.get(row.inviterId);
-      const name = member?.displayName ?? `<@${row.inviterId}>`;
-      return `**${ordinal(index + 1)}.** ${name}: **${row.invites}** invite${row.invites === 1 ? "" : "s"}`;
+    const lines = page.rows.map((row, index) => {
+      return `**${ordinal(index + 1)}.** <@${row.id}>: **${row.value}** ${pluralise(row.value, "invite")}`;
     });
-    const embed = baseEmbed(commandName)
-      .setTitle(`📨 Invite Leaderboard: ${guild?.name}`)
-      .setDescription(lines.join("\n"));
+    const embed = baseEmbed(commandName).setTitle("📨 Invite Leaderboard").setDescription(lines.join("\n"));
     if (guild) {
       const canTrack = await invitesService.canTrack(guild);
       if (!canTrack) {

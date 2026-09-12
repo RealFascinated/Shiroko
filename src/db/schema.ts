@@ -59,6 +59,7 @@ export const messageEvents = pgTable(
   table => [
     index("message_events_user_created_idx").on(table.userId, table.createdAt.desc()),
     index("message_events_guild_created_idx").on(table.guildId, table.createdAt.desc()),
+    index("message_events_guild_user_idx").on(table.guildId, table.userId),
   ]
 );
 
@@ -80,6 +81,7 @@ export const voiceSessions = pgTable(
   table => [
     index("voice_sessions_user_joined_idx").on(table.userId, table.joinedAt.desc()),
     index("voice_sessions_guild_joined_idx").on(table.guildId, table.joinedAt.desc()),
+    index("voice_sessions_guild_user_idx").on(table.guildId, table.userId),
   ]
 );
 
