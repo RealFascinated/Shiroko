@@ -14,6 +14,7 @@ import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import BotStatsCommand from "./commands/botstats.command";
 import GuildInfoCommand from "./commands/guildinfo.command";
+import LeaderboardCommand from "./commands/leaderboard/leaderboard.command";
 import PingCommand from "./commands/ping.command";
 import UserCommand from "./commands/user/user.command";
 import ParsedArguments from "./parsed-arguments";
@@ -26,6 +27,7 @@ export default class CommandManager {
     CommandManager.registerCommand(new UserCommand());
     CommandManager.registerCommand(new GuildInfoCommand());
     CommandManager.registerCommand(new BotStatsCommand());
+    CommandManager.registerCommand(new LeaderboardCommand());
     CommandManager.registerCommand(new StatsCommand());
     CommandManager.registerCommand(new FeatureCommand());
     CommandManager.registerCommand(new PermissionsCommand());
