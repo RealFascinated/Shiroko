@@ -29,9 +29,10 @@ export interface PagerOptions {
    */
   pageCount: number;
   /**
-   * Build the content for the given 1-indexed page.
+   * Build the content for the given 1-indexed page. May be async when the
+   * page content is looked up (e.g. a database query).
    */
-  render(page: number): MessageEditOptions;
+  render(page: number): MessageEditOptions | Promise<MessageEditOptions>;
 }
 
 /**
@@ -85,7 +86,7 @@ export async function attachPager(response: InteractionResponse, options: PagerO
         .setDisabled(page >= pageCount)
     );
 
-  const draw = () => response.edit({ ...render(page), components: [pageRow()] });
+  const draw = async () => response.edit({ ...(await render(page)), components: [pageRow()] });
 
   await draw();
 
@@ -113,7 +114,7 @@ export async function attachPager(response: InteractionResponse, options: PagerO
       return;
     }
     page = target;
-    await button.update({ ...render(page), components: [pageRow()] });
+    await button.update({ ...(await render(page)), components: [pageRow()] });
   });
   collector.on("end", async () => {
     await response.edit({ components: [] });
