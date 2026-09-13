@@ -295,34 +295,26 @@ managers) constructs the boards and exposes them only through
 re-exported. The registry is total over `LeaderboardId`, so
 `getLeaderboard` never returns undefined, and no new board may be added
 without an enum member and a registry entry. Commands look their board up
-by id (the existing `/levels leaderboard` and `/invites leaderboard`
-subcommands use `LeaderboardManager.getLeaderboard(LeaderboardId.Level)`
-and `LeaderboardManager.getLeaderboard(LeaderboardId.Invites)`); the
-`/leaderboard` command's subcommands resolve their board the same way.
+by id; the `/leaderboard` subcommands (`level`, `messages`, `invites`,
+`voice`) resolve their board this way.
 
 ## 7. Cutover
 
 Both existing leaderboard surfaces were switched over to the service, and
 the old ranking code was deleted. No shims, no legacy paths.
 
-- `/levels leaderboard`
-  (`src/feature/levels/command/levels/sub/leaderboard.command.ts`) now
-  calls `LeaderboardManager.getLeaderboard(LeaderboardId.Level).getPage(guildId, 1)` and renders the rows
-  identically (`ordinal`, user mention, `levelForXp(value)`, formatted XP).
+- `/levels leaderboard` and `/invites leaderboard` were deleted and moved
+  to `/leaderboard level` and `/leaderboard invites` (see §9, phase 4).
+  Both render their rows identically to before (`ordinal`, user mention,
+  board-specific value format) and are now paginated.
 - `LevelsService.leaderboard` and the private `LevelsService.rankAndTotal`
   were deleted. The `/levels rank` card (`getRankState`) now reads through
   `LeaderboardManager.getLeaderboard(LeaderboardId.Level).getPosition(guildId, userId)`: `guildRank` is
   `position.position`, `totalTracked` is `position.total`, and the XP and
   level fields derive from `position.row?.value ?? 0`.
-- `/invites leaderboard`
-  (`src/feature/invites/command/invites/sub/leaderboard.command.ts`) now
-  calls `LeaderboardManager.getLeaderboard(LeaderboardId.Invites).getPage(guildId, 1)` over `page.rows` (replacing
-  the old `rows.slice(0, 10)`); `InvitesService.leaderboard` and its
-  `InviteLeaderRow` type were deleted. The command keeps its
-  `invitesService.canTrack` footer.
-
-The new `/leaderboard` command resolves its board from the registry and
-pages it through `attachPager` (see §9, phase 4).
+- `InvitesService.leaderboard` and its `InviteLeaderRow` type were deleted.
+  The `/leaderboard invites` subcommand keeps the `invitesService.canTrack`
+  footer, via the base class's `footerText` hook.
 
 ## 8. Out of scope
 
@@ -352,14 +344,17 @@ pages it through `attachPager` (see §9, phase 4).
      (Shape B), plus the `(guild_id, user_id)` index migration
      (`drizzle/0024`).
 4. **Command** (done)
-   - `/leaderboard` parent in `src/command/commands/leaderboard/` with a
-     `messages` subcommand. The shared base `LeaderboardSubCommand`
-     (in `sub/`) fetches page 1, renders rows with their global
-     1-based position, and attaches the `attachPager` button pager
-     (⏮ ◀ n/N ▶ ⏭) when the board spans multiple pages. `attachPager`'s
-     `render` accepts a promise so pages are fetched lazily per press.
-     Adding a board is one subcommand file supplying `board`, `title`,
-     `emptyMessage`, and `renderRow`, plus one `registerSubCommand` line.
+   - `/leaderboard` parent in `src/command/commands/leaderboard/` with
+     `level`, `messages`, `invites`, and `voice` subcommands, all
+     paginated. The old `/levels leaderboard` and `/invites leaderboard`
+     subcommands were deleted (moved, not shimmed). The shared base
+     `LeaderboardSubCommand` (in `sub/`) fetches page 1, renders rows with
+     their global 1-based position, and attaches the `attachPager` button
+     pager (⏮ ◀ n/N ▶ ⏭) when the board spans multiple pages.
+     `attachPager`'s `render` accepts a promise so pages are fetched lazily
+     per press. Adding a board is one subcommand file supplying `board`,
+     `title`, `emptyMessage`, and `renderRow`, plus one `registerSubCommand`
+     line.
 
 ## 10. Verification
 

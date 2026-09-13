@@ -10,6 +10,8 @@ import { type } from "arktype";
 export const env = createEnv({
   server: {
     DISCORD_BOT_TOKEN: type("string > 0"),
+    PRIVACY_POLICY_URL: type("string > 0"),
+    TERMS_OF_SERVICE_URL: type("string > 0"),
   },
   runtimeEnv: process.env,
 });

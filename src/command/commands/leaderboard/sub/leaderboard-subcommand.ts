@@ -1,3 +1,4 @@
+import type { Guild } from "discord.js";
 import Command, { type ExecuteContext } from "../../../../command/command";
 import type Leaderboard from "../../../../leaderboard/leaderboard";
 import { type LeaderboardRow } from "../../../../leaderboard/leaderboard";
@@ -22,6 +23,14 @@ export default abstract class LeaderboardSubCommand extends Command {
    */
   protected abstract renderRow(row: LeaderboardRow, position: number): string;
 
+  /**
+   * Optional embed footer for this board (e.g. a tracking caveat).
+   * `null` means no footer.
+   */
+  protected async footerText(guild: Guild): Promise<string | null> {
+    return null;
+  }
+
   protected override async onExecuteSlash({ guild, ctx, commandName }: ExecuteContext) {
     if (!guild) {
       return;
@@ -39,8 +48,13 @@ export default abstract class LeaderboardSubCommand extends Command {
         const position = (pageNo - 1) * data.pageSize + index + 1;
         return this.renderRow(row, position);
       });
+      const embed = baseEmbed(commandName).setTitle(this.title).setDescription(lines.join("\n"));
+      const footer = await this.footerText(guild);
+      if (footer) {
+        embed.setFooter({ text: footer });
+      }
       return {
-        embeds: [baseEmbed(commandName).setTitle(this.title).setDescription(lines.join("\n"))],
+        embeds: [embed],
       };
     };
     const response = await ctx.reply(await renderPage(1));
