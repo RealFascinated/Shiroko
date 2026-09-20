@@ -286,8 +286,14 @@ export async function dialogFor<C>(
   if (descriptor.description) {
     hintLines.push(`*${descriptor.description}*`);
   }
-  hintLines.push(dialogHintFor(descriptor));
-  modal.addTextDisplayComponents(new TextDisplayBuilder().setContent(hintLines.filter(Boolean).join("\n")));
+  const hint = dialogHintFor(descriptor);
+  if (hint) {
+    hintLines.push(hint);
+  }
+  const content = hintLines.filter(Boolean).join("\n");
+  if (content.length > 0) {
+    modal.addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+  }
 
   const input = new TextInputBuilder()
     .setCustomId("value")
