@@ -20,42 +20,42 @@ import type SettingsModule from "./settings-module";
 import type { RuntimeSettingDescriptor } from "./settings-module";
 
 export const PANEL_ACTION = {
-  modules: "modules",
+  categories: "categories",
   edit: "edit",
   submit: "submit",
   apply: "apply",
 } as const;
 
 /**
- * The module-id select is the panel's navigation row.
+ * The category dropdown: one module per option, with `moduleId`
+ * preselected. Changing the selection swaps the action rows below.
  */
-export function modulesSelectRow(moduleIds: string[]): ActionRowBuilder<StringSelectMenuBuilder> {
+export function categorySelectRow(
+  moduleIds: string[],
+  selectedModuleId: string
+): ActionRowBuilder<StringSelectMenuBuilder> {
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
     new StringSelectMenuBuilder()
-      .setCustomId(`settings:modules`)
-      .setPlaceholder("Choose a settings module…")
+      .setCustomId(`settings:${PANEL_ACTION.categories}`)
+      .setPlaceholder("Choose a settings category…")
+      .setMinValues(1)
+      .setMaxValues(1)
       .addOptions(
         moduleIds.map(id =>
-          new StringSelectMenuOptionBuilder().setLabel(id.charAt(0).toUpperCase() + id.slice(1)).setValue(id)
+          new StringSelectMenuOptionBuilder()
+            .setLabel(id.charAt(0).toUpperCase() + id.slice(1))
+            .setValue(id)
+            .setDefault(id === selectedModuleId)
         )
       )
   );
 }
 
 /**
- * The overview embed listing every available module.
+ * The module help section: one line per descriptor showing its label,
+ * current value, and (when present) its description. Read-only.
  */
-export function overviewEmbed(commandName: string | null): EmbedBuilder {
-  return baseEmbed(commandName)
-    .setTitle("⚙️ Settings")
-    .setDescription("Choose a module below to edit its settings.");
-}
-
-/**
- * The module page embed: one line per descriptor showing its label and
- * current value.
- */
-export async function moduleEmbed<C>(
+export async function moduleHelp<C>(
   commandName: string | null,
   module: SettingsModule<C>,
   guild: Guild
@@ -64,12 +64,13 @@ export async function moduleEmbed<C>(
     module.runtimeDescriptors.map(async descriptor => {
       const value = await module.get(guild.id, descriptor.key as keyof C);
       const display = formatValue(descriptor, value);
-      return `**${descriptor.label}:** ${display === null ? "*(none)*" : display}`;
+      const description = descriptor.description ? `\n*${descriptor.description}*` : "";
+      return `**${descriptor.label}:** ${display === null ? "*(none)*" : display}${description}`;
     })
   );
   return baseEmbed(commandName)
     .setTitle(`⚙️ ${module.displayName} Settings`)
-    .setDescription(lines.join("\n") || "No settings in this module.");
+    .setDescription(lines.join("\n\n") || "No settings in this module.");
 }
 
 /**
@@ -97,11 +98,11 @@ export function formatValue(descriptor: RuntimeSettingDescriptor, value: unknown
 }
 
 /**
- * The module page's components: a row of "✏️" edit buttons for the
- * text-input setting types, and one select menu per boolean/choice setting
- * (an immediate-apply dropdown).
+ * The action rows for one settings category (module): a row of "✏️" edit
+ * buttons for the text-input setting types, and one select menu per
+ * boolean/choice setting (an immediate-apply dropdown).
  */
-export async function moduleControls<C>(
+export async function categoryControls<C>(
   module: SettingsModule<C>,
   guild: Guild
 ): Promise<Array<ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>>> {
@@ -137,6 +138,29 @@ export async function moduleControls<C>(
     rows.push(buttons);
   }
   return [...rows, ...selectRows];
+}
+
+/**
+ * Compose the full panel for a guild: the help section for the selected
+ * module, the category dropdown (preselected), and that module's action
+ * rows. Used by `/settings` and by every in-place re-render after a
+ * navigation or edit.
+ */
+export async function renderPanel<C>(
+  commandName: string | null,
+  guild: Guild,
+  moduleIds: string[],
+  selected: SettingsModule<C>
+): Promise<{
+  embeds: EmbedBuilder[];
+  components: Array<ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>>;
+}> {
+  const help = await moduleHelp(commandName, selected, guild);
+  const controls = await categoryControls(selected, guild);
+  return {
+    embeds: [help],
+    components: [categorySelectRow(moduleIds, selected.id), ...controls],
+  };
 }
 
 /**
@@ -363,6 +387,7 @@ export async function handleDialogSubmit<C>(
   interaction: ModalSubmitInteraction,
   module: SettingsModule<C>,
   descriptor: RuntimeSettingDescriptor,
+  categoryIds: string[],
   commandName: string | null
 ): Promise<void> {
   const guild = interaction.guild;
@@ -386,8 +411,7 @@ export async function handleDialogSubmit<C>(
     return;
   }
   await module.set(guild.id, descriptor.key as keyof C, finalized.value as never);
-  const embed = await moduleEmbed(commandName, module, guild);
-  const controls = await moduleControls(module, guild);
+  const panel = await renderPanel(commandName, guild, categoryIds, module);
   // ModalSubmitInteraction typings don't declare `update`; guard the
   // message (null when the modal was not opened from a message
   // component) and edit the source panel in place.
@@ -395,7 +419,7 @@ export async function handleDialogSubmit<C>(
     return;
   }
   await interaction.deferUpdate();
-  await interaction.message.edit({ embeds: [embed], components: controls });
+  await interaction.message.edit(panel);
 }
 
 /**
@@ -406,6 +430,7 @@ export async function handleSelectApply<C>(
   interaction: StringSelectMenuInteraction,
   module: SettingsModule<C>,
   descriptor: RuntimeSettingDescriptor,
+  categoryIds: string[],
   commandName: string | null
 ): Promise<void> {
   const guild = interaction.guild;
@@ -429,7 +454,6 @@ export async function handleSelectApply<C>(
     return;
   }
   await module.set(guild.id, descriptor.key as keyof C, finalized.value as never);
-  const embed = await moduleEmbed(commandName, module, guild);
-  const controls = await moduleControls(module, guild);
-  await interaction.update({ embeds: [embed], components: controls });
+  const panel = await renderPanel(commandName, guild, categoryIds, module);
+  await interaction.update(panel);
 }

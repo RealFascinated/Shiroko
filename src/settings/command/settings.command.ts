@@ -1,14 +1,14 @@
 import SettingsManager from "..";
 import Command, { type ExecuteContext } from "../../command/command";
-import GuildFeatures from "../../feature/guild-features";
 import { ephemeralErrorReply, errorEmbed } from "../../lib/embed";
 import { PermissionFlags } from "../../permission/permissions";
-import { moduleControls, moduleEmbed, modulesSelectRow, overviewEmbed } from "../panel";
+import { renderPanel } from "../panel";
 
 /**
- * Open the interactive settings panel: an overview of every registered
- * settings module (for enabled features), with a select to navigate into a
- * module page where each setting has an edit dialog.
+ * Open the interactive settings panel: a help section for the selected
+ * category, a category dropdown, and the action rows to edit that
+ * category's settings. Choosing a category from the dropdown swaps the
+ * action rows below.
  */
 export default class SettingsCommand extends Command {
   constructor() {
@@ -29,25 +29,8 @@ export default class SettingsCommand extends Command {
       );
     }
 
-    const modules = SettingsManager.all();
+    const modules = await SettingsManager.enabledModules(guild);
     if (modules.length === 0) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription("No settings modules registered.")
-        )
-      );
-    }
-
-    const enabledModuleIds: string[] = [];
-    for (const module of modules) {
-      const enabled =
-        module.featureId === null || (await GuildFeatures.isFeatureEnabled(guild, module.featureId));
-      if (enabled) {
-        enabledModuleIds.push(module.id);
-      }
-    }
-    if (enabledModuleIds.length === 0) {
       return ctx.reply(
         ephemeralErrorReply(
           commandName,
@@ -56,17 +39,13 @@ export default class SettingsCommand extends Command {
       );
     }
 
-    // A single module opens straight to its page.
-    if (enabledModuleIds.length === 1) {
-      const module = SettingsManager.get(enabledModuleIds[0]!);
-      if (module) {
-        const embed = await moduleEmbed(commandName, module, guild);
-        const controls = await moduleControls(module, guild);
-        return ctx.reply({ embeds: [embed], components: controls });
-      }
-    }
-
-    const embed = overviewEmbed(commandName);
-    return ctx.reply({ embeds: [embed], components: [modulesSelectRow(enabledModuleIds)] });
+    // The first enabled module is the initial category.
+    const panel = await renderPanel(
+      commandName,
+      guild,
+      modules.map(m => m.id),
+      modules[0]!
+    );
+    return ctx.reply(panel);
   }
 }
