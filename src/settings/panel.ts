@@ -1,3 +1,4 @@
+import { LabelBuilder, TextDisplayBuilder } from "@discordjs/builders";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -6,12 +7,10 @@ import {
   ModalBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
-  TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
   type EmbedBuilder,
   type Guild,
-  type ModalActionRowComponentBuilder,
   type ModalSubmitInteraction,
   type StringSelectMenuInteraction,
 } from "discord.js";
@@ -290,17 +289,13 @@ export async function dialogFor<C>(
   hintLines.push(dialogHintFor(descriptor));
   modal.addTextDisplayComponents(new TextDisplayBuilder().setContent(hintLines.filter(Boolean).join("\n")));
 
-  modal.addComponents(
-    new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-      new TextInputBuilder()
-        .setCustomId("value")
-        .setLabel(descriptor.label)
-        .setStyle(isParagraph ? TextInputStyle.Paragraph : TextInputStyle.Short)
-        .setValue(prefill)
-        .setRequired(true)
-        .setPlaceholder(placeholderFor(descriptor))
-    )
-  );
+  const input = new TextInputBuilder()
+    .setCustomId("value")
+    .setStyle(isParagraph ? TextInputStyle.Paragraph : TextInputStyle.Short)
+    .setValue(prefill)
+    .setRequired(true)
+    .setPlaceholder(placeholderFor(descriptor));
+  modal.addLabelComponents(new LabelBuilder().setLabel(descriptor.label).setTextInputComponent(input));
   return modal;
 }
 
