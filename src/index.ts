@@ -77,7 +77,6 @@ class LifecycleListeners extends EventListener {
   }
 }
 
-// temp (for now?)
 const VOICE_CHANNEL_ID = "1446633266160603268";
 new VoiceKeepaliveListener(VOICE_CHANNEL_ID);
 

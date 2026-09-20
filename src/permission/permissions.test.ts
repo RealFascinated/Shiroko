@@ -57,7 +57,6 @@ describe("resolveEffective", () => {
       ["a", FEATURE, "b"],
       ["b", PERMISSIONS, "a"],
     ]);
-    // a's effective = a own | b own (cycle cut before repeating a)
     expect(Permissions.resolveEffective(configs, "a")).toBe(FEATURE | PERMISSIONS);
   });
 

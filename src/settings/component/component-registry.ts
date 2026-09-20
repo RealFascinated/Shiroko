@@ -170,7 +170,6 @@ export default class ComponentRegistry {
         return;
       }
 
-      // Category dropdown: swap the whole panel to the chosen module.
       if (
         interaction.isStringSelectMenu() &&
         interaction.customId === `settings:${PANEL_ACTION.categories}`
@@ -184,7 +183,6 @@ export default class ComponentRegistry {
         return;
       }
 
-      // Pagination nav: switch to the adjacent page of the same module.
       if (interaction.isButton() && interaction.customId.startsWith(NAV_PREFIX)) {
         const parts = interaction.customId.split(":");
         const moduleId = parts[2];

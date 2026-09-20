@@ -39,7 +39,6 @@ export default class SettingsCommand extends Command {
       );
     }
 
-    // The first enabled module is the initial category.
     const panel = await renderPanel(
       commandName,
       guild,
