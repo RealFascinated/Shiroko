@@ -8,6 +8,15 @@ Think before coding. Pick the simplest valid approach and say why. State assumpt
 - No backward-compat shims unless explicitly requested: no migration paths, dual-format loaders, deprecated-key fallbacks, or legacy shims when changing configs, persisted data, serialized fields, or APIs. Default to the new shape. If a change could break something live, ask first.
 - Touch only what you must. Don't "improve" adjacent code, formatting, or comments; don't refactor working code you weren't asked to change. Remove imports/variables/methods that _your_ changes made unused; leave pre-existing dead code alone.
 
+## Comments
+
+Write no comments that merely restate the code. A `//` line must earn its place:
+
+- It explains **why**, not **what**: a platform quirk (`ModalSubmitInteraction` typings lack `update`), a hidden constraint (Discord's 15-minute interaction-token cap, 5 components per row), a deliberate workaround (import-cycle avoidance, SQL concurrency semantics), or the reasoning behind a non-obvious algorithm.
+- If a reader could re-derive the statement from the adjacent code in a few seconds, delete the comment: don't narrate branches, assignments, or assertions (e.g. `// The first enabled module is the initial category.` before `modules[0]!`).
+- One-word field clarifications on serialized or unit-ambiguous shapes (`// milliseconds`, `// null = unset`) are fine.
+- Leave existing comments alone unless they're part of the task; don't rewrite someone else's to match your style.
+
 ### Commits
 
 When the user asks you to commit, stage and commit only the files for the current task, not everything dirty in the working tree.
