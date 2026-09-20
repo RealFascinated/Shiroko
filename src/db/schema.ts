@@ -166,15 +166,18 @@ export const levelRewards = pgTable(
   table => [primaryKey({ columns: [table.guildId, table.level] })]
 );
 
-export const levelConfigs = pgTable("level_configs", {
-  guildId: text("guild_id").primaryKey(),
-  messageXp: integer("message_xp").notNull().default(10),
-  messageCooldownSeconds: integer("message_cooldown_seconds").notNull().default(60),
-  voiceXpPerMin: integer("voice_xp_per_min").notNull().default(5),
-  ignoredChannelIds: jsonb("ignored_channel_ids").notNull().default([]).$type<string[]>(),
-  announceChannelId: text("announce_channel_id"),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const guildSettings = pgTable(
+  "guild_settings",
+  {
+    guildId: text("guild_id").notNull(),
+    key: text("key").notNull(),
+    value: jsonb("value").notNull().$type<JsonValue>(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => [primaryKey({ columns: [table.guildId, table.key] })]
+);
+
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export const schema = {
   globalUsers,
@@ -188,7 +191,7 @@ export const schema = {
   permissionRoles,
   userLevels,
   levelRewards,
-  levelConfigs,
+  guildSettings,
 };
 
 export type GlobalUserSchema = typeof globalUsers.$inferSelect;
@@ -202,5 +205,5 @@ export type InviteJoinSchema = typeof inviteJoins.$inferSelect;
 export type PermissionRoleSchema = typeof permissionRoles.$inferSelect;
 export type UserLevelSchema = typeof userLevels.$inferSelect;
 export type LevelRewardSchema = typeof levelRewards.$inferSelect;
-export type LevelConfigSchema = typeof levelConfigs.$inferSelect;
+export type GuildSettingSchema = typeof guildSettings.$inferSelect;
 export const now = sql`now()`;

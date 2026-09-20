@@ -1,6 +1,7 @@
 import { Events, type Client } from "discord.js";
 import EventBus from "./event-bus";
 import BotReadyEvent from "./events/bot-ready.event";
+import ComponentReceivedEvent from "./events/component-received.event";
 import ContextMenuReceivedEvent from "./events/context-menu-received.event";
 import GuildJoinedEvent from "./events/guild-joined.event";
 import GuildLeftEvent from "./events/guild-left.event";
@@ -105,6 +106,8 @@ export default class EventBridge {
         void EventBus.post(new SlashCommandReceivedEvent(interaction));
       } else if (interaction.isUserContextMenuCommand() || interaction.isMessageContextMenuCommand()) {
         void EventBus.post(new ContextMenuReceivedEvent(interaction));
+      } else if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) {
+        void EventBus.post(new ComponentReceivedEvent(interaction));
       }
     });
   }

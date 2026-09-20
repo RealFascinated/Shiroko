@@ -5,10 +5,11 @@ import LevelUpEvent from "../../../event/events/level-up.event.ts";
 import MessageRecordedEvent from "../../../event/events/message-recorded.event.ts";
 import VoiceSessionEndedEvent from "../../../event/events/voice-session-ended.event.ts";
 import { baseEmbed } from "../../../lib/embed.ts";
+import SettingsManager from "../../../settings";
 import { FeatureIds } from "../../feature-ids.ts";
 import Feature from "../../feature.ts";
-import LevelConfigCommand from "./command/level-config/level-config.command.ts";
 import LevelsCommand from "./command/levels/levels.command.ts";
+import { levelsSettings } from "./levels-settings.ts";
 import { levelsService } from "./levels.service.ts";
 
 /**
@@ -20,8 +21,8 @@ export default class LevelsFeature extends Feature {
   constructor() {
     super(FeatureIds.Levels);
 
+    SettingsManager.register(levelsSettings);
     this.registerCommand(new LevelsCommand());
-    this.registerCommand(new LevelConfigCommand());
   }
 }
 
@@ -95,13 +96,13 @@ async function grantLevelRewards(event: LevelUpEvent): Promise<void> {
  */
 async function announceLevelUp(event: LevelUpEvent): Promise<void> {
   const guild = event.guildData;
-  const config = await levelsService.getConfig(guild.id);
-  if (!config.announceChannelId) {
+  const announceChannelId = await levelsSettings.get(guild.id, "announceChannelId");
+  if (!announceChannelId) {
     return;
   }
-  const channel = guild.channels.cache.get(config.announceChannelId);
+  const channel = guild.channels.cache.get(announceChannelId);
   if (!channel || !channel.isSendable()) {
-    console.error(`Level-up announce channel ${config.announceChannelId} not sendable in ${guild.id}`);
+    console.error(`Level-up announce channel ${announceChannelId} not sendable in ${guild.id}`);
     return;
   }
   try {

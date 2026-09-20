@@ -10,6 +10,7 @@ import StatsCommand from "../feature/impl/stats/command/stats/stats.command";
 import { fetchGuildMember } from "../lib/guild";
 import PermissionsCommand from "../permission/command/permissions.command";
 import Permissions, { hasFlags } from "../permission/permissions";
+import SettingsCommand from "../settings/command/settings.command";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import BotStatsCommand from "./commands/botstats.command";
@@ -33,6 +34,7 @@ export default class CommandManager {
     CommandManager.registerCommand(new StatsCommand());
     CommandManager.registerCommand(new FeatureCommand());
     CommandManager.registerCommand(new PermissionsCommand());
+    CommandManager.registerCommand(new SettingsCommand());
   }
 
   /**
@@ -101,7 +103,7 @@ export class SlashCommandListener extends EventListener {
 
     // A subcommand that declares its own gate wins; otherwise the whole
     // command inherits the parent's gate, so a gate usually lives on the
-    // parent (e.g. `/permissions`, `/level-config`).
+    // parent (e.g. `/permissions`, `/settings`).
     const gate = resolved && resolved.requiredFlags !== 0n ? resolved : command;
     if (guild && gate.requiredFlags !== 0n) {
       const member = await fetchGuildMember(guild, interaction.user.id);

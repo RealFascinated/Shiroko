@@ -1,12 +1,13 @@
 import type { Guild } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../../db";
-import { levelConfigs, levelRewards, userLevels } from "../../../db/schema";
+import { levelRewards, userLevels } from "../../../db/schema";
 import { EventBus } from "../../../event/event-bus";
 import LevelUpEvent from "../../../event/events/level-up.event";
 import LeaderboardManager from "../../../leaderboard";
 import { LeaderboardId } from "../../../leaderboard/leaderboard";
 import GuildUsersManager from "../../../user/guild-users-manager";
+import { levelsSettings } from "./levels-settings";
 import type UserLevelSnapshot from "./user-level-snapshot";
 import { levelForXp, progressToNext, xpForLevel } from "./xp";
 
@@ -27,26 +28,6 @@ export interface RewardRow {
 }
 
 /**
- * A guild's levelling configuration, read straight from `level_configs`
- * on every request; deliberately not cached.
- */
-export interface LevelConfig {
-  messageXp: number;
-  messageCooldownSeconds: number;
-  voiceXpPerMin: number;
-  ignoredChannelIds: string[];
-  announceChannelId: string | null;
-}
-
-export const DEFAULT_CONFIG: LevelConfig = {
-  messageXp: 10,
-  messageCooldownSeconds: 60,
-  voiceXpPerMin: 5,
-  ignoredChannelIds: [],
-  announceChannelId: null,
-};
-
-/**
  * Levelling service. Grants XP for messages and voice, detects level-ups
  * under the fixed curve, persists the new (xp, level) pair via one
  * upsert, and emits `LevelUpEvent` for every level crossed so reward
@@ -55,49 +36,10 @@ export const DEFAULT_CONFIG: LevelConfig = {
  * Message grants are rate-limited by the guild user's `lastMessageAt`;
  * ignored channels never grant. Voice grants use whole minutes from
  * `VoiceSessionEndedEvent`. XP and levels come straight from the DB on
- * every read; no in-memory level or config cache exists.
+ * every read; config is read through the settings system on every
+ * request; no in-memory level or config cache exists.
  */
 export default class LevelsService {
-  /**
-   * Read a guild's config straight from `level_configs`, falling back to
-   * {@link DEFAULT_CONFIG} for guilds without a row. Not cached; config
-   * is read per request.
-   */
-  public async getConfig(guildId: string): Promise<LevelConfig> {
-    const [row] = await db.select().from(levelConfigs).where(eq(levelConfigs.guildId, guildId));
-    return row ?? { ...DEFAULT_CONFIG };
-  }
-
-  /**
-   * Persist changes to a guild's config. Returns the effective config.
-   */
-  public async setConfig(guildId: string, updates: Partial<LevelConfig>): Promise<LevelConfig> {
-    const current = await this.getConfig(guildId);
-    const next: LevelConfig = { ...current, ...updates };
-    const values = {
-      guildId,
-      messageXp: next.messageXp,
-      messageCooldownSeconds: next.messageCooldownSeconds,
-      voiceXpPerMin: next.voiceXpPerMin,
-      ignoredChannelIds: next.ignoredChannelIds,
-      announceChannelId: next.announceChannelId,
-    };
-    await db
-      .insert(levelConfigs)
-      .values(values)
-      .onConflictDoUpdate({
-        target: levelConfigs.guildId,
-        set: {
-          messageXp: values.messageXp,
-          messageCooldownSeconds: values.messageCooldownSeconds,
-          voiceXpPerMin: values.voiceXpPerMin,
-          ignoredChannelIds: values.ignoredChannelIds,
-          announceChannelId: values.announceChannelId,
-        },
-      });
-    return next;
-  }
-
   /**
    * Try to grant message XP to a user in a guild, gated by the per-guild
    * user's `lastMessageAt` cooldown (atomically claimed in SQL — exactly
@@ -111,24 +53,26 @@ export default class LevelsService {
     channelId: string,
     now: Date = new Date()
   ): Promise<UserLevelSnapshot | null> {
-    const config = await this.getConfig(guild.id);
-    if (config.ignoredChannelIds.includes(channelId)) {
+    const ignored = await levelsSettings.get(guild.id, "ignoredChannelIds");
+    if (ignored.includes(channelId)) {
       return null;
     }
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
       return null;
     }
+    const cooldownMs = await levelsSettings.get(guild.id, "messageCooldown");
     const claimed = await GuildUsersManager.claimLastMessage(
       guild,
       member.user,
       now,
-      config.messageCooldownSeconds
+      Math.floor(cooldownMs / 1000)
     );
     if (!claimed) {
       return null;
     }
-    return this.grant(guild, userId, config.messageXp, now);
+    const messageXp = await levelsSettings.get(guild.id, "messageXp");
+    return this.grant(guild, userId, messageXp, now);
   }
 
   /**
@@ -141,17 +85,14 @@ export default class LevelsService {
     durationSeconds: number,
     now: Date = new Date()
   ): Promise<UserLevelSnapshot> {
-    const config = await this.getConfig(guild.id);
     const minutes = Math.max(0, Math.floor(durationSeconds / 60));
     if (minutes === 0) {
       return this.getLevel(guild.id, userId);
     }
+    const voiceXpPerMin = await levelsSettings.get(guild.id, "voiceXpPerMin");
     // Voice grants have no cooldown, so `grant` always writes; fall back
     // to a fresh read only if the upsert unexpectedly returned no row.
-    return (
-      (await this.grant(guild, userId, minutes * config.voiceXpPerMin, now)) ??
-      this.getLevel(guild.id, userId)
-    );
+    return (await this.grant(guild, userId, minutes * voiceXpPerMin, now)) ?? this.getLevel(guild.id, userId);
   }
 
   /**

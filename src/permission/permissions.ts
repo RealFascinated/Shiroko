@@ -20,7 +20,7 @@ import RoleUpdatedEvent from "../event/events/role-updated.event";
 export const PermissionFlags = Object.freeze({
   FEATURE_COMMAND: 1n << 1n,
   PERMISSIONS_COMMAND: 1n << 2n,
-  LEVELS_CONFIG_COMMAND: 1n << 3n,
+  SETTINGS_COMMAND: 1n << 4n,
 } as const satisfies Record<string, bigint>);
 
 /**
@@ -30,7 +30,7 @@ export const PermissionFlags = Object.freeze({
 export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: string }> = [
   { flag: PermissionFlags.FEATURE_COMMAND, label: "Feature Command" },
   { flag: PermissionFlags.PERMISSIONS_COMMAND, label: "Permissions Command" },
-  { flag: PermissionFlags.LEVELS_CONFIG_COMMAND, label: "Levelling Config Command" },
+  { flag: PermissionFlags.SETTINGS_COMMAND, label: "Settings Command" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];

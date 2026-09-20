@@ -91,3 +91,40 @@ export function formatDuration(ms: number, long: boolean = false): string {
 export function nowMinus(seconds: number, from: Date = new Date()): Date {
   return new Date(from.getTime() - seconds * 1000);
 }
+
+const DURATION_UNIT_MULTIPLIERS: Record<string, number> = {
+  ms: 1,
+  s: TimeUnit.toMillis(TimeUnit.Second, 1),
+  m: TimeUnit.toMillis(TimeUnit.Minute, 1),
+  h: TimeUnit.toMillis(TimeUnit.Hour, 1),
+  d: TimeUnit.toMillis(TimeUnit.Day, 1),
+  w: TimeUnit.toMillis(TimeUnit.Week, 1),
+};
+
+/**
+ * Parse a compact duration string like `"90s"`, `"2d"`, `"1h30m"` into
+ * milliseconds. Units may repeat and may appear in any order; a bare
+ * number is treated as milliseconds, matching `formatDuration`'s short
+ * unit letters (`ms`, `s`, `m`, `h`, `d`, `w`). Returns `null` for empty,
+ * non-negative-integer, or unknown-unit input.
+ */
+export function parseDuration(input: string): number | null {
+  const trimmed = input.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  const pattern = /(\d+)(ms|s|m|h|d|w)?/g;
+  let total = 0;
+  let matchedLength = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(trimmed)) !== null) {
+    const value = Number(match[1]);
+    const unit = match[2] ?? "ms";
+    total += value * DURATION_UNIT_MULTIPLIERS[unit]!;
+    matchedLength += match[0].length;
+  }
+  if (matchedLength !== trimmed.length) {
+    return null;
+  }
+  return total;
+}

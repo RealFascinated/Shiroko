@@ -17,6 +17,7 @@ import { StatsListeners } from "./feature/impl/stats";
 import { env } from "./lib/env";
 import { VoiceKeepaliveListener } from "./lib/voice";
 import { PermissionsListeners } from "./permission/permissions";
+import SettingsManager from "./settings";
 
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("Migrations complete");
@@ -85,6 +86,7 @@ new StatsListeners();
 new InvitesListeners();
 new LevelsListeners();
 new PermissionsListeners();
+new SettingsManager();
 new SlashCommandListener();
 new ContextMenuCommandListener();
 

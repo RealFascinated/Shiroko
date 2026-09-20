@@ -21,7 +21,7 @@ export default class RewardsCommand extends Command {
         ephemeralErrorReply(
           commandName,
           errorEmbed(commandName).setDescription(
-            "No level-up rewards configured yet. Use `/level-config add-role` to set one."
+            "No level-up rewards configured yet. Use `/settings` → Levelling to set one."
           )
         )
       );
