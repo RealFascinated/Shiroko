@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, type Guild } from "discord.js";
+import { Client, GatewayIntentBits } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import CommandManager, { SlashCommandListener } from "./command";
 import ContextMenuCommandManager, { ContextMenuCommandListener } from "./context-menu";
@@ -15,6 +15,7 @@ import { InvitesListeners } from "./feature/impl/invites";
 import { LevelsListeners } from "./feature/impl/levels";
 import { StatsListeners } from "./feature/impl/stats";
 import { env } from "./lib/env";
+import { PresenceListener } from "./lib/presence";
 import { VoiceKeepaliveListener } from "./lib/voice";
 import { PermissionsListeners } from "./permission/permissions";
 import SettingsManager from "./settings";
@@ -62,7 +63,7 @@ class LifecycleListeners extends EventListener {
 
   @EventHandler(GuildJoinedEvent)
   public async onGuildJoined(event: GuildJoinedEvent): Promise<void> {
-    const client = (event.guildData as Guild & { client: Client }).client;
+    const client = event.guildData.client;
     console.log(
       `Joined "${event.guildData.name}" (${event.guildData.memberCount} members); now in ${client.guilds.cache.size} guild(s)`
     );
@@ -70,7 +71,7 @@ class LifecycleListeners extends EventListener {
 
   @EventHandler(GuildLeftEvent)
   public async onGuildLeft(event: GuildLeftEvent): Promise<void> {
-    const client = (event.guildData as Guild & { client: Client }).client;
+    const client = event.guildData.client;
     console.log(
       `Left "${event.guildData.name}" (${event.guildData.memberCount} members); now in ${client.guilds.cache.size} guild(s)`
     );
@@ -81,6 +82,7 @@ const VOICE_CHANNEL_ID = "1446633266160603268";
 new VoiceKeepaliveListener(VOICE_CHANNEL_ID);
 
 new LifecycleListeners();
+new PresenceListener();
 new StatsListeners();
 new InvitesListeners();
 new LevelsListeners();
