@@ -1,6 +1,8 @@
 import { Client, GatewayIntentBits } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+import os from "node:os";
 import CommandManager, { SlashCommandListener } from "./command";
+import { Constants } from "./constants";
 import ContextMenuCommandManager, { ContextMenuCommandListener } from "./context-menu";
 import { db } from "./db";
 import EventBridge from "./event/event-bridge";
@@ -14,6 +16,16 @@ import FeatureManager from "./feature";
 import { env } from "./lib/env";
 import { PresenceListener } from "./lib/presence";
 import { VoiceKeepaliveListener } from "./lib/voice";
+import { MetricManager } from "./metrics";
+import { VictoriaMetricsExporter } from "./metrics/exporter";
+import { ProcessCpuUsageMetric } from "./metrics/impl/cpu-usage";
+import { EventLoopMetric } from "./metrics/impl/event-loop-delay";
+import { GatewayLatencyMetric } from "./metrics/impl/gateway-latency";
+import { GuildsMetric } from "./metrics/impl/guild-count";
+import { ProcessRamTotalMetric } from "./metrics/impl/process-ram-total";
+import { ProcessRamUsedMetric } from "./metrics/impl/process-ram-used";
+import { SeenUsersMetric } from "./metrics/impl/seen-users";
+import { UptimeMetric } from "./metrics/impl/uptime-seconds";
 import { PermissionsListeners } from "./permission/permissions";
 import SettingsManager from "./settings";
 
@@ -32,6 +44,16 @@ export const discordClient = new Client({
 });
 
 new EventBridge(discordClient).registerHandlers();
+
+export const metricManager = new MetricManager();
+metricManager.register(new GuildsMetric(discordClient));
+metricManager.register(new GatewayLatencyMetric(discordClient));
+metricManager.register(new SeenUsersMetric());
+metricManager.register(new ProcessRamUsedMetric());
+metricManager.register(new ProcessRamTotalMetric());
+metricManager.register(new ProcessCpuUsageMetric());
+metricManager.register(new UptimeMetric());
+metricManager.register(new EventLoopMetric());
 
 /**
  * Guild lifecycle logging and one-time command sync on ready. Lives here
@@ -86,6 +108,21 @@ new SlashCommandListener();
 new ContextMenuCommandListener();
 
 new FeatureManager();
+
+if (env.VM_PUSH_URL) {
+  const exporter = new VictoriaMetricsExporter(metricManager, {
+    url: env.VM_PUSH_URL,
+    job: Constants.botName,
+    instance: os.hostname(),
+    intervalMs: Number(env.VM_PUSH_INTERVAL_MS ?? 60_000),
+  });
+  exporter.start();
+  console.log(
+    `Pushing metrics to VictoriaMetrics at ${env.VM_PUSH_URL} every ${Number(env.VM_PUSH_INTERVAL_MS ?? 60_000) / 1000}s`
+  );
+} else {
+  console.log("VM_PUSH_URL not set; metrics collection is on, push is off");
+}
 
 discordClient.login(env.DISCORD_BOT_TOKEN);
 

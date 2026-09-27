@@ -6,6 +6,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/pg": "^8.23.1",
+    "@types/snappyjs": "^0.7.1",
     "drizzle-kit": "^0.31.10",
     "prettier": "^3.9.6",
     "typescript": "^5.9.3"
@@ -26,6 +27,7 @@
     "drizzle-orm": "^0.45.2",
     "pg": "^8.23.0",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "snappyjs": "^0.7.0"
   }
 }

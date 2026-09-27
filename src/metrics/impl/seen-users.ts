@@ -1,0 +1,21 @@
+import { count } from "drizzle-orm";
+import { db } from "../../db";
+import { globalUsers } from "../../db/schema";
+import { GaugeMetric } from "../gauge";
+
+/**
+ * Number of distinct users ever seen, from `global_users`. Expensive (a
+ * COUNT over the whole table), so it collects on a slower interval.
+ */
+export class SeenUsersMetric extends GaugeMetric {
+  public override readonly collectIntervalMs = 60_000;
+
+  public constructor() {
+    super({ id: "shiroko_seen_users", kind: "gauge", help: "Number of distinct users ever seen" });
+  }
+
+  public override async collect(): Promise<void> {
+    const [row] = await db.select({ count: count() }).from(globalUsers);
+    this.set(row?.count ?? 0);
+  }
+}
