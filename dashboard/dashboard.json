@@ -47,7 +47,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "guilds",
+                        "expr": "guilds{job=\"$job\"}",
                         "legendFormat": "guilds",
                         "queryType": "MetricsQL"
                       },
@@ -159,7 +159,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "seen_users",
+                        "expr": "seen_users{job=\"$job\"}",
                         "legendFormat": "users",
                         "queryType": "MetricsQL"
                       },
@@ -271,7 +271,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "process_cpu_usage",
+                        "expr": "process_cpu_usage{job=\"$job\"}",
                         "legendFormat": "cpu",
                         "queryType": "MetricsQL"
                       },
@@ -384,7 +384,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "process_ram_used",
+                        "expr": "process_ram_used{job=\"$job\"}",
                         "legendFormat": "used",
                         "queryType": "MetricsQL"
                       },
@@ -496,7 +496,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "process_ram_total",
+                        "expr": "process_ram_total{job=\"$job\"}",
                         "legendFormat": "total",
                         "queryType": "MetricsQL"
                       },
@@ -608,7 +608,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "process_ram_used / process_ram_total * 100",
+                        "expr": "process_ram_used{job=\"$job\"} / process_ram_total{job=\"$job\"} * 100",
                         "legendFormat": "used",
                         "queryType": "MetricsQL"
                       },
@@ -721,7 +721,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "gateway_latency_ms",
+                        "expr": "gateway_latency_ms{job=\"$job\"}",
                         "legendFormat": "latency",
                         "queryType": "MetricsQL"
                       },
@@ -833,7 +833,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "uptime_seconds",
+                        "expr": "uptime_seconds{job=\"$job\"}",
                         "legendFormat": "uptime",
                         "queryType": "MetricsQL"
                       },
@@ -945,7 +945,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(event_loop_ms_sum[5m]) / rate(event_loop_ms_count[5m])",
+                        "expr": "rate(event_loop_ms_sum{job=\"$job\"}[5m]) / rate(event_loop_ms_count{job=\"$job\"}[5m])",
                         "legendFormat": "average",
                         "queryType": "MetricsQL"
                       },
@@ -1057,7 +1057,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum(rate(event_loop_ms_bucket[5m])) by (le))",
+                        "expr": "histogram_quantile(0.95, sum(rate(event_loop_ms_bucket{job=\"$job\"}[5m])) by (le))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
@@ -1399,11 +1399,11 @@
     },
     "preload": false,
     "tags": [
-      "shiroko",
+      "arona",
       "metrics"
     ],
     "timeSettings": {
-      "autoRefresh": "",
+      "autoRefresh": "10s",
       "autoRefreshIntervals": [
         "5s",
         "10s",
@@ -1429,8 +1429,8 @@
         "spec": {
           "allowCustomValue": true,
           "current": {
-            "text": "monitor-vm",
-            "value": "dfnn4ltxv2fwgf"
+            "text": "victoria-metrics",
+            "value": "ffbmdvoh37lkwe"
           },
           "hide": "dontHide",
           "includeAll": false,
@@ -1441,6 +1441,38 @@
           "refresh": "onDashboardLoad",
           "regex": "",
           "skipUrlSync": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allowCustomValue": true,
+          "current": {
+            "text": "arona",
+            "value": "arona"
+          },
+          "hide": "dontHide",
+          "includeAll": true,
+          "multi": false,
+          "name": "job",
+          "options": [],
+          "query": {
+            "datasource": {
+              "name": "${vm}"
+            },
+            "group": "victoriametrics-metrics-datasource",
+            "kind": "DataQuery",
+            "spec": {
+              "qryType": 1,
+              "label": "job",
+              "query": "label_values(job)"
+            },
+            "version": "v0"
+          },
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": "alphabeticalAsc"
         }
       }
     ]

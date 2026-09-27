@@ -39,7 +39,7 @@ DEFAULT_ANNOTATIONS = [
 ]
 
 DEFAULT_TIME_SETTINGS = {
-    "autoRefresh": "",
+    "autoRefresh": "10s",
     "autoRefreshIntervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
     "fiscalYearStartMonth": 0,
     "from": "now-6h",
@@ -53,7 +53,7 @@ VM_VARIABLE = {
     "kind": "DatasourceVariable",
     "spec": {
         "allowCustomValue": True,
-        "current": {"text": "monitor-vm", "value": "dfnn4ltxv2fwgf"},
+        "current": {"text": "victoria-metrics", "value": "ffbmdvoh37lkwe"},
         "hide": "dontHide",
         "includeAll": False,
         "multi": False,
@@ -66,6 +66,37 @@ VM_VARIABLE = {
     },
 }
 
+# The `job` label variable: scopes every panel query to a selected job.
+JOB_VARIABLE = {
+    "kind": "QueryVariable",
+    "spec": {
+        "allowCustomValue": True,
+        "current": {"text": "arona", "value": "arona"},
+        "hide": "dontHide",
+        "includeAll": True,
+        "multi": False,
+        "name": "job",
+        "options": [],
+        "query": {
+            "datasource": {"name": "${vm}"},
+            "group": VM_PLUGIN,
+            "kind": "DataQuery",
+            "spec": {
+                # VictoriaMetrics datasource custom variable support parses this
+                # PromVariableQuery shape (qryType 1 = LabelValues).
+                "qryType": 1,
+                "label": "job",
+                "query": "label_values(job)",
+            },
+            "version": "v0",
+        },
+        "refresh": "onDashboardLoad",
+        "regex": "",
+        "skipUrlSync": False,
+        "sort": "alphabeticalAsc",
+    },
+}
+
 # One entry per category: a row title (emoji) and the panels under it.
 # Panel width is grid units; panels pack into 24-wide bands.
 CATEGORIES = [
@@ -73,33 +104,33 @@ CATEGORIES = [
         "key": "guilds",
         "title": "🏠 Guilds",
         "panels": [
-            {"key": "guilds", "title": "Guild count", "expr": "guilds", "unit": "short", "min": 0, "width": 24, "legend": "guilds"},
+            {"key": "guilds", "title": "Guild count", "expr": "guilds{job=\"$job\"}", "unit": "short", "min": 0, "width": 24, "legend": "guilds"},
         ],
     },
     {
         "key": "users",
         "title": "👥 Users",
         "panels": [
-            {"key": "seen-users", "title": "Distinct users seen", "expr": "seen_users", "unit": "short", "min": 0, "width": 24, "legend": "users"},
+            {"key": "seen-users", "title": "Distinct users seen", "expr": "seen_users{job=\"$job\"}", "unit": "short", "min": 0, "width": 24, "legend": "users"},
         ],
     },
     {
         "key": "cpu",
         "title": "⚙️ CPU",
         "panels": [
-            {"key": "cpu-usage", "title": "Process CPU usage", "expr": "process_cpu_usage", "unit": "percent", "min": 0, "max": 100, "width": 24, "legend": "cpu"},
+            {"key": "cpu-usage", "title": "Process CPU usage", "expr": "process_cpu_usage{job=\"$job\"}", "unit": "percent", "min": 0, "max": 100, "width": 24, "legend": "cpu"},
         ],
     },
     {
         "key": "memory",
         "title": "💾 Memory",
         "panels": [
-            {"key": "ram-used", "title": "RAM used", "expr": "process_ram_used", "unit": "bytes", "min": 0, "width": 12, "legend": "used"},
-            {"key": "ram-total", "title": "RAM total", "expr": "process_ram_total", "unit": "bytes", "min": 0, "width": 12, "legend": "total"},
+            {"key": "ram-used", "title": "RAM used", "expr": "process_ram_used{job=\"$job\"}", "unit": "bytes", "min": 0, "width": 12, "legend": "used"},
+            {"key": "ram-total", "title": "RAM total", "expr": "process_ram_total{job=\"$job\"}", "unit": "bytes", "min": 0, "width": 12, "legend": "total"},
             {
                 "key": "ram-used-pct",
                 "title": "RAM used (%)",
-                "expr": "process_ram_used / process_ram_total * 100",
+                "expr": "process_ram_used{job=\"$job\"} / process_ram_total{job=\"$job\"} * 100",
                 "unit": "percent",
                 "min": 0,
                 "max": 100,
@@ -112,14 +143,14 @@ CATEGORIES = [
         "key": "gateway",
         "title": "🌐 Gateway",
         "panels": [
-            {"key": "latency", "title": "Gateway heartbeat latency", "expr": "gateway_latency_ms", "unit": "ms", "min": 0, "width": 24, "legend": "latency"},
+            {"key": "latency", "title": "Gateway heartbeat latency", "expr": "gateway_latency_ms{job=\"$job\"}", "unit": "ms", "min": 0, "width": 24, "legend": "latency"},
         ],
     },
     {
         "key": "uptime",
         "title": "⏱️ Uptime",
         "panels": [
-            {"key": "uptime", "title": "Bot uptime", "expr": "uptime_seconds", "unit": "s", "min": 0, "width": 24, "legend": "uptime"},
+            {"key": "uptime", "title": "Bot uptime", "expr": "uptime_seconds{job=\"$job\"}", "unit": "s", "min": 0, "width": 24, "legend": "uptime"},
         ],
     },
     {
@@ -129,7 +160,7 @@ CATEGORIES = [
             {
                 "key": "loop-avg",
                 "title": "Event loop delay (average)",
-                "expr": "rate(event_loop_ms_sum[5m]) / rate(event_loop_ms_count[5m])",
+                "expr": "rate(event_loop_ms_sum{job=\"$job\"}[5m]) / rate(event_loop_ms_count{job=\"$job\"}[5m])",
                 "unit": "ms",
                 "min": 0,
                 "width": 12,
@@ -138,7 +169,7 @@ CATEGORIES = [
             {
                 "key": "loop-p95",
                 "title": "Event loop delay (p95)",
-                "expr": "histogram_quantile(0.95, sum(rate(event_loop_ms_bucket[5m])) by (le))",
+                "expr": "histogram_quantile(0.95, sum(rate(event_loop_ms_bucket{job=\"$job\"}[5m])) by (le))",
                 "unit": "ms",
                 "min": 0,
                 "width": 12,
@@ -312,10 +343,10 @@ def build() -> dict:
             # the schema only accepts GridLayout or AutoGridLayout there.
             "preferences": {"layout": {"kind": "GridLayout", "spec": {"items": []}}},
             "preload": False,
-            "tags": ["shiroko", "metrics"],
+            "tags": ["arona", "metrics"],
             "timeSettings": DEFAULT_TIME_SETTINGS,
             "title": "Arona",
-            "variables": [VM_VARIABLE],
+            "variables": [VM_VARIABLE, JOB_VARIABLE],
         },
     }
 

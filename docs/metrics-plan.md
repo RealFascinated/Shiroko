@@ -207,7 +207,7 @@ Added to `src/lib/env.ts` (all optional):
 | `VM_PUSH_URL`         | unset (off) | VictoriaMetrics base URL (exporter appends `/api/v1/import/prometheus`) |
 | `VM_PUSH_INTERVAL_MS` | `60000`     | Push cadence for the exporter                                           |
 
-The `job` label comes from the static `Constants.botName` (`"shiroko"`),
+The `job` label comes from the static `Constants.botName` ("arona"),
 not an env var.
 
 The exporter is guarded in `src/index.ts`: if `VM_PUSH_URL` is absent,
@@ -238,15 +238,15 @@ if (env.VM_PUSH_URL) {
 
 ```
 # TYPE guilds gauge
-guilds{job="shiroko"} 14
+guilds{job="arona"} 14
 # TYPE process_ram_used gauge
-process_ram_used{job="shiroko"} 184400000
+process_ram_used{job="arona"} 184400000
 # TYPE event_loop_ms histogram
-event_loop_ms_bucket{le="0.05",job="shiroko"} 3
-event_loop_ms_bucket{le="0.1",job="shiroko"} 4
-event_loop_ms_bucket{le="+Inf",job="shiroko"} 4
-event_loop_ms_sum{job="shiroko"} 0.220
-event_loop_ms_count{job="shiroko"} 4
+event_loop_ms_bucket{le="0.05",job="arona"} 3
+event_loop_ms_bucket{le="0.1",job="arona"} 4
+event_loop_ms_bucket{le="+Inf",job="arona"} 4
+event_loop_ms_sum{job="arona"} 0.220
+event_loop_ms_count{job="arona"} 4
 ```
 
 ## 10. Testing
