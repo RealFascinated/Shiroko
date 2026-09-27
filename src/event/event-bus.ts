@@ -3,7 +3,7 @@ import "reflect-metadata";
 import type { FeatureIds } from "../feature/feature-ids";
 import GuildFeatures from "../feature/guild-features";
 import type Event from "./event";
-import type EventListener from "./event-listener";
+import type { EventListener } from "./event-listener";
 
 /** Metadata attached to a listener class by `@EventHandler`. */
 export interface HandlerMetadata {
@@ -35,7 +35,7 @@ const BUS_HANDLERS = new Map<new (...args: any[]) => Event, HandlerEntry[]>();
  * before the next handler runs, so bus post calls are `await`able and
  * state changes (e.g. derived events) happen in order.
  */
-export default class EventBus {
+export class EventBus {
   private static readonly HANDLERS = BUS_HANDLERS;
 
   /**
@@ -139,5 +139,3 @@ export default class EventBus {
     return GuildFeatures.isFeatureEnabled(guild, entry.featureId);
   }
 }
-
-export { EventBus };

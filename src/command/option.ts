@@ -97,5 +97,3 @@ export function mentionableOption(
 export function attachmentOption(required: boolean, name: string, description: string): CommandOptionBuilder {
   return { name, description, type: ApplicationCommandOptionType.Attachment, required };
 }
-
-export { ApplicationCommandOptionType };

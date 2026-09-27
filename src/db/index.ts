@@ -7,7 +7,6 @@ const pool = new Pool({
 });
 
 export const db = drizzle(pool, { schema });
-export { pool };
 
 /** The database handle type used for both top-level calls and transactions. */
 export type DbClient = NodePgDatabase<typeof schema>;

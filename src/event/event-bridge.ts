@@ -1,5 +1,5 @@
 import { Events, type Client } from "discord.js";
-import EventBus from "./event-bus";
+import { EventBus } from "./event-bus";
 import BotReadyEvent from "./events/bot-ready.event";
 import ComponentReceivedEvent from "./events/component-received.event";
 import ContextMenuReceivedEvent from "./events/context-menu-received.event";

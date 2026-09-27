@@ -19,7 +19,7 @@ import {
   type SlashCommandStringOption,
   type SlashCommandUserOption,
 } from "discord.js";
-import type { FeatureIds } from "../feature/feature";
+import type { FeatureIds } from "../feature/feature-ids";
 import type GlobalUser from "../user/global-user";
 import type { CommandOptionBuilder } from "./option";
 import type ParsedArguments from "./parsed-arguments";

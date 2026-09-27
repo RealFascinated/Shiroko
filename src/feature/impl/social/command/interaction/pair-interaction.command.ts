@@ -8,7 +8,7 @@ import {
   type MessageActionRowComponentBuilder,
   type User,
 } from "discord.js";
-import { SocialService, type InteractionType } from "../..";
+import SocialService, { type InteractionType } from "../../social.service";
 import Command, { type ExecuteContext } from "../../../../../command/command";
 import { userOption } from "../../../../../command/option";
 import { getGif, type AnimeGif } from "../../../../../lib/anime";

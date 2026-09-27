@@ -3,7 +3,7 @@
  * methods; register them on the bus by calling `EventBus.subscribe(this)`
  * (usually in the constructor).
  */
-export default abstract class EventListener {
+export abstract class EventListener {
   /**
    * Remove this listener's handlers from the bus.
    */
@@ -12,5 +12,3 @@ export default abstract class EventListener {
     // removal is EventBus.unsubscribe(this). Kept as an override point.
   }
 }
-
-export { EventListener };

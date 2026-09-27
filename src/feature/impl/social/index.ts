@@ -3,8 +3,6 @@ import Feature from "../../feature.ts";
 import InteractionCommand from "./command/interaction/interaction.command.ts";
 import ReactCommand from "./command/react/react.command.ts";
 
-export { default as SocialService, type InteractionType } from "./social.service";
-
 /**
  * The social feature: interaction commands (`/interaction`, `/react`).
  */

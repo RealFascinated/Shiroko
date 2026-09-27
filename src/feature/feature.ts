@@ -1,8 +1,7 @@
 import type Command from "../command/command";
-import { EventBus, EventListener } from "../event";
+import { EventBus } from "../event/event-bus";
+import { EventListener } from "../event/event-listener";
 import { FeatureIds } from "./feature-ids";
-
-export { FeatureIds };
 
 type FeatureOptions = {
   defaultEnabled?: boolean;

@@ -293,8 +293,6 @@ export default class Permissions {
   }
 }
 
-export type { RoleConfig };
-
 /**
  * Keeps the permission role cache consistent with gateway role/member
  * events. The invalidation hooks the old `Permissions.registerHandlers`
