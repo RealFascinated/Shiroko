@@ -1,8 +1,8 @@
-import type { MetricManager } from "./index";
-import { encodePushPayload } from "./remote-write";
+import type { HistogramValue } from "./histogram";
+import type { MetricManager, MetricSnapshot } from "./index";
 
 export interface ExporterOptions {
-  /** Full VictoriaMetrics `/api/v1/write` URL. */
+  /** Full VictoriaMetrics `/api/v1/import/prometheus` URL. */
   readonly url: string;
   /** `job` label attached to every series. */
   readonly job: string;
@@ -10,13 +10,63 @@ export interface ExporterOptions {
   readonly instance: string;
   /** Milliseconds between pushes. Default 60_000. */
   readonly intervalMs?: number;
-  /** Max bytes per HTTP request; larger payloads are chunked. Default 1 MB. */
-  readonly maxBatchBytes?: number;
 }
 
 /**
- * Pushes the manager's metric snapshots to VictoriaMetrics over the
- * Prometheus remote-write protocol (`PUT /api/v1/write`, snappy).
+ * Serialize a manager snapshot as the Prometheus text exposition format,
+ * which VictoriaMetrics accepts on `POST /api/v1/import/prometheus`.
+ *
+ * Each metric becomes one line; values are explicit per-series labels and
+ * the scrape timestamp is omitted (VM stamps ingestion time).
+ */
+function encodePushPayload(snapshot: MetricSnapshot[], labels: Record<string, string>): string {
+  const lines: string[] = [];
+  for (const entry of snapshot) {
+    const base = formatLabels(labels);
+    switch (entry.kind) {
+      case "gauge": {
+        lines.push(`${entry.id}${base} ${formatValue(entry.value as number)}`);
+        break;
+      }
+      case "histogram": {
+        const h = entry.value as HistogramValue;
+        let cumulative = 0;
+        for (let i = 0; i < h.buckets.length; i++) {
+          cumulative += h.counts[i]!;
+          lines.push(`${entry.id}_bucket${leLabel(h.buckets[i]!, base)} ${formatValue(cumulative)}`);
+        }
+        lines.push(`${entry.id}_bucket${leLabel(Infinity, base)} ${formatValue(h.count)}`);
+        lines.push(`${entry.id}_sum${base} ${formatValue(h.sum)}`);
+        lines.push(`${entry.id}_count${base} ${formatValue(h.count)}`);
+        break;
+      }
+    }
+  }
+  return lines.join("\n") + "\n";
+}
+
+/** `le` is the only per-series label a histogram adds; others inherit `base`. */
+function leLabel(bound: number, base: string): string {
+  const le = Number.isFinite(bound) ? String(bound) : "+Inf";
+  return base === "" ? `{le="${le}"}` : base.slice(0, -1) + `,le="${le}"}`;
+}
+
+function formatLabels(labels: Record<string, string>): string {
+  const entries = Object.entries(labels);
+  if (entries.length === 0) {
+    return "";
+  }
+  return `{${entries.map(([k, v]) => `${k}="${v}"`).join(",")}}`;
+}
+
+function formatValue(value: number): string {
+  return Object.is(value, -0) ? "0" : String(value);
+}
+
+/**
+ * Pushes the manager's metric snapshots to VictoriaMetrics via
+ * `POST /api/v1/import/prometheus` in the Prometheus text exposition
+ * format (no snappy, no protobuf; the body is plain text).
  *
  * Failure handling is deliberately simple: one attempt per interval, an
  * error is logged and the next interval retries with fresh values. Metrics
@@ -28,7 +78,6 @@ export class VictoriaMetricsExporter {
   private readonly job: string;
   private readonly instance: string;
   private readonly intervalMs: number;
-  private readonly maxBatchBytes: number;
   private timer: Timer | undefined;
 
   public constructor(
@@ -39,7 +88,6 @@ export class VictoriaMetricsExporter {
     this.job = options.job;
     this.instance = options.instance;
     this.intervalMs = options.intervalMs ?? 60_000;
-    this.maxBatchBytes = options.maxBatchBytes ?? 1024 * 1024;
   }
 
   /** Begin pushing on an interval. Safe to call once. */
@@ -52,31 +100,16 @@ export class VictoriaMetricsExporter {
   }
 
   private async push(): Promise<void> {
-    const snapshot = this.manager.snapshot();
-    const payload = encodePushPayload(snapshot, { job: this.job, instance: this.instance });
-    const chunks = this.chunk(payload);
-    for (const chunk of chunks) {
-      const res = await fetch(this.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-protobuf",
-          "Content-Encoding": "snappy",
-          "X-Prometheus-Remote-Write-Version": "0.1.0",
-        },
-        body: chunk,
-      });
-      if (!res.ok) {
-        throw new Error(`VictoriaMetrics push failed: ${res.status} ${res.statusText}`);
-      }
+    const payload = encodePushPayload(this.manager.snapshot(), { job: this.job, instance: this.instance });
+    const res = await fetch(this.url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain",
+      },
+      body: payload,
+    });
+    if (!res.ok) {
+      throw new Error(`VictoriaMetrics push failed: ${res.status} ${res.statusText}`);
     }
-  }
-
-  /** Split an oversized payload into per-request chunks. */
-  private chunk(payload: Uint8Array): Uint8Array[] {
-    const chunks: Uint8Array[] = [];
-    for (let offset = 0; offset < payload.length; offset += this.maxBatchBytes) {
-      chunks.push(payload.subarray(offset, offset + this.maxBatchBytes));
-    }
-    return chunks;
   }
 }

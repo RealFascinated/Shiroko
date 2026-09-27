@@ -2,10 +2,11 @@
 
 A push-based metrics system for Shiroko, exporting bot health and activity
 counters to a [VictoriaMetrics](https://victoriametrics.com/) single-node
-instance via the Prometheus remote-write protocol. Values are collected
-in-process, buffered, and pushed to the VM endpoint over HTTP in batches.
-The dashboard side (Grafana or VMUI) is out of scope; this plan covers the
-in-process registry, metric types, collectors, and the exporter.
+instance via the Prometheus text exposition format on the import endpoint.
+Values are collected in-process, buffered, and pushed to the VM endpoint
+over HTTP on an interval. The dashboard side (Grafana or VMUI) is out of
+scope; this plan covers the in-process registry, metric types, collectors,
+and the exporter.
 
 ## 1. Goals and non-goals
 
@@ -15,9 +16,8 @@ in-process registry, metric types, collectors, and the exporter.
   histogram, with per-metric metadata (help text, units).
 - Collect a fixed set of health metrics (see §5) in-process without
   blocking the event loop.
-- Push them to VictoriaMetrics on a fixed interval with chunked batching
-  and resilient failure handling (log and retry next interval, never
-  crash).
+- Push them to VictoriaMetrics on a fixed interval with resilient
+  failure handling (log and retry next interval, never crash).
 
 **Non-goals**
 
@@ -46,16 +46,15 @@ manager.register(gauge);
 
 ### Files
 
-| File              | Contents                                             |
-| ----------------- | ---------------------------------------------------- |
-| `metric.ts`       | `Metric<T>` base, `MetricKind`, `MetricRegistration` |
-| `gauge.ts`        | `GaugeMetric` (single numeric value)                 |
-| `histogram.ts`    | `HistogramMetric` (bucket-based), `HistogramValue`   |
-| `index.ts`        | `MetricManager` (registry + collection wiring)       |
-| `impl/`           | One metric-owning class per metric (see §6)          |
-| `exporter.ts`     | `VictoriaMetricsExporter` (push transport)           |
-| `remote-write.ts` | Protobuf + snappy encoder for the push payload       |
-| `errors.ts`       | `DuplicateMetricError`                               |
+| File           | Contents                                                     |
+| -------------- | ------------------------------------------------------------ |
+| `metric.ts`    | `Metric<T>` base, `MetricKind`, `MetricRegistration`         |
+| `gauge.ts`     | `GaugeMetric` (single numeric value)                         |
+| `histogram.ts` | `HistogramMetric` (bucket-based), `HistogramValue`           |
+| `index.ts`     | `MetricManager` (registry + collection wiring)               |
+| `impl/`        | One metric-owning class per metric (see §6)                  |
+| `exporter.ts`  | `VictoriaMetricsExporter` (push transport + text serializer) |
+| `errors.ts`    | `DuplicateMetricError`                                       |
 
 ## 3. Metric types
 
@@ -113,18 +112,17 @@ export interface HistogramValue {
 
 ## 4. Push protocol
 
-VictoriaMetrics accepts the Prometheus remote-write protocol (`PUT
-/api/v1/write`) with a snappy-compressed protobuf body. The exporter:
+VictoriaMetrics accepts the Prometheus text exposition format on `POST
+/api/v1/import/prometheus`. The exporter:
 
-1. **Serializes** each metric into prompb `TimeSeries` (metric name as
-   `__name__`, labels incl. `job`/`instance`, one `Sample`), then encodes a
-   `WriteRequest`.
-2. **Compresses** with `snappyjs`.
-3. **Posts** to `VM_PUSH_URL` with `Content-Encoding: snappy`.
+1. **Serializes** each metric to one text line: `name{labels} value`,
+   with histograms expanded to `_bucket{le}` (cumulative), `_sum` and
+   `_count`. The timestamp is omitted, so VM stamps ingestion time.
+2. **Posts** the body to `VM_PUSH_URL` with `Content-Type: text/plain`.
 
-The tiny protobuf encoder in `remote-write.ts` covers exactly the fields
-VictoriaMetrics needs (`Label`, `Sample`, `TimeSeries`, `WriteRequest`), so
-no protobuf dependency is required.
+The serializer lives inside `exporter.ts` and is a few lines of string
+formatting; no snappy, no protobuf, and the body is human-readable for
+debugging.
 
 ```ts
 // src/index.ts
@@ -150,10 +148,9 @@ export interface MetricSnapshot {
 }
 ```
 
-### Batching & failure handling
+### Failure handling
 
-- The push is one HTTP call per interval for all metrics; payloads larger
-  than `maxBatchBytes` (default 1 MB) are chunked into separate requests.
+- The push is one HTTP call per interval with the whole text body.
 - No retry queue: an error is logged, the next interval pushes fresh
   values. Metrics are read-only during serialization, so a failed push
   never corrupts the registry.
@@ -185,16 +182,16 @@ line in `src/index.ts` (see §8); the manager picks up every registered
 metric automatically via `MetricManager.all()`, so adding a metric touches
 only its impl file and that one registration line.
 
-| File                     | Class                   | Source                             |
-| ------------------------ | ----------------------- | ---------------------------------- |
-| `guild-count.ts`         | `GuildsMetric`          | `client.guilds.cache.size`         |
-| `seen-users.ts`          | `SeenUsersMetric`       | `COUNT(*)` over `global_users`     |
-| `process-ram-used.ts`    | `ProcessRamUsedMetric`  | `process.memoryUsage().rss` (MiB)  |
-| `process-ram-total.ts`   | `ProcessRamTotalMetric` | `os.totalmem()` (MiB)              |
-| `cpu-usage.ts`           | `ProcessCpuUsageMetric` | `process.cpuUsage()` delta, 0-100% |
-| `gateway-latency.ts`     | `GatewayLatencyMetric`  | `client.ws.ping`                   |
-| `uptime-seconds.ts`      | `UptimeMetric`          | `process.uptime()`                 |
-| `event-loop-delay.ts`    | `EventLoopMetric`       | loop-slip measurement              |
+| File                   | Class                   | Source                             |
+| ---------------------- | ----------------------- | ---------------------------------- |
+| `guild-count.ts`       | `GuildsMetric`          | `client.guilds.cache.size`         |
+| `seen-users.ts`        | `SeenUsersMetric`       | `COUNT(*)` over `global_users`     |
+| `process-ram-used.ts`  | `ProcessRamUsedMetric`  | `process.memoryUsage().rss` (MiB)  |
+| `process-ram-total.ts` | `ProcessRamTotalMetric` | `os.totalmem()` (MiB)              |
+| `cpu-usage.ts`         | `ProcessCpuUsageMetric` | `process.cpuUsage()` delta, 0-100% |
+| `gateway-latency.ts`   | `GatewayLatencyMetric`  | `client.ws.ping`                   |
+| `uptime-seconds.ts`    | `UptimeMetric`          | `process.uptime()`                 |
+| `event-loop-delay.ts`  | `EventLoopMetric`       | loop-slip measurement              |
 
 `MetricManager` (in `src/metrics/index.ts`) extends `EventListener`, the
 `SettingsManager` pattern: it subscribes to the bus in its constructor and
@@ -207,10 +204,10 @@ users at 60s, event loop at 1s.
 
 Added to `src/lib/env.ts` (all optional):
 
-| Variable              | Default     | Meaning                                  |
-| --------------------- | ----------- | ---------------------------------------- |
-| `VM_PUSH_URL`         | unset (off) | VictoriaMetrics `/api/v1/write` endpoint |
-| `VM_PUSH_INTERVAL_MS` | `60000`     | Push cadence for the exporter            |
+| Variable              | Default     | Meaning                                              |
+| --------------------- | ----------- | ---------------------------------------------------- |
+| `VM_PUSH_URL`         | unset (off) | VictoriaMetrics `/api/v1/import/prometheus` endpoint |
+| `VM_PUSH_INTERVAL_MS` | `60000`     | Push cadence for the exporter                        |
 
 The `job` label comes from the static `Constants.botName` (`"shiroko"`),
 not an env var.
