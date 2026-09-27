@@ -2,12 +2,10 @@ import type { HistogramValue } from "./histogram";
 import type { MetricManager, MetricSnapshot } from "./index";
 
 export interface ExporterOptions {
-  /** Full VictoriaMetrics `/api/v1/import/prometheus` URL. */
+  /** VictoriaMetrics base URL, e.g. `http://localhost:8428`. */
   readonly url: string;
   /** `job` label attached to every series. */
   readonly job: string;
-  /** `instance` label attached to every series. */
-  readonly instance: string;
   /** Milliseconds between pushes. Default 60_000. */
   readonly intervalMs?: number;
 }
@@ -76,7 +74,6 @@ function formatValue(value: number): string {
 export class VictoriaMetricsExporter {
   private readonly url: string;
   private readonly job: string;
-  private readonly instance: string;
   private readonly intervalMs: number;
   private timer: Timer | undefined;
 
@@ -84,9 +81,9 @@ export class VictoriaMetricsExporter {
     private readonly manager: MetricManager,
     options: ExporterOptions
   ) {
-    this.url = options.url;
+    // Base URL only; the import path is fixed by the protocol.
+    this.url = options.url.replace(/\/+$/, "") + "/api/v1/import/prometheus";
     this.job = options.job;
-    this.instance = options.instance;
     this.intervalMs = options.intervalMs ?? 60_000;
   }
 
@@ -100,7 +97,7 @@ export class VictoriaMetricsExporter {
   }
 
   private async push(): Promise<void> {
-    const payload = encodePushPayload(this.manager.snapshot(), { job: this.job, instance: this.instance });
+    const payload = encodePushPayload(this.manager.snapshot(), { job: this.job });
     const res = await fetch(this.url, {
       method: "POST",
       headers: {

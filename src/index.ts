@@ -1,6 +1,5 @@
 import { Client, GatewayIntentBits } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import os from "node:os";
 import CommandManager, { SlashCommandListener } from "./command";
 import { Constants } from "./constants";
 import ContextMenuCommandManager, { ContextMenuCommandListener } from "./context-menu";
@@ -113,7 +112,6 @@ if (env.VM_PUSH_URL) {
   const exporter = new VictoriaMetricsExporter(metricManager, {
     url: env.VM_PUSH_URL,
     job: Constants.botName,
-    instance: os.hostname(),
     intervalMs: Number(env.VM_PUSH_INTERVAL_MS ?? 60_000),
   });
   exporter.start();

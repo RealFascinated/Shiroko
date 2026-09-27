@@ -128,8 +128,7 @@ debugging.
 // src/index.ts
 const exporter = new VictoriaMetricsExporter(metricManager, {
   url: env.VM_PUSH_URL,
-  job: env.BOT_NAME ?? "shiroko",
-  instance: os.hostname(),
+  job: Constants.botName,
   intervalMs: Number(env.VM_PUSH_INTERVAL_MS ?? 60_000),
 });
 exporter.start();
@@ -168,8 +167,7 @@ export interface MetricSnapshot {
 | `shiroko_uptime_seconds`     | gauge     | `process.uptime()`                   |
 | `shiroko_event_loop_ms`      | histogram | loop-slip measurement (see §6)       |
 
-All metrics carry the fixed labels `job` (bot name) and `instance` (host
-name). No feature ids.
+All metrics carry the fixed label `job` (bot name). No feature ids.
 
 ## 6. Metrics (impl/)
 
@@ -204,10 +202,10 @@ users at 60s, event loop at 1s.
 
 Added to `src/lib/env.ts` (all optional):
 
-| Variable              | Default     | Meaning                                              |
-| --------------------- | ----------- | ---------------------------------------------------- |
-| `VM_PUSH_URL`         | unset (off) | VictoriaMetrics `/api/v1/import/prometheus` endpoint |
-| `VM_PUSH_INTERVAL_MS` | `60000`     | Push cadence for the exporter                        |
+| Variable              | Default     | Meaning                                                                 |
+| --------------------- | ----------- | ----------------------------------------------------------------------- |
+| `VM_PUSH_URL`         | unset (off) | VictoriaMetrics base URL (exporter appends `/api/v1/import/prometheus`) |
+| `VM_PUSH_INTERVAL_MS` | `60000`     | Push cadence for the exporter                                           |
 
 The `job` label comes from the static `Constants.botName` (`"shiroko"`),
 not an env var.
@@ -230,7 +228,6 @@ if (env.VM_PUSH_URL) {
   const exporter = new VictoriaMetricsExporter(metricManager, {
     url: env.VM_PUSH_URL,
     job: Constants.botName,
-    instance: os.hostname(),
     intervalMs: Number(env.VM_PUSH_INTERVAL_MS ?? 60_000),
   });
   exporter.start();
@@ -241,9 +238,9 @@ if (env.VM_PUSH_URL) {
 
 ```
 # TYPE shiroko_guilds gauge
-shiroko_guilds{job="shiroko",instance="host01"} 14
+shiroko_guilds{job="shiroko"} 14
 # TYPE shiroko_process_ram_used gauge
-shiroko_process_ram_used{job="shiroko",instance="host01"} 184.4
+shiroko_process_ram_used{job="shiroko"} 184.4
 # TYPE shiroko_event_loop_ms histogram
 shiroko_event_loop_ms_bucket{le="0.05",job="shiroko"} 3
 shiroko_event_loop_ms_bucket{le="0.1",job="shiroko"} 4
