@@ -11,7 +11,7 @@ export class SeenUsersMetric extends GaugeMetric {
   public override readonly collectIntervalMs = 60_000;
 
   public constructor() {
-    super({ id: "shiroko_seen_users", kind: "gauge", help: "Number of distinct users ever seen" });
+    super({ id: "seen_users", kind: "gauge", help: "Number of distinct users ever seen" });
   }
 
   public override async collect(): Promise<void> {

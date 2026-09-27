@@ -11,7 +11,7 @@ export class EventLoopMetric extends HistogramMetric {
 
   public constructor() {
     super({
-      id: "shiroko_event_loop_ms",
+      id: "event_loop_ms",
       kind: "histogram",
       help: "Event loop delay in milliseconds",
       unit: "ms",

@@ -9,7 +9,7 @@ export class GuildsMetric extends GaugeMetric {
   private readonly client: Client;
 
   public constructor(client: Client) {
-    super({ id: "shiroko_guilds", kind: "gauge", help: "Number of guilds the bot is in" });
+    super({ id: "guilds", kind: "gauge", help: "Number of guilds the bot is in" });
     this.client = client;
   }
 

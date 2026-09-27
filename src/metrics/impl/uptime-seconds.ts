@@ -6,7 +6,7 @@ export class UptimeMetric extends GaugeMetric {
 
   public constructor() {
     super({
-      id: "shiroko_uptime_seconds",
+      id: "uptime_seconds",
       kind: "gauge",
       help: "Process uptime in seconds",
       unit: "s",

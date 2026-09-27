@@ -14,7 +14,7 @@ export class ProcessCpuUsageMetric extends GaugeMetric {
 
   public constructor() {
     super({
-      id: "shiroko_process_cpu_usage",
+      id: "process_cpu_usage",
       kind: "gauge",
       help: "Process CPU usage as a percentage of all cores",
       unit: "%",

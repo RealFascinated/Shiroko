@@ -7,7 +7,7 @@ export class ProcessRamTotalMetric extends GaugeMetric {
 
   public constructor() {
     super({
-      id: "shiroko_process_ram_total",
+      id: "process_ram_total",
       kind: "gauge",
       help: "Total physical memory of the host, in bytes",
       unit: "bytes",

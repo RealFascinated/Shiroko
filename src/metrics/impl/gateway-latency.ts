@@ -12,7 +12,7 @@ export class GatewayLatencyMetric extends GaugeMetric {
 
   public constructor(client: Client) {
     super({
-      id: "shiroko_gateway_latency_ms",
+      id: "gateway_latency_ms",
       kind: "gauge",
       help: "Gateway heartbeat latency in milliseconds",
       unit: "ms",

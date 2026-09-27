@@ -73,33 +73,33 @@ CATEGORIES = [
         "key": "guilds",
         "title": "🏠 Guilds",
         "panels": [
-            {"key": "guilds", "title": "Guild count", "expr": "shiroko_guilds", "unit": "short", "min": 0, "width": 24, "legend": "guilds"},
+            {"key": "guilds", "title": "Guild count", "expr": "guilds", "unit": "short", "min": 0, "width": 24, "legend": "guilds"},
         ],
     },
     {
         "key": "users",
         "title": "👥 Users",
         "panels": [
-            {"key": "seen-users", "title": "Distinct users seen", "expr": "shiroko_seen_users", "unit": "short", "min": 0, "width": 24, "legend": "users"},
+            {"key": "seen-users", "title": "Distinct users seen", "expr": "seen_users", "unit": "short", "min": 0, "width": 24, "legend": "users"},
         ],
     },
     {
         "key": "cpu",
         "title": "⚙️ CPU",
         "panels": [
-            {"key": "cpu-usage", "title": "Process CPU usage", "expr": "shiroko_process_cpu_usage", "unit": "percent", "min": 0, "max": 100, "width": 24, "legend": "cpu"},
+            {"key": "cpu-usage", "title": "Process CPU usage", "expr": "process_cpu_usage", "unit": "percent", "min": 0, "max": 100, "width": 24, "legend": "cpu"},
         ],
     },
     {
         "key": "memory",
         "title": "💾 Memory",
         "panels": [
-            {"key": "ram-used", "title": "RAM used", "expr": "shiroko_process_ram_used", "unit": "bytes", "min": 0, "width": 12, "legend": "used"},
-            {"key": "ram-total", "title": "RAM total", "expr": "shiroko_process_ram_total", "unit": "bytes", "min": 0, "width": 12, "legend": "total"},
+            {"key": "ram-used", "title": "RAM used", "expr": "process_ram_used", "unit": "bytes", "min": 0, "width": 12, "legend": "used"},
+            {"key": "ram-total", "title": "RAM total", "expr": "process_ram_total", "unit": "bytes", "min": 0, "width": 12, "legend": "total"},
             {
                 "key": "ram-used-pct",
                 "title": "RAM used (%)",
-                "expr": "shiroko_process_ram_used / shiroko_process_ram_total * 100",
+                "expr": "process_ram_used / process_ram_total * 100",
                 "unit": "percent",
                 "min": 0,
                 "max": 100,
@@ -112,14 +112,14 @@ CATEGORIES = [
         "key": "gateway",
         "title": "🌐 Gateway",
         "panels": [
-            {"key": "latency", "title": "Gateway heartbeat latency", "expr": "shiroko_gateway_latency_ms", "unit": "ms", "min": 0, "width": 24, "legend": "latency"},
+            {"key": "latency", "title": "Gateway heartbeat latency", "expr": "gateway_latency_ms", "unit": "ms", "min": 0, "width": 24, "legend": "latency"},
         ],
     },
     {
         "key": "uptime",
         "title": "⏱️ Uptime",
         "panels": [
-            {"key": "uptime", "title": "Bot uptime", "expr": "shiroko_uptime_seconds", "unit": "s", "min": 0, "width": 24, "legend": "uptime"},
+            {"key": "uptime", "title": "Bot uptime", "expr": "uptime_seconds", "unit": "s", "min": 0, "width": 24, "legend": "uptime"},
         ],
     },
     {
@@ -129,7 +129,7 @@ CATEGORIES = [
             {
                 "key": "loop-avg",
                 "title": "Event loop delay (average)",
-                "expr": "rate(shiroko_event_loop_ms_sum[5m]) / rate(shiroko_event_loop_ms_count[5m])",
+                "expr": "rate(event_loop_ms_sum[5m]) / rate(event_loop_ms_count[5m])",
                 "unit": "ms",
                 "min": 0,
                 "width": 12,
@@ -138,7 +138,7 @@ CATEGORIES = [
             {
                 "key": "loop-p95",
                 "title": "Event loop delay (p95)",
-                "expr": "histogram_quantile(0.95, sum(rate(shiroko_event_loop_ms_bucket[5m])) by (le))",
+                "expr": "histogram_quantile(0.95, sum(rate(event_loop_ms_bucket[5m])) by (le))",
                 "unit": "ms",
                 "min": 0,
                 "width": 12,

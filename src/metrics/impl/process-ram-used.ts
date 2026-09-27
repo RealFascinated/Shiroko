@@ -6,7 +6,7 @@ export class ProcessRamUsedMetric extends GaugeMetric {
 
   public constructor() {
     super({
-      id: "shiroko_process_ram_used",
+      id: "process_ram_used",
       kind: "gauge",
       help: "Resident set size of the bot process, in bytes",
       unit: "bytes",

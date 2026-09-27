@@ -47,7 +47,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "shiroko_guilds",
+                        "expr": "guilds",
                         "legendFormat": "guilds",
                         "queryType": "MetricsQL"
                       },
@@ -159,7 +159,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "shiroko_seen_users",
+                        "expr": "seen_users",
                         "legendFormat": "users",
                         "queryType": "MetricsQL"
                       },
@@ -271,7 +271,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "shiroko_process_cpu_usage",
+                        "expr": "process_cpu_usage",
                         "legendFormat": "cpu",
                         "queryType": "MetricsQL"
                       },
@@ -384,7 +384,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "shiroko_process_ram_used",
+                        "expr": "process_ram_used",
                         "legendFormat": "used",
                         "queryType": "MetricsQL"
                       },
@@ -496,7 +496,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "shiroko_process_ram_total",
+                        "expr": "process_ram_total",
                         "legendFormat": "total",
                         "queryType": "MetricsQL"
                       },
@@ -608,7 +608,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "shiroko_process_ram_used / shiroko_process_ram_total * 100",
+                        "expr": "process_ram_used / process_ram_total * 100",
                         "legendFormat": "used",
                         "queryType": "MetricsQL"
                       },
@@ -721,7 +721,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "shiroko_gateway_latency_ms",
+                        "expr": "gateway_latency_ms",
                         "legendFormat": "latency",
                         "queryType": "MetricsQL"
                       },
@@ -833,7 +833,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "shiroko_uptime_seconds",
+                        "expr": "uptime_seconds",
                         "legendFormat": "uptime",
                         "queryType": "MetricsQL"
                       },
@@ -945,7 +945,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(shiroko_event_loop_ms_sum[5m]) / rate(shiroko_event_loop_ms_count[5m])",
+                        "expr": "rate(event_loop_ms_sum[5m]) / rate(event_loop_ms_count[5m])",
                         "legendFormat": "average",
                         "queryType": "MetricsQL"
                       },
@@ -1057,7 +1057,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum(rate(shiroko_event_loop_ms_bucket[5m])) by (le))",
+                        "expr": "histogram_quantile(0.95, sum(rate(event_loop_ms_bucket[5m])) by (le))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },

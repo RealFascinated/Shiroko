@@ -40,7 +40,7 @@ the exporter can `snapshot()` them; there is no lookup-by-id API because
 callers hold the instances directly.
 
 ```ts
-const gauge = new GaugeMetric({ id: "shiroko_guilds", kind: "gauge", help: "Guilds the bot is in" });
+const gauge = new GaugeMetric({ id: "guilds", kind: "gauge", help: "Guilds the bot is in" });
 manager.register(gauge);
 ```
 
@@ -156,16 +156,16 @@ export interface MetricSnapshot {
 
 ## 5. Required metrics
 
-| Metric                       | Type      | Source                               |
-| ---------------------------- | --------- | ------------------------------------ |
-| `shiroko_guilds`             | gauge     | `client.guilds.cache.size`           |
-| `shiroko_seen_users`         | gauge     | `COUNT(*)` over `global_users`       |
-| `shiroko_process_ram_used`   | gauge     | `process.memoryUsage().rss` (MiB)    |
-| `shiroko_process_ram_total`  | gauge     | `os.totalmem()` (MiB)                |
-| `shiroko_process_cpu_usage`  | gauge     | `process.cpuUsage()` delta (percent) |
-| `shiroko_gateway_latency_ms` | gauge     | `client.ws.ping`                     |
-| `shiroko_uptime_seconds`     | gauge     | `process.uptime()`                   |
-| `shiroko_event_loop_ms`      | histogram | loop-slip measurement (see §6)       |
+| Metric               | Type      | Source                               |
+| -------------------- | --------- | ------------------------------------ |
+| `guilds`             | gauge     | `client.guilds.cache.size`           |
+| `seen_users`         | gauge     | `COUNT(*)` over `global_users`       |
+| `process_ram_used`   | gauge     | `process.memoryUsage().rss` (bytes)  |
+| `process_ram_total`  | gauge     | `os.totalmem()` (bytes)              |
+| `process_cpu_usage`  | gauge     | `process.cpuUsage()` delta (percent) |
+| `gateway_latency_ms` | gauge     | `client.ws.ping`                     |
+| `uptime_seconds`     | gauge     | `process.uptime()`                   |
+| `event_loop_ms`      | histogram | loop-slip measurement (see §6)       |
 
 All metrics carry the fixed label `job` (bot name). No feature ids.
 
@@ -237,16 +237,16 @@ if (env.VM_PUSH_URL) {
 ## 9. Serialization example (what VM receives)
 
 ```
-# TYPE shiroko_guilds gauge
-shiroko_guilds{job="shiroko"} 14
-# TYPE shiroko_process_ram_used gauge
-shiroko_process_ram_used{job="shiroko"} 184.4
-# TYPE shiroko_event_loop_ms histogram
-shiroko_event_loop_ms_bucket{le="0.05",job="shiroko"} 3
-shiroko_event_loop_ms_bucket{le="0.1",job="shiroko"} 4
-shiroko_event_loop_ms_bucket{le="+Inf",job="shiroko"} 4
-shiroko_event_loop_ms_sum{job="shiroko"} 0.220
-shiroko_event_loop_ms_count{job="shiroko"} 4
+# TYPE guilds gauge
+guilds{job="shiroko"} 14
+# TYPE process_ram_used gauge
+process_ram_used{job="shiroko"} 184400000
+# TYPE event_loop_ms histogram
+event_loop_ms_bucket{le="0.05",job="shiroko"} 3
+event_loop_ms_bucket{le="0.1",job="shiroko"} 4
+event_loop_ms_bucket{le="+Inf",job="shiroko"} 4
+event_loop_ms_sum{job="shiroko"} 0.220
+event_loop_ms_count{job="shiroko"} 4
 ```
 
 ## 10. Testing
