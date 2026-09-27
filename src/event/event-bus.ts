@@ -68,24 +68,6 @@ export class EventBus {
   }
 
   /**
-   * Remove a listener instance's handlers from the bus.
-   */
-  public static unsubscribe(listener: EventListener): void {
-    const handlers = EventBus.listenerHandlers(listener);
-    for (const metadata of handlers) {
-      const key = metadata.eventClass as new (...args: any[]) => Event;
-      const entries = EventBus.HANDLERS.get(key);
-      if (!entries) {
-        continue;
-      }
-      EventBus.HANDLERS.set(
-        key,
-        entries.filter(entry => entry.listener !== listener)
-      );
-    }
-  }
-
-  /**
    * Resolve the `@EventHandler` metadata for a listener instance: walk the
    * prototype chain and collect metadata attached to each decorated method
    * function (standard decorators attach metadata to the function value).

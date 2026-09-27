@@ -29,9 +29,11 @@ import { SeenUsersMetric } from "./metrics/impl/seen-users";
 import { UptimeMetric } from "./metrics/impl/uptime-seconds";
 import { PermissionsListeners } from "./permission/permissions";
 import SettingsManager from "./settings";
+import { formatDuration } from "./lib/time";
 
+const beforeMigrate = Date.now();
 await migrate(db, { migrationsFolder: "./drizzle" });
-console.log("Migrations complete");
+console.log(`Migrations complete in ${formatDuration(Date.now() - beforeMigrate)}`);
 
 export const discordClient = new Client({
   intents: [

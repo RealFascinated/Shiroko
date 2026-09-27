@@ -4,11 +4,4 @@
  * (usually in the constructor).
  */
 export abstract class EventListener {
-  /**
-   * Remove this listener's handlers from the bus.
-   */
-  public unsubscribe(): void {
-    // Registration happens via EventBus.subscribe(this) in the constructor;
-    // removal is EventBus.unsubscribe(this). Kept as an override point.
-  }
 }
