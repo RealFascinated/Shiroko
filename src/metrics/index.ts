@@ -44,11 +44,16 @@ export class MetricManager extends EventListener {
 
   /** A snapshot of every metric's value, suitable for serialization. */
   public snapshot(): MetricSnapshot[] {
-    return Array.from(this.metrics.values(), m => ({
-      id: m.id,
-      kind: m.kind,
-      value: m.value(),
-    }));
+    const out: MetricSnapshot[] = [];
+    for (const metric of this.metrics.values()) {
+      if (!metric.hasCollected()) {
+        // Never collected yet: reporting the initial zero would show a
+        // bogus 0 in the dashboard before the first real sample.
+        continue;
+      }
+      out.push({ id: metric.id, kind: metric.kind, value: metric.value() });
+    }
+    return out;
   }
 
   @EventHandler(BotReadyEvent)
@@ -57,8 +62,16 @@ export class MetricManager extends EventListener {
       return;
     }
     for (const metric of this.all()) {
-      void metric.collect();
-      this.timers.add(setInterval(() => void metric.collect(), metric.collectIntervalMs));
+      const collect = (): void => {
+        const result = metric.collect();
+        if (result instanceof Promise) {
+          void result.finally(() => metric.markCollected());
+        } else {
+          metric.markCollected();
+        }
+      };
+      collect();
+      this.timers.add(setInterval(collect, metric.collectIntervalMs));
     }
   }
 }

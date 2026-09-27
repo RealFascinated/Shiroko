@@ -28,11 +28,24 @@ export abstract class Metric<T = unknown> {
   public readonly help: string;
   public readonly unit?: string;
 
+  /** Whether {@link collect} has run at least once. */
+  private collected = false;
+
   protected constructor(registration: MetricRegistration) {
     this.id = registration.id;
     this.kind = registration.kind;
     this.help = registration.help;
     this.unit = registration.unit;
+  }
+
+  /** Whether {@link collect} has run at least once. */
+  public hasCollected(): boolean {
+    return this.collected;
+  }
+
+  /** Mark this metric as collected. Called by the manager's collect loop. */
+  public markCollected(): void {
+    this.collected = true;
   }
 
   /** Current value, in the shape the serializer understands. */
@@ -43,5 +56,5 @@ export abstract class Metric<T = unknown> {
    * plain value metrics (e.g. a fixed gauge); self-collecting subclasses
    * override it and declare a real {@link collectIntervalMs}.
    */
-  public collect(): void {}
+  public collect(): void | Promise<void> {}
 }
