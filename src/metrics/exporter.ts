@@ -109,7 +109,10 @@ export class VictoriaMetricsExporter {
       body: payload,
     });
     if (!res.ok) {
-      throw new Error(`VictoriaMetrics push failed: ${res.status} ${res.statusText}`);
+      const detail = await res.text().catch(() => "");
+      console.error(
+        `VictoriaMetrics push failed: ${res.status} ${res.statusText}\n${detail}\nBody sent:\n${payload}`
+      );
     }
   }
 }
