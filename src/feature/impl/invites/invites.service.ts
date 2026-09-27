@@ -1,7 +1,7 @@
 import { PermissionFlagsBits, type Guild, type Invite } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../../db";
-import { guildInvites, inviteJoins } from "../../../db/schema";
+import { guildInvites, inviteJoins } from "./schema";
 
 /**
  * The result of diffing a member join against the invite snapshot

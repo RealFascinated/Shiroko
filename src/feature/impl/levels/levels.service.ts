@@ -1,14 +1,13 @@
 import type { Guild } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../../db";
-import { levelRewards, userLevels } from "../../../db/schema";
 import { EventBus } from "../../../event/event-bus";
 import LevelUpEvent from "../../../event/events/level-up.event";
 import LeaderboardManager from "../../../leaderboard";
 import { LeaderboardId } from "../../../leaderboard/leaderboard";
 import GuildUsersManager from "../../../user/guild-users-manager";
 import { levelsSettings } from "./levels-settings";
-import type UserLevelSnapshot from "./user-level-snapshot";
+import { levelRewards, userLevels } from "./schema";
 import { levelForXp, progressToNext, xpForLevel } from "./xp";
 
 export interface RankState {
@@ -25,6 +24,11 @@ export interface RewardRow {
   level: number;
   type: string;
   roleId: string | null;
+}
+
+interface UserLevelSnapshot {
+  readonly level: number;
+  readonly xp: number;
 }
 
 /**
@@ -61,7 +65,7 @@ export default class LevelsService {
     if (!member) {
       return null;
     }
-    const cooldownMs = await levelsSettings.get(guild.id, "messageCooldown");
+    const cooldownMs = await levelsSettings.get(guild.id, "messageCooldownMs");
     const claimed = await GuildUsersManager.claimLastMessage(
       guild,
       member.user,

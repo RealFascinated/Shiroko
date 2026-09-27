@@ -2,10 +2,10 @@ import { and, count, eq } from "drizzle-orm";
 import Command, { type ExecuteContext } from "../../../../../../command/command";
 import { userOption } from "../../../../../../command/option";
 import { db } from "../../../../../../db";
-import { inviteJoins } from "../../../../../../db/schema";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
 import { pluralise } from "../../../../../../lib/format";
 import { invitesService } from "../../../invites.service";
+import { inviteJoins } from "../../../schema";
 
 /**
  * Show the total invites attributed to one user in the guild.

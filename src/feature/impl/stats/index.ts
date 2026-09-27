@@ -1,6 +1,5 @@
 import { EventBus } from "../../../event/event-bus.ts";
 import { EventHandler } from "../../../event/event-handler.ts";
-import { EventListener } from "../../../event/event-listener.ts";
 import BotReadyEvent from "../../../event/events/bot-ready.event.ts";
 import MessageCreatedEvent from "../../../event/events/message-created.event.ts";
 import MessageRecordedEvent from "../../../event/events/message-recorded.event.ts";
@@ -19,19 +18,6 @@ export default class StatsFeature extends Feature {
     super(FeatureIds.Stats);
 
     this.registerCommand(new StatsCommand());
-  }
-}
-
-/**
- * Turns raw gateway events into stats tracking calls. Listens to
- * `MessageCreated`, `VoiceStateChanged`, and `BotReady` (to seed open
- * voice sessions), and emits derived `MessageRecorded` /
- * `VoiceSession*` events for other features to consume.
- */
-export class StatsListeners extends EventListener {
-  constructor() {
-    super();
-    EventBus.subscribe(this);
   }
 
   /**

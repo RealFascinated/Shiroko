@@ -8,7 +8,7 @@ import {
   type MessageActionRowComponentBuilder,
   type User,
 } from "discord.js";
-import SocialFeature, { type InteractionType } from "../..";
+import { SocialService, type InteractionType } from "../..";
 import Command, { type ExecuteContext } from "../../../../../command/command";
 import { userOption } from "../../../../../command/option";
 import { getGif, type AnimeGif } from "../../../../../lib/anime";
@@ -69,7 +69,7 @@ export default abstract class PairInteractionCommand extends Command {
       return ctx.reply({ content: `You can't ${this.verb} yourself! :(`, flags: MessageFlags.Ephemeral });
     }
     const targetUser = await GlobalUsersManager.getUser(target);
-    const count = await SocialFeature.incrementInteraction(user.id, targetUser.id, this.interactionType);
+    const count = await SocialService.incrementInteraction(user.id, targetUser.id, this.interactionType);
     const gif = await getGif(this.gifCategory);
     const embed = this.buildEmbed(commandName, user.discordUser, target, count, gif);
 
@@ -105,7 +105,7 @@ export default abstract class PairInteractionCommand extends Command {
     commandName: string
   ): Promise<void> {
     const presserUser = await GlobalUsersManager.getUser(button.user);
-    const count = await SocialFeature.incrementInteraction(
+    const count = await SocialService.incrementInteraction(
       presserUser.id,
       originalActor.id,
       this.interactionType

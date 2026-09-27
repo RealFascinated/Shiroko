@@ -1,6 +1,4 @@
-import { EventBus } from "../../../event/event-bus.ts";
 import { EventHandler } from "../../../event/event-handler.ts";
-import { EventListener } from "../../../event/event-listener.ts";
 import LevelUpEvent from "../../../event/events/level-up.event.ts";
 import MessageRecordedEvent from "../../../event/events/message-recorded.event.ts";
 import VoiceSessionEndedEvent from "../../../event/events/voice-session-ended.event.ts";
@@ -23,18 +21,6 @@ export default class LevelsFeature extends Feature {
 
     SettingsManager.register(levelsSettings);
     this.registerCommand(new LevelsCommand());
-  }
-}
-
-/**
- * Feeds the levelling service from derived activity events. Listens to the
- * stats listeners' outputs and emits `LevelUpEvent` for reward granters and
- * announcements. Gated on the levelling feature toggle.
- */
-export class LevelsListeners extends EventListener {
-  constructor() {
-    super();
-    EventBus.subscribe(this);
   }
 
   @EventHandler(MessageRecordedEvent, { featureId: FeatureIds.Levels })

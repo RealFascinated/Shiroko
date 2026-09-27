@@ -55,7 +55,7 @@ A `ComponentRegistry` singleton in `src/feature/command/` (or
   (e.g. `modcfg:<guildId>:<optionId>:<action>`), or slices a transient,
   per-message context off the id directly.
 - `resolve(customId)` maps a press back to `(panelClass, guildId, optionId,
-  action)` and hands the `ButtonInteraction` / `StringSelectMenuInteraction`
+action)` and hands the `ButtonInteraction` / `StringSelectMenuInteraction`
   / `ModalSubmitInteraction` to the panel's handler.
 - Authorization is checked at resolve time: the pressing user must hold the
   same flags the command required (read from the panel's
@@ -78,16 +78,16 @@ type ConfigOptionKind =
   | { kind: "boolean" }
   | { kind: "role" }
   | { kind: "channel" }
-  | { kind: "text"; maxLength?: number; minLength?: number }   // modal input
+  | { kind: "text"; maxLength?: number; minLength?: number } // modal input
   | { kind: "number"; min?: number; max?: number }
-  | { kind: "choices"; choices: Record<string, string> };      // select menu
+  | { kind: "choices"; choices: Record<string, string> }; // select menu
 
 interface ConfigOption<C> {
-  id: string;                          // stable option id, also the custom-id segment
-  label: string;                       // row label in the embed
+  id: string; // stable option id, also the custom-id segment
+  label: string; // row label in the embed
   kind: ConfigOptionKind;
-  read(config: C): string;             // render current value into the embed
-  apply(value: ConfigValue, config: C): Promise<C>;  // persisted update
+  read(config: C): string; // render current value into the embed
+  apply(value: ConfigValue, config: C): Promise<C>; // persisted update
 }
 
 abstract class ConfigPanel<C> {
@@ -123,7 +123,7 @@ class ModerationConfigPanel extends ConfigPanel<ModerationConfig> {
    `<panelPrefix>:<guildId>:<optionId>:<action>` (e.g. `modcfg:123:log-channel:set`).
 2. Press → bridge → `ComponentReceivedEvent` → `ComponentRegistry.resolve`.
 3. The registry guards authorization, then calls `panel.handle(interaction,
-   optionId, action)`.
+optionId, action)`.
 4. `handle` switches on the kind:
    - `boolean`: toggle button, apply immediately.
    - `role` / `channel`: a **modal** with one input (open via
@@ -157,15 +157,15 @@ modal returns (invalid role id: error ephemeral, panel unchanged).
 
 ## 4. Costs and trade-offs
 
-| Concern | Panel | Subcommands (status quo) |
-| ------- | ----- | ------------------------ |
-| New plumbing | Bridge branch + registry + modal handling | None |
-| Per-setting cost | 1 option descriptor (~10 lines) | 1 command file (~40 lines) + 1 command class |
-| Discoverability | Panel shows every setting at once | Needs `/config view` |
-| Discord limits | 5 rows × 5 buttons/selects; embed field cap | None beyond command cap |
-| Ephemerality | Modal submissions and updates are tied to the interaction, works fine | Fine |
-| Restart safety | Panel messages go stale (custom ids reference a gone session); re-invoke the command | No state |
-| Flag gating | Registry checks flags on every press | CommandManager already gates |
+| Concern          | Panel                                                                                | Subcommands (status quo)                     |
+| ---------------- | ------------------------------------------------------------------------------------ | -------------------------------------------- |
+| New plumbing     | Bridge branch + registry + modal handling                                            | None                                         |
+| Per-setting cost | 1 option descriptor (~10 lines)                                                      | 1 command file (~40 lines) + 1 command class |
+| Discoverability  | Panel shows every setting at once                                                    | Needs `/config view`                         |
+| Discord limits   | 5 rows × 5 buttons/selects; embed field cap                                          | None beyond command cap                      |
+| Ephemerality     | Modal submissions and updates are tied to the interaction, works fine                | Fine                                         |
+| Restart safety   | Panel messages go stale (custom ids reference a gone session); re-invoke the command | No state                                     |
+| Flag gating      | Registry checks flags on every press                                                 | CommandManager already gates                 |
 
 The panel is ~40% more upfront code (bridge branch, registry, modal
 handlers, render/apply engine) and strictly better afterward. Static risk

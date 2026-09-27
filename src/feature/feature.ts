@@ -1,4 +1,5 @@
 import type Command from "../command/command";
+import { EventBus, EventListener } from "../event";
 import { FeatureIds } from "./feature-ids";
 
 export { FeatureIds };
@@ -12,7 +13,7 @@ type FeatureOptions = {
  * and the commands it owns. Event behavior lives in `@EventHandler`
  * listeners (see `src/event/`), not here.
  */
-export default class Feature {
+export default class Feature extends EventListener {
   private static REGISTRY = new Map<FeatureIds, Feature>();
 
   public readonly id: FeatureIds;
@@ -26,6 +27,8 @@ export default class Feature {
       defaultEnabled: true,
     }
   ) {
+    super();
+    EventBus.subscribe(this);
     this.id = id;
     this.options = options;
     Feature.REGISTRY.set(id, this);

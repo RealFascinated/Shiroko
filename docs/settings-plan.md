@@ -28,12 +28,12 @@ consumes it next for its mod-log channel.
 Key-value table, one row per (guild, setting). Keys are namespaced
 `<feature>.<setting>`, e.g. `moderation.mod_log_channel`.
 
-| Column       | Type               | Notes                                    |
-| ------------ | ------------------ | ---------------------------------------- |
-| `guild_id`   | text, not null     | Composite PK with `key`                  |
-| `key`        | text, not null     | `moderation.mod_log_channel`, etc.       |
-| `value`      | jsonb, not null    | Any JSON-serializable value              |
-| `updated_at` | timestamp with tz, not null default now | Last write                  |
+| Column       | Type                                    | Notes                              |
+| ------------ | --------------------------------------- | ---------------------------------- |
+| `guild_id`   | text, not null                          | Composite PK with `key`            |
+| `key`        | text, not null                          | `moderation.mod_log_channel`, etc. |
+| `value`      | jsonb, not null                         | Any JSON-serializable value        |
+| `updated_at` | timestamp with tz, not null default now | Last write                         |
 
 PK `(guild_id, key)`.
 
@@ -70,14 +70,7 @@ No in-process cache, matching `level_configs` reads and the repo's
 
 ```ts
 export type SettingType =
-  | "boolean"
-  | "number"
-  | "string"
-  | "choice"
-  | "channel"
-  | "role"
-  | "duration"
-  | "string-list";
+  "boolean" | "number" | "string" | "choice" | "channel" | "role" | "duration" | "string-list";
 
 /** The setting-value shape each SettingType requires of `C[K]`. */
 export type SettingValueMap = {
@@ -85,23 +78,23 @@ export type SettingValueMap = {
   number: number;
   string: string;
   choice: string;
-  channel: string | null;   // null = unset
-  role: string | null;      // null = unset
-  duration: number;         // milliseconds
+  channel: string | null; // null = unset
+  role: string | null; // null = unset
+  duration: number; // milliseconds
   "string-list": string[];
 };
 
 interface SettingDescriptorBase<C, K extends keyof C, T extends SettingType> {
   key: K;
-  label: string;                    // shown in the panel
-  description?: string;             // shown under the label
+  label: string; // shown in the panel
+  description?: string; // shown under the label
   type: T;
-  default: C[K];                    // code-side default
-  choices?: T extends "choice" ? Record<string, string> : never;  // "choice" only
-  min?: T extends "number" ? number : never;                      // "number" only
-  max?: T extends "number" ? number : never;                      // "number" only
-  validate?(value: C[K]): string | null;  // error message, or null when valid
-  format?(value: C[K]): string;     // display formatting
+  default: C[K]; // code-side default
+  choices?: T extends "choice" ? Record<string, string> : never; // "choice" only
+  min?: T extends "number" ? number : never; // "number" only
+  max?: T extends "number" ? number : never; // "number" only
+  validate?(value: C[K]): string | null; // error message, or null when valid
+  format?(value: C[K]): string; // display formatting
 }
 
 /**
@@ -109,8 +102,9 @@ interface SettingDescriptorBase<C, K extends keyof C, T extends SettingType> {
  * (`"boolean"` on a `string` key, `"string"` on a `number` key, ...)
  * compiles to `never`, so TypeScript rejects the object literal.
  */
-type ValidSettingDescriptor<C, K extends keyof C, T extends SettingType> =
-  C[K] extends SettingValueMap[T] ? SettingDescriptorBase<C, K, T> : never;
+type ValidSettingDescriptor<C, K extends keyof C, T extends SettingType> = C[K] extends SettingValueMap[T]
+  ? SettingDescriptorBase<C, K, T>
+  : never;
 
 /** Every valid (key, type) pair for the module's config type `C`. */
 export type SettingDescriptor<C> = {
@@ -120,8 +114,8 @@ export type SettingDescriptor<C> = {
 }[keyof C];
 
 export interface SettingsModuleConfig<C> {
-  id: string;                       // namespaces keys: "moderation"
-  displayName: string;              // "Moderation"
+  id: string; // namespaces keys: "moderation"
+  displayName: string; // "Moderation"
   defaults: C;
   descriptors: ReadonlyArray<SettingDescriptor<C>>;
 }
@@ -135,7 +129,7 @@ the compiler checks the whole descriptor against `C[K]`:
 - `type` must match `C[K]`'s shape. `"channel"` and `"role"` require
   `string | null` (null = unset, so `default: null` type-checks); the
   moderation sample below uses `"channel"` for `modLogChannelId: string |
-  null` and passes with zero casts.
+null` and passes with zero casts.
 - `"choice"` requires `choices`, `"number"` allows `min`/`max`; a stray
   `choices` on any other type is a type error, not a runtime surprise.
 - `"duration"` stores milliseconds as a `number`; its `format` renders via
@@ -178,11 +172,11 @@ The levelling config has five settings; each becomes a key under the
 
 ```ts
 export interface LevelsSettingsData {
-  messageXp: number;                 // defaults: message_xp 10
-  messageCooldown: number;           // levels.message_cooldown 60000 (ms)
-  voiceXpPerMin: number;             // voice_xp_per_min 5
-  ignoredChannelIds: string[];       // ignored_channel_ids []
-  announceChannelId: string | null;  // announce_channel_id null
+  messageXp: number; // defaults: message_xp 10
+  messageCooldown: number; // levels.message_cooldown 60000 (ms)
+  voiceXpPerMin: number; // voice_xp_per_min 5
+  ignoredChannelIds: string[]; // ignored_channel_ids []
+  announceChannelId: string | null; // announce_channel_id null
 }
 
 export const levelsSettings = new SettingsModule<LevelsSettingsData>({
@@ -190,7 +184,7 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
   displayName: "Levelling",
   defaults: {
     messageXp: 10,
-    messageCooldown: 60_000,         // ms
+    messageCooldown: 60_000, // ms
     voiceXpPerMin: 5,
     ignoredChannelIds: [],
     announceChannelId: null,
@@ -201,8 +195,8 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
       key: "messageCooldown",
       label: "Message cooldown",
       type: "duration",
-      default: 60_000,               // stored as ms; input "60s"
-      min: 10_000,                   // the existing 10s floor
+      default: 60_000, // stored as ms; input "60s"
+      min: 10_000, // the existing 10s floor
     },
     { key: "voiceXpPerMin", label: "Voice XP per minute", type: "number", default: 5, min: 1 },
     {
@@ -224,7 +218,7 @@ Notes:
   (the existing 10s floor). It migrates from `message_cooldown_seconds`.
 - Consumers (`LevelsService`, gender announcement listener, etc.) read
   `levelsSettings.get(guildId, "messageXp")`, `get(guildId,
-  "announceChannelId")`, etc. instead of `levelConfigs` rows; values are
+"announceChannelId")`, etc. instead of `levelConfigs` rows; values are
   typed with no casts at the call site.
 - The `duration` descriptor's `format` renders stored milliseconds via
   `formatDuration` (`"60s"`), keeping the raw JSON value a plain number.
@@ -273,8 +267,8 @@ point when wiring it.
      value preselected)
    - `boolean`: `StringSelectMenu` inside the modal (Enabled / Disabled,
      current value preselected)
-   The prefill text comes from `descriptor.format(value)` when present,
-   else `String(value)`.
+     The prefill text comes from `descriptor.format(value)` when present,
+     else `String(value)`.
 3. On submit the dialog re-validates (`validate`, numeric bounds,
    channel/role resolution, duration parse), persists via the module's
    `set`, then `interaction.update()` re-renders the module page in place.
@@ -294,7 +288,7 @@ which cannot drive a persistent panel. Two additions:
 
 1. **Bridge branch** in `src/event/event-bridge.ts`:
    `interaction.isButton() || interaction.isStringSelectMenu() ||
-   interaction.isModalSubmit()` posts a new `ComponentReceivedEvent`
+interaction.isModalSubmit()` posts a new `ComponentReceivedEvent`
    (same event shape as siblings: guild, userId, raw interaction).
 
 2. **Component registry** (`src/settings/component/component-registry.ts`):
@@ -341,9 +335,9 @@ Implementation order:
   - `levels.voice_xp_per_min` ← `voice_xp_per_min`
   - `levels.ignored_channel_ids` ← `ignored_channel_ids` (JSONB as-is)
   - `levels.announce_channel_id` ← `announce_channel_id`
-  Then **drop** `level_configs` (and its drizzle table def). Rows absent
-  from `guild_settings` fall back to the module defaults, so the
-  migration only materializes rows that differ from defaults.
+    Then **drop** `level_configs` (and its drizzle table def). Rows absent
+    from `guild_settings` fall back to the module defaults, so the
+    migration only materializes rows that differ from defaults.
 - **Code migration**: `LevelsService` reads config through
   `levelsSettings.get(...)` per key (with the `duration` conversion for
   the cooldown) and drops its `getConfig` / `DEFAULT_CONFIG` /

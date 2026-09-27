@@ -1,7 +1,5 @@
 import type { Client } from "discord.js";
-import { EventBus } from "../../../event/event-bus.ts";
 import { EventHandler } from "../../../event/event-handler.ts";
-import { EventListener } from "../../../event/event-listener.ts";
 import BotReadyEvent from "../../../event/events/bot-ready.event.ts";
 import GuildJoinedEvent from "../../../event/events/guild-joined.event.ts";
 import InviteCreatedEvent from "../../../event/events/invite-created.event.ts";
@@ -13,25 +11,16 @@ import InvitesCommand from "./command/invites/invites.command.ts";
 import { invitesService } from "./invites.service.ts";
 
 /**
- * The invites feature: `/invites` command plus invite tracking.
+ * The invites feature: `/invites` command plus invite tracking. Keeps the
+ * invite snapshot seeded and maintains it on create/delete, and attributes
+ * `GuildMemberAdd` joins by diffing the cached baseline against a fresh
+ * fetch.
  */
 export default class InvitesFeature extends Feature {
   constructor() {
     super(FeatureIds.Invites);
 
     this.registerCommand(new InvitesCommand());
-  }
-}
-
-/**
- * Keeps the invite snapshot seeded and maintains it on create/delete, and
- * attributes `GuildMemberAdd` joins by diffing the cached baseline against
- * a fresh fetch.
- */
-export class InvitesListeners extends EventListener {
-  constructor() {
-    super();
-    EventBus.subscribe(this);
   }
 
   /**

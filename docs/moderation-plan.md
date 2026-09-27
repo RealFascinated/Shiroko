@@ -13,16 +13,16 @@ One row per moderation action. `id` is a **global incrementing id**, so
 cases are unique across guilds and a warning is addressable anywhere as
 "case #1234" (`delwarn` takes this id).
 
-| Column        | Type                   | Notes                                            |
-| ------------- | ---------------------- | ------------------------------------------------ |
-| `id`          | serial / bigserial     | Global incrementing case id, PK                  |
-| `guild_id`    | text, not null         | Guild where the action happened                  |
-| `user_id`     | text, not null         | Target; FK → `global_users.id`                   |
-| `actor_id`    | text, not null         | Moderator who acted; FK → `global_users.id`      |
-| `type`        | text, not null         | `kick` / `ban` / `tempban` / `unban` / `timeout` / `unmute` / `warn` / `warn_clear` / `purge` |
-| `reason`      | text, not null default `""` | Free text, empty allowed                      |
-| `expires_at`  | timestamp with tz, null | Only set for temporary actions (`tempban`, `timeout`) |
-| `created_at`  | timestamp with tz, not null default now | When the action happened              |
+| Column       | Type                                    | Notes                                                                                         |
+| ------------ | --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `id`         | serial / bigserial                      | Global incrementing case id, PK                                                               |
+| `guild_id`   | text, not null                          | Guild where the action happened                                                               |
+| `user_id`    | text, not null                          | Target; FK → `global_users.id`                                                                |
+| `actor_id`   | text, not null                          | Moderator who acted; FK → `global_users.id`                                                   |
+| `type`       | text, not null                          | `kick` / `ban` / `tempban` / `unban` / `timeout` / `unmute` / `warn` / `warn_clear` / `purge` |
+| `reason`     | text, not null default `""`             | Free text, empty allowed                                                                      |
+| `expires_at` | timestamp with tz, null                 | Only set for temporary actions (`tempban`, `timeout`)                                         |
+| `created_at` | timestamp with tz, not null default now | When the action happened                                                                      |
 
 Index: `(guild_id, created_at desc)` and `(guild_id, user_id)` so `history`
 can page newest-first per guild or per user.
@@ -59,19 +59,19 @@ combination. The gate lives on the command's `requiredFlags` (or the
 parent's, when the command is part of a family like `/history
 warns-config`), exactly like `/level-config` today.
 
-| Command | Permission flag | Options | Behavior |
-| ------- | --------------- | ------- | -------- |
-| `/kick` | `KICK_COMMAND` | `user`, `reason?` | `member.kick(reason)`, log case. |
-| `/ban` | `BAN_COMMAND` | `user`, `reason?`, `delete_days?` (0-7) | `member.ban({ reason, deleteMessageSeconds })`, log case. |
-| `/tempban` | `TEMP_BAN_COMMAND` | `user`, `duration`, `reason?` | Ban + set `expires_at = now + duration`, log `tempban` case. |
-| `/unban` | `UNBAN_COMMAND` | `user` (mention or **raw ID**), `reason?` | `guild.members.unban(id, reason)`, log `unban` case. |
-| `/timeout` | `TIMEOUT_COMMAND` | `user`, `duration`, `reason?` | `member.timeout(ms, reason)`. Discord caps at 28 days; reject longer durations with an error. Log `timeout` case with `expires_at`. |
-| `/unmute` | `UNMUTE_COMMAND` | `user`, `reason?` | `member.timeout(null)`; also removes the muted role if role-mutes ever land. Log `unmute` case. |
-| `/warn` | `WARN_COMMAND` | `user`, `reason` | Insert a `warn` case. Reply with the case id: "Warning #1234 added". |
-| `/history` | `HISTORY_COMMAND` | `user`, optional `page` | Page through the user's cases newest-first, with the same pager as `attachPager`. |
-| `/delwarn` | `DEL_WARN_COMMAND` | `case_id`, optional `reason?` | Delete only if `type = "warn"` for that exact id in this guild. The deleted case is logged as a `warn_clear` row so the audit trail keeps a trace. |
-| `/clearwarns` | `CLEAR_WARNS_COMMAND` | `user` | Delete all `warn` rows for the user in this guild, log one `warn_clear` case. |
-| `/purge` | `PURGE_COMMAND` | `count` (1-100), `user?`, `contains?` | `channel.bulkDelete` with optional filters. If `count` is a hot path, bulk-delete first then filter in memory for `user`/`contains`. Log one case per purge (any target user + reason summarizing filters). |
+| Command       | Permission flag       | Options                                   | Behavior                                                                                                                                                                                                    |
+| ------------- | --------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/kick`       | `KICK_COMMAND`        | `user`, `reason?`                         | `member.kick(reason)`, log case.                                                                                                                                                                            |
+| `/ban`        | `BAN_COMMAND`         | `user`, `reason?`, `delete_days?` (0-7)   | `member.ban({ reason, deleteMessageSeconds })`, log case.                                                                                                                                                   |
+| `/tempban`    | `TEMP_BAN_COMMAND`    | `user`, `duration`, `reason?`             | Ban + set `expires_at = now + duration`, log `tempban` case.                                                                                                                                                |
+| `/unban`      | `UNBAN_COMMAND`       | `user` (mention or **raw ID**), `reason?` | `guild.members.unban(id, reason)`, log `unban` case.                                                                                                                                                        |
+| `/timeout`    | `TIMEOUT_COMMAND`     | `user`, `duration`, `reason?`             | `member.timeout(ms, reason)`. Discord caps at 28 days; reject longer durations with an error. Log `timeout` case with `expires_at`.                                                                         |
+| `/unmute`     | `UNMUTE_COMMAND`      | `user`, `reason?`                         | `member.timeout(null)`; also removes the muted role if role-mutes ever land. Log `unmute` case.                                                                                                             |
+| `/warn`       | `WARN_COMMAND`        | `user`, `reason`                          | Insert a `warn` case. Reply with the case id: "Warning #1234 added".                                                                                                                                        |
+| `/history`    | `HISTORY_COMMAND`     | `user`, optional `page`                   | Page through the user's cases newest-first, with the same pager as `attachPager`.                                                                                                                           |
+| `/delwarn`    | `DEL_WARN_COMMAND`    | `case_id`, optional `reason?`             | Delete only if `type = "warn"` for that exact id in this guild. The deleted case is logged as a `warn_clear` row so the audit trail keeps a trace.                                                          |
+| `/clearwarns` | `CLEAR_WARNS_COMMAND` | `user`                                    | Delete all `warn` rows for the user in this guild, log one `warn_clear` case.                                                                                                                               |
+| `/purge`      | `PURGE_COMMAND`       | `count` (1-100), `user?`, `contains?`     | `channel.bulkDelete` with optional filters. If `count` is a hot path, bulk-delete first then filter in memory for `user`/`contains`. Log one case per purge (any target user + reason summarizing filters). |
 
 `duration` parsing: no parser exists in the repo (`src/lib/time.ts` only
 has `formatDuration` and `TimeUnit`). Add `parseDuration("2d", "1h30m")` to
@@ -172,9 +172,9 @@ pattern for its own settings.
 
 Current settings:
 
-| Key | Type | Default | Notes |
-| --- | ---- | ------- | ----- |
-| `moderation.mod_log_channel` | channel id | null | Where `ModerationCaseCreatedEvent` posts land |
+| Key                          | Type       | Default | Notes                                         |
+| ---------------------------- | ---------- | ------- | --------------------------------------------- |
+| `moderation.mod_log_channel` | channel id | null    | Where `ModerationCaseCreatedEvent` posts land |
 
 Auto-actions (X warns → timeout, Y → ban) are explicitly deferred: they
 need a warn-counter read and a policy table, and add real complexity. The

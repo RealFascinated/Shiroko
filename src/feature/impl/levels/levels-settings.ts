@@ -3,7 +3,7 @@ import { FeatureIds } from "../../feature-ids";
 
 export interface LevelsSettingsData {
   messageXp: number;
-  messageCooldown: number; // milliseconds
+  messageCooldownMs: number;
   voiceXpPerMin: number;
   ignoredChannelIds: string[];
   announceChannelId: string | null;
@@ -20,7 +20,7 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
   featureId: FeatureIds.Levels,
   defaults: {
     messageXp: 10,
-    messageCooldown: 60_000,
+    messageCooldownMs: 60_000,
     voiceXpPerMin: 5,
     ignoredChannelIds: [],
     announceChannelId: null,
@@ -28,7 +28,7 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
   descriptors: [
     { key: "messageXp", label: "Message XP", type: "number", default: 10, min: 1 },
     {
-      key: "messageCooldown",
+      key: "messageCooldownMs",
       label: "Message cooldown",
       description: "Minimum time between XP-granting messages",
       type: "duration",
