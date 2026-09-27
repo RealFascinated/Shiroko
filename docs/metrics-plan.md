@@ -12,8 +12,9 @@ and the exporter.
 
 **Goals**
 
-- Instrument the bot with a small, typed metric registry: gauges and a
-  histogram, with per-metric metadata (help text, units).
+- Instrument the bot with a small, typed metric registry: gauges, a
+  histogram, and an event counter map, with per-metric metadata (help
+  text, units).
 - Collect a fixed set of health metrics (see §5) in-process without
   blocking the event loop.
 - Push them to VictoriaMetrics on a fixed interval with resilient
@@ -89,6 +90,42 @@ export class GaugeMetric extends Metric<number> {
 }
 ```
 
+### Counter map
+
+Monotonic, event-driven, but one metric with many series: the value is a
+map of event key to cumulative count, each key serialized as its own
+series under the same id with an `event` label. Events are added by
+extending the `DiscordEventName` union plus one handler in
+`EventVolumeListeners`; no new metric class or registration line. Only
+high-volume raw Discord gateway events are counted (load trends, per
+sec); rare admin events (role edits, invites) and bot-derived events
+(voice sessions) are excluded.
+
+```ts
+export type DiscordEventName =
+  "messages" | "member_joins" | "slash_commands" | "context_menus" | "components";
+
+export class DiscordEventsMetric extends Metric<Record<string, number>> {
+  public increment(event: DiscordEventName, by = 1): void {
+    this.counts.set(event, (this.counts.get(event) ?? 0) + by);
+  }
+  public value(): Record<string, number> {
+    return Object.fromEntries(this.counts);
+  }
+}
+```
+
+Series ids carry the Prometheus `_total` suffix (e.g.
+`discord_events_total`), and the `event` label splits the map into series:
+
+```
+discord_events_total{event="messages",job="arona"} 123
+discord_events_total{event="slash_commands",job="arona"} 45
+```
+
+so the dashboard can `rate(discord_events_total{event="messages"}[5m])`
+for per-event per-second rates.
+
 ### Histogram
 
 Buckets are fixed at construction; `observe` mantains cumulative bucket
@@ -156,16 +193,21 @@ export interface MetricSnapshot {
 
 ## 5. Required metrics
 
-| Metric               | Type      | Source                               |
-| -------------------- | --------- | ------------------------------------ |
-| `guilds`             | gauge     | `client.guilds.cache.size`           |
-| `seen_users`         | gauge     | `COUNT(*)` over `global_users`       |
-| `process_ram_used`   | gauge     | `process.memoryUsage().rss` (bytes)  |
-| `process_ram_total`  | gauge     | `os.totalmem()` (bytes)              |
-| `process_cpu_usage`  | gauge     | `process.cpuUsage()` delta (percent) |
-| `gateway_latency_ms` | gauge     | `client.ws.ping`                     |
-| `uptime_seconds`     | gauge     | `process.uptime()`                   |
-| `event_loop_ms`      | histogram | loop-slip measurement (see §6)       |
+| Metric                 | Type        | Source                               |
+| ---------------------- | ----------- | ------------------------------------ |
+| `guilds`               | gauge       | `client.guilds.cache.size`           |
+| `seen_users`           | gauge       | `COUNT(*)` over `global_users`       |
+| `process_ram_used`     | gauge       | `process.memoryUsage().rss` (bytes)  |
+| `process_ram_total`    | gauge       | `os.totalmem()` (bytes)              |
+| `process_cpu_usage`    | gauge       | `process.cpuUsage()` delta (percent) |
+| `gateway_latency_ms`   | gauge       | `client.ws.ping`                     |
+| `uptime_seconds`       | gauge       | `process.uptime()`                   |
+| `event_loop_ms`        | histogram   | loop-slip measurement (see §6)       |
+| `discord_events_total` | counter_map | bus events (see §6)                  |
+
+`discord_events_total` accumulates since boot with an `event` label per
+kind; the dashboard renders per-event per-second rates via PromQL
+`rate(discord_events_total{event="..."}[5m])`.
 
 All metrics carry the fixed label `job` (bot name). No feature ids.
 
@@ -180,16 +222,24 @@ line in `src/index.ts` (see §8); the manager picks up every registered
 metric automatically via `MetricManager.all()`, so adding a metric touches
 only its impl file and that one registration line.
 
-| File                   | Class                   | Source                             |
-| ---------------------- | ----------------------- | ---------------------------------- |
-| `guild-count.ts`       | `GuildsMetric`          | `client.guilds.cache.size`         |
-| `seen-users.ts`        | `SeenUsersMetric`       | `COUNT(*)` over `global_users`     |
-| `process-ram-used.ts`  | `ProcessRamUsedMetric`  | `process.memoryUsage().rss` (MiB)  |
-| `process-ram-total.ts` | `ProcessRamTotalMetric` | `os.totalmem()` (MiB)              |
-| `cpu-usage.ts`         | `ProcessCpuUsageMetric` | `process.cpuUsage()` delta, 0-100% |
-| `gateway-latency.ts`   | `GatewayLatencyMetric`  | `client.ws.ping`                   |
-| `uptime-seconds.ts`    | `UptimeMetric`          | `process.uptime()`                 |
-| `event-loop-delay.ts`  | `EventLoopMetric`       | loop-slip measurement              |
+| File                   | Class                   | Source                         |
+| ---------------------- | ----------------------- | ------------------------------ |
+| `guild-count.ts`       | `GuildsMetric`          | `client.guilds.cache.size`     |
+| `seen-users.ts`        | `SeenUsersMetric`       | `COUNT(*)` over `global_users` |
+| `process-ram-used.ts`  | `ProcessRamUsedMetric`  | `process.memoryUsage().rss`    |
+| `process-ram-total.ts` | `ProcessRamTotalMetric` | `os.totalmem()` (MiB)          |
+| `cpu-usage.ts`         | `ProcessCpuUsageMetric` | `process.cpuUsage()` delta     |
+| `gateway-latency.ts`   | `GatewayLatencyMetric`  | `client.ws.ping`               |
+| `uptime-seconds.ts`    | `UptimeMetric`          | `process.uptime()`             |
+| `event-loop-delay.ts`  | `EventLoopMetric`       | loop-slip measurement          |
+| `discord-events.ts`    | `DiscordEventsMetric`   | bus events (see below)         |
+
+`DiscordEventsMetric` is event-driven: it declares a placeholder
+`collectIntervalMs` (it has nothing to self-collect) and is bumped by
+`EventVolumeListeners` in `event-volume-listeners.ts`, which subscribes
+on the bus to the high-volume raw gateway events only:
+`MessageCreatedEvent`, `MemberGuildJoinEvent`, `SlashCommandReceivedEvent`,
+`ContextMenuReceivedEvent`, and `ComponentReceivedEvent`.
 
 `MetricManager` (in `src/metrics/index.ts`) extends `EventListener`, the
 `SettingsManager` pattern: it subscribes to the bus in its constructor and

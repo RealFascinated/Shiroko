@@ -1,4 +1,4 @@
-export type MetricKind = "gauge" | "histogram";
+export type MetricKind = "gauge" | "histogram" | "counter" | "counter_map";
 
 /**
  * Every metric carries the same registration metadata: an id, the

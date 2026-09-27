@@ -42,7 +42,7 @@ DEFAULT_TIME_SETTINGS = {
     "autoRefresh": "10s",
     "autoRefreshIntervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
     "fiscalYearStartMonth": 0,
-    "from": "now-6h",
+    "from": "now-7d",
     "hideTimepicker": False,
     "timezone": "browser",
     "to": "now",
@@ -104,14 +104,14 @@ CATEGORIES = [
         "key": "guilds",
         "title": "🏠 Guilds",
         "panels": [
-            {"key": "guilds", "title": "Guild count", "expr": "guilds{job=\"$job\"}", "unit": "short", "min": 0, "width": 24, "legend": "guilds"},
+            {"key": "guilds", "title": "Guild count", "expr": "last_over_time(guilds{job=\"$job\"}[1h])", "unit": "short", "width": 24, "legend": "guilds"},
         ],
     },
     {
         "key": "users",
         "title": "👥 Users",
         "panels": [
-            {"key": "seen-users", "title": "Distinct users seen", "expr": "seen_users{job=\"$job\"}", "unit": "short", "min": 0, "width": 24, "legend": "users"},
+            {"key": "seen-users", "title": "Distinct users seen", "expr": "last_over_time(seen_users{job=\"$job\"}[1h])", "unit": "short", "width": 24, "legend": "users"},
         ],
     },
     {
@@ -151,6 +151,57 @@ CATEGORIES = [
         "title": "⏱️ Uptime",
         "panels": [
             {"key": "uptime", "title": "Bot uptime", "expr": "uptime_seconds{job=\"$job\"}", "unit": "s", "min": 0, "width": 24, "legend": "uptime"},
+        ],
+    },
+    {
+        "key": "events",
+        "title": "📈 Events per second",
+        "panels": [
+            {
+                "key": "messages",
+                "title": "Messages",
+                "expr": "rate(discord_events_total{job=\"$job\",event=\"messages\"}[5m])",
+                "unit": "ops",
+                "min": 0,
+                "width": 8,
+                "legend": "messages",
+            },
+            {
+                "key": "slash-commands",
+                "title": "Slash commands",
+                "expr": "rate(discord_events_total{job=\"$job\",event=\"slash_commands\"}[5m])",
+                "unit": "ops",
+                "min": 0,
+                "width": 8,
+                "legend": "slash",
+            },
+            {
+                "key": "components",
+                "title": "Components",
+                "expr": "rate(discord_events_total{job=\"$job\",event=\"components\"}[5m])",
+                "unit": "ops",
+                "min": 0,
+                "width": 8,
+                "legend": "components",
+            },
+            {
+                "key": "context-menus",
+                "title": "Context menus",
+                "expr": "rate(discord_events_total{job=\"$job\",event=\"context_menus\"}[5m])",
+                "unit": "ops",
+                "min": 0,
+                "width": 8,
+                "legend": "context",
+            },
+            {
+                "key": "member-joins",
+                "title": "Member joins",
+                "expr": "rate(discord_events_total{job=\"$job\",event=\"member_joins\"}[5m])",
+                "unit": "ops",
+                "min": 0,
+                "width": 8,
+                "legend": "joins",
+            },
         ],
     },
     {

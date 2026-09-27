@@ -26,6 +26,24 @@ function encodePushPayload(snapshot: MetricSnapshot[], labels: Record<string, st
         lines.push(`${entry.id}${base} ${formatValue(entry.value as number)}`);
         break;
       }
+      case "counter": {
+        // `_total` suffix is already part of the id; PromQL `rate()`
+        // turns the cumulative count into a per-second rate.
+        lines.push(`${entry.id}${base} ${formatValue(entry.value as number)}`);
+        break;
+      }
+      case "counter_map": {
+        // One line per map key: each key becomes its own series (`event=`)
+        // under the same `_total` id, so `rate()` works per event.
+        const counts = entry.value as Record<string, number>;
+        const extra = formatLabels(labels);
+        for (const [event, count] of Object.entries(counts)) {
+          const labelsWithEvent =
+            extra === "" ? `{event="${event}"}` : extra.slice(0, -1) + `,event="${event}"}`;
+          lines.push(`${entry.id}${labelsWithEvent} ${formatValue(count)}`);
+        }
+        break;
+      }
       case "histogram": {
         const h = entry.value as HistogramValue;
         let cumulative = 0;

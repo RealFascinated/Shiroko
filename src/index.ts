@@ -16,8 +16,10 @@ import { env } from "./lib/env";
 import { PresenceListener } from "./lib/presence";
 import { VoiceKeepaliveListener } from "./lib/voice";
 import { MetricManager } from "./metrics";
+import { EventVolumeListeners } from "./metrics/event-volume-listeners";
 import { VictoriaMetricsExporter } from "./metrics/exporter";
 import { ProcessCpuUsageMetric } from "./metrics/impl/cpu-usage";
+import { DiscordEventsMetric } from "./metrics/impl/discord-events";
 import { EventLoopMetric } from "./metrics/impl/event-loop-delay";
 import { GatewayLatencyMetric } from "./metrics/impl/gateway-latency";
 import { GuildsMetric } from "./metrics/impl/guild-count";
@@ -53,6 +55,8 @@ metricManager.register(new ProcessRamTotalMetric());
 metricManager.register(new ProcessCpuUsageMetric());
 metricManager.register(new UptimeMetric());
 metricManager.register(new EventLoopMetric());
+const discordEventsMetric = metricManager.register(new DiscordEventsMetric());
+new EventVolumeListeners(discordEventsMetric);
 
 /**
  * Guild lifecycle logging and one-time command sync on ready. Lives here
