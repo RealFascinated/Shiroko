@@ -103,7 +103,7 @@ sec); rare admin events (role edits, invites) and bot-derived events
 
 ```ts
 export type DiscordEventName =
-  "messages" | "member_joins" | "slash_commands" | "context_menus" | "components";
+  "messages" | "member_joins" | "presence_changes" | "slash_commands" | "context_menus" | "components";
 
 export class DiscordEventsMetric extends Metric<Record<string, number>> {
   public increment(event: DiscordEventName, by = 1): void {
@@ -238,8 +238,9 @@ only its impl file and that one registration line.
 `collectIntervalMs` (it has nothing to self-collect) and is bumped by
 `EventVolumeListeners` in `event-volume-listeners.ts`, which subscribes
 on the bus to the high-volume raw gateway events only:
-`MessageCreatedEvent`, `MemberGuildJoinEvent`, `SlashCommandReceivedEvent`,
-`ContextMenuReceivedEvent`, and `ComponentReceivedEvent`.
+`MessageCreatedEvent`, `MemberGuildJoinEvent`, `UserPresenceChangedEvent`,
+`SlashCommandReceivedEvent`, `ContextMenuReceivedEvent`, and
+`ComponentReceivedEvent`.
 
 `MetricManager` (in `src/metrics/index.ts`) extends `EventListener`, the
 `SettingsManager` pattern: it subscribes to the bus in its constructor and

@@ -13,6 +13,7 @@ import MessageCreatedEvent from "./events/message-created.event";
 import RoleDeletedEvent from "./events/role-deleted.event";
 import RoleUpdatedEvent from "./events/role-updated.event";
 import SlashCommandReceivedEvent from "./events/slash-command-received.event";
+import UserPresenceChangedEvent from "./events/user-presence-changed.event";
 import VoiceStateChangedEvent from "./events/voice-state-changed.event";
 
 /**
@@ -99,6 +100,14 @@ export default class EventBridge {
       if (oldMember.roles.cache.size !== newMember.roles.cache.size) {
         void EventBus.post(new MemberRolesUpdatedEvent(oldMember, newMember));
       }
+    });
+
+    client.on(Events.PresenceUpdate, (oldPresence, newPresence) => {
+      const user = newPresence.user;
+      if (user?.bot) {
+        return;
+      }
+      void EventBus.post(new UserPresenceChangedEvent(oldPresence, newPresence));
     });
 
     client.on(Events.InteractionCreate, interaction => {

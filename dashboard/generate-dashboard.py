@@ -202,6 +202,15 @@ CATEGORIES = [
                 "width": 8,
                 "legend": "joins",
             },
+            {
+                "key": "presence-changes",
+                "title": "Presence changes",
+                "expr": "rate(discord_events_total{job=\"$job\",event=\"presence_changes\"}[5m])",
+                "unit": "ops",
+                "min": 0,
+                "width": 8,
+                "legend": "presence",
+            },
         ],
     },
     {

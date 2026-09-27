@@ -2,7 +2,7 @@ import { Metric } from "../metric";
 
 /** Event kinds counted by {@link DiscordEventsMetric}: the high-volume raw Discord gateway events. */
 export type DiscordEventName =
-  "messages" | "member_joins" | "slash_commands" | "context_menus" | "components";
+  "messages" | "member_joins" | "presence_changes" | "slash_commands" | "context_menus" | "components";
 
 /**
  * Discord event volume as one map metric. Each key becomes its own time

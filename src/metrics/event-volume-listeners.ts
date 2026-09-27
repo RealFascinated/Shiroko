@@ -6,6 +6,7 @@ import ContextMenuReceivedEvent from "../event/events/context-menu-received.even
 import MemberGuildJoinEvent from "../event/events/member-guild-join.event";
 import MessageCreatedEvent from "../event/events/message-created.event";
 import SlashCommandReceivedEvent from "../event/events/slash-command-received.event";
+import UserPresenceChangedEvent from "../event/events/user-presence-changed.event";
 import type { DiscordEventsMetric } from "./impl/discord-events";
 
 /**
@@ -28,6 +29,11 @@ export class EventVolumeListeners extends EventListener {
   @EventHandler(MemberGuildJoinEvent)
   public onMemberGuildJoin(): void {
     this.events.increment("member_joins");
+  }
+
+  @EventHandler(UserPresenceChangedEvent)
+  public onUserPresenceChanged(): void {
+    this.events.increment("presence_changes");
   }
 
   @EventHandler(SlashCommandReceivedEvent)
