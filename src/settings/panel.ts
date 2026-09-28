@@ -452,9 +452,8 @@ async function resolveMentionLike(guild: Guild, input: string): Promise<string |
 /**
  * Read the submitted value out of a modal by its component custom id.
  */
-export function dialogValueFrom(interaction: ModalSubmitInteraction): string | readonly string[] {
-  const selectValues = interaction.fields.getStringSelectValues("value");
-  return selectValues.length > 0 ? selectValues : interaction.fields.getTextInputValue("value");
+export function dialogValueFrom(interaction: ModalSubmitInteraction): string {
+  return interaction.fields.getTextInputValue("value");
 }
 
 /**
