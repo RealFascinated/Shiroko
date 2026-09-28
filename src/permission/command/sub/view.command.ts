@@ -1,9 +1,13 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { roleOption, type CommandOptionBuilder } from "@/command/option";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
-import { attachPager } from "@/lib/pagination";
-import Permissions, { FLAG_DISPLAY_NAMES, flagLabels } from "@/permission/permissions";
-import { InteractionResponse, type ChatInputCommandInteraction } from "discord.js";
+import { attachPager, loadPage, type Page } from "@/lib/pagination";
+import Permissions, {
+  FLAG_DISPLAY_NAMES,
+  flagLabels,
+  type PaginatedRoleConfig,
+} from "@/permission/permissions";
+import { type ChatInputCommandInteraction, type InteractionResponse } from "discord.js";
 
 /** How many permissions to list per page. */
 const PERMISSIONS_PER_PAGE = 10;
@@ -13,7 +17,8 @@ const PERMISSIONS_PER_PAGE = 10;
  *
  * With `role`: lists every permission flag and whether the role effectively
  * holds it (✅ / ❌), plus own permissions and parent. Without `role`: lists
- * every configured role and its effective permissions, grouped into pages.
+ * every configured role and its effective permissions, a page at a time
+ * selected by the database.
  */
 export default class PermissionsViewCommand extends Command {
   constructor() {
@@ -34,38 +39,41 @@ export default class PermissionsViewCommand extends Command {
       );
     }
     const role = args.role("role");
-    const configs = await Permissions.allConfigs(guild.id);
     if (role) {
       return this.showRole(
         ctx,
         commandName,
         role.name === "@everyone" ? "@everyone" : role.name,
         role.id,
-        configs,
         guild
       );
     }
-    if (configs.size === 0) {
+    const firstPage = await Permissions.pageConfigs(guild.id, 1, PERMISSIONS_PER_PAGE);
+    if (firstPage.rows.length === 0) {
       return ctx.reply({
         embeds: [
           baseEmbed(commandName).setDescription("No permissions configured; defaults to no permissions."),
         ],
       });
     }
-    return this.showGuild(ctx, commandName, configs, guild);
+    return this.showGuild(ctx, commandName, guild, firstPage);
   }
 
   /**
    * View a single role: every flag and its effective state, paginated.
+   *
+   * The flag list is a compile-time constant, so there is no table to page;
+   * it still goes through the shared page contract so every pager behaves
+   * the same.
    */
   private async showRole(
     ctx: ChatInputCommandInteraction,
     commandName: string,
     title: string,
     roleId: string,
-    configs: Map<string, { own: bigint; parent: string | null }>,
     guild: NonNullable<ExecuteContext["guild"]>
   ): Promise<InteractionResponse<boolean> | void> {
+    const configs = await Permissions.allConfigs(guild.id);
     const config = configs.get(roleId);
     const effective = Permissions.resolveEffective(configs, roleId);
     const parentName = config?.parent ? this.roleName(guild, config.parent) : "None";
@@ -73,10 +81,15 @@ export default class PermissionsViewCommand extends Command {
       label,
       state: (effective & flag) === flag,
     }));
-    const pageCount = Math.ceil(entries.length / PERMISSIONS_PER_PAGE);
-    const render = (page: number) => {
-      const slice = entries.slice((page - 1) * PERMISSIONS_PER_PAGE, page * PERMISSIONS_PER_PAGE);
-      const lines = slice.map(({ label, state }) => `${state ? "✅" : "❌"} **${label}**`);
+    const fetchPage = (page: number) =>
+      loadPage({
+        page,
+        pageSize: PERMISSIONS_PER_PAGE,
+        count: async () => entries.length,
+        rows: async (limit, offset) => entries.slice(offset, offset + limit),
+      });
+    const render = (page: Page<(typeof entries)[number]>) => {
+      const lines = page.rows.map(({ label, state }) => `${state ? "✅" : "❌"} **${label}**`);
       return {
         embeds: [
           baseEmbed(commandName)
@@ -93,44 +106,46 @@ export default class PermissionsViewCommand extends Command {
         ],
       };
     };
-    const firstPage = render(1);
-    const response = await ctx.reply({ embeds: firstPage.embeds });
-    if (response instanceof InteractionResponse && pageCount > 1) {
-      await attachPager(response, { namespace: "perm-view", userId: ctx.user.id, pageCount, render });
-    }
+    const firstPage = await fetchPage(1);
+    const response = await ctx.reply(render(firstPage));
+    await attachPager(response, {
+      namespace: "perm-view",
+      userId: ctx.user.id,
+      page: firstPage,
+      fetchPage,
+      render,
+    });
     return response;
   }
 
   /**
-   * View the whole guild: every configured role and its effective
-   * flags, paginated by role.
+   * View the whole guild: every configured role and its effective flags, one
+   * database-selected page at a time.
    */
   private async showGuild(
     ctx: ChatInputCommandInteraction,
     commandName: string,
-    configs: Map<string, { own: bigint; parent: string | null }>,
-    guild: NonNullable<ExecuteContext["guild"]>
+    guild: NonNullable<ExecuteContext["guild"]>,
+    firstPage: Page<PaginatedRoleConfig>
   ): Promise<InteractionResponse<boolean> | void> {
-    const roles = Array.from(configs.entries());
-    const pageCount = Math.ceil(roles.length / PERMISSIONS_PER_PAGE);
-    const render = (page: number) => {
-      const slice = roles.slice((page - 1) * PERMISSIONS_PER_PAGE, page * PERMISSIONS_PER_PAGE);
-      const lines = slice.map(([roleId, config]) => {
-        const effective = Permissions.resolveEffective(configs, roleId);
-        const role = guild.roles.cache.get(roleId);
-        const roleName = role?.name === "@everyone" ? "@everyone" : (role?.name ?? `<@&${roleId}>`);
+    const render = (page: Page<PaginatedRoleConfig>) => {
+      const lines = page.rows.map(({ roleId, parent, effective }) => {
         const flags = flagLabels(effective).join(", ") || "no permissions";
-        return `**${roleName}**: ${flags}${config.parent ? ` (inherits from ${this.roleName(guild, config.parent)})` : ""}`;
+        const inherited = parent ? ` (inherits from ${this.roleName(guild, parent)})` : "";
+        return `**${this.roleName(guild, roleId)}**: ${flags}${inherited}`;
       });
       return {
         embeds: [baseEmbed(commandName).setTitle("🔒 Role Permissions").setDescription(lines.join("\n"))],
       };
     };
-    const firstPage = render(1);
-    const response = await ctx.reply({ embeds: firstPage.embeds });
-    if (response instanceof InteractionResponse && pageCount > 1) {
-      await attachPager(response, { namespace: "perm-view", userId: ctx.user.id, pageCount, render });
-    }
+    const response = await ctx.reply(render(firstPage));
+    await attachPager(response, {
+      namespace: "perm-view",
+      userId: ctx.user.id,
+      page: firstPage,
+      fetchPage: page => Permissions.pageConfigs(guild.id, page, PERMISSIONS_PER_PAGE),
+      render,
+    });
     return response;
   }
 

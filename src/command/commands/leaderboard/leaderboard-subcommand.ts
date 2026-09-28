@@ -2,7 +2,7 @@ import Command, { type ExecuteContext } from "@/command/command";
 import type Leaderboard from "@/leaderboard/leaderboard";
 import { type LeaderboardRow } from "@/leaderboard/leaderboard";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
-import { attachPager } from "@/lib/pagination";
+import { attachPager, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
 
 /**
@@ -36,16 +36,10 @@ export default abstract class LeaderboardSubCommand extends Command {
       return;
     }
     const guildId = guild.id;
-    const page = await this.board.getPage(guildId, 1);
-    if (page.rows.length === 0) {
-      return ctx.reply(
-        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription(this.emptyMessage))
-      );
-    }
-    const renderPage = async (pageNo: number) => {
-      const data = await this.board.getPage(guildId, pageNo);
-      const lines = data.rows.map((row, index) => {
-        const position = (pageNo - 1) * data.pageSize + index + 1;
+    const board = this.board;
+    const render = async (page: Page<LeaderboardRow>) => {
+      const lines = page.rows.map((row, index) => {
+        const position = (page.page - 1) * page.pageSize + index + 1;
         return this.renderRow(row, position);
       });
       const embed = baseEmbed(commandName).setTitle(this.title).setDescription(lines.join("\n"));
@@ -57,12 +51,19 @@ export default abstract class LeaderboardSubCommand extends Command {
         embeds: [embed],
       };
     };
-    const response = await ctx.reply(await renderPage(1));
+    const firstPage = await board.getPage(guildId, 1);
+    if (firstPage.rows.length === 0) {
+      return ctx.reply(
+        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription(this.emptyMessage))
+      );
+    }
+    const response = await ctx.reply(await render(firstPage));
     await attachPager(response, {
       namespace: this.id,
       userId: ctx.user.id,
-      pageCount: page.pageCount,
-      render: renderPage,
+      page: firstPage,
+      fetchPage: page => board.getPage(guildId, page),
+      render,
     });
   }
 }

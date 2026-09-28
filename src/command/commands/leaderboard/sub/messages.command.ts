@@ -2,7 +2,7 @@ import LeaderboardManager from "@/leaderboard/index";
 import type Leaderboard from "@/leaderboard/leaderboard";
 import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
 import { ordinal, pluralise } from "@/lib/format";
-import LeaderboardSubCommand from "./leaderboard-subcommand";
+import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 /**
  * Show the server's total message-count leaderboard, most messages first.

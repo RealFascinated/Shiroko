@@ -1,3 +1,5 @@
+import type { Page } from "../lib/pagination";
+
 /**
  * What a leaderboard ranks: user ids or guild ids. Drives how callers
  * resolve display names.
@@ -27,22 +29,6 @@ export enum LeaderboardId {
 export interface LeaderboardRow {
   id: string;
   value: number;
-}
-
-/**
- * One page of a leaderboard: the ranked rows for that page plus the
- * totals callers need to render pagination.
- */
-export interface LeaderboardPage<T extends LeaderboardRow> {
-  /** 1-based page number, clamped into range. */
-  page: number;
-  /** The effective page size after clamping. */
-  pageSize: number;
-  /** Total pages; 1 for an empty board. */
-  pageCount: number;
-  /** Total ranked entities in scope. */
-  total: number;
-  rows: T[];
 }
 
 /**
@@ -80,9 +66,10 @@ export default abstract class Leaderboard<T extends LeaderboardRow> {
    * One page of the board in `scope` (a guild id for guild-scoped
    * boards, ignored for global boards). `page` is 1-based and clamped
    * into range; `pageSize` defaults to {@link DEFAULT_PAGE_SIZE} and is
-   * clamped to [1, MAX_PAGE_SIZE].
+   * clamped to [1, MAX_PAGE_SIZE]. The page's rows come from the
+   * database via `LIMIT`/`OFFSET`, never from slicing a full result.
    */
-  public abstract getPage(scope: string, page: number, pageSize?: number): Promise<LeaderboardPage<T>>;
+  public abstract getPage(scope: string, page: number, pageSize?: number): Promise<Page<T>>;
 
   /**
    * One entity's standing in `scope`: its 1-based position (ties share

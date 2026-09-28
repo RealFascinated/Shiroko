@@ -1,12 +1,10 @@
 import { db } from "@/db/index";
 import { guildBirthdays } from "@/db/schemas/guild-birthdays";
+import { loadPage, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import { birthdaySettings } from "./birthday-settings";
-import { ageInYears, daysUntil } from "./date";
-
-/** How many rows `/birthday upcoming` lists. */
-const UPCOMING_LIMIT = 10;
+import { ageInYears } from "./date";
 
 export interface BirthdayRow {
   month: number;
@@ -25,6 +23,36 @@ export interface UpcomingBirthday {
   day: number;
   /** Days from today until the next occurrence; 0 means today. */
   inDays: number;
+}
+
+/** Default rows per page for {@link BirthdayService.upcoming}. */
+export const UPCOMING_PAGE_SIZE = 10;
+
+/**
+ * The next occurrence of a stored birthday on or after `today`, as a
+ * UTC date. Postgres computes it so the ordering and the `LIMIT`/`OFFSET`
+ * window happen in one query.
+ *
+ * A 29 February birthday only exists in leap years, so the search walks
+ * forward until the constructed date lands on the stored month and day
+ * instead of rolling into 1 March. This mirrors `daysUntil` in `date.ts`,
+ * which the sweep relies on; the two must agree on when a birthday is.
+ */
+function nextOccurrence(today: string): SQL {
+  return sql`(
+    select min(candidate.occurrence)
+    from generate_series(0, 8) as step
+    cross join lateral (
+      select make_date(
+        extract(year from ${today}::date)::int + step,
+        extract(month from ${guildBirthdays.birthDate})::int,
+        1
+      ) + (extract(day from ${guildBirthdays.birthDate})::int - 1) as occurrence
+    ) as candidate
+    where extract(month from candidate.occurrence) = extract(month from ${guildBirthdays.birthDate})
+      and extract(day from candidate.occurrence) = extract(day from ${guildBirthdays.birthDate})
+      and candidate.occurrence >= ${today}::date
+  )`;
 }
 
 /**
@@ -77,34 +105,54 @@ export default class BirthdayService {
   }
 
   /**
-   * The next `UPCOMING_LIMIT` birthdays in a guild, soonest first, with
-   * today present as `inDays: 0`.
+   * One page of a guild's member birthdays, soonest first, with today
+   * present as `inDays: 0`.
    *
-   * `memberIds` is the guild's current membership: stored rows outlive
-   * membership, so rows for departed members are dropped before the limit is
-   * applied. Takes the reference instant rather than a separate month and
-   * day so "today" cannot disagree with itself.
+   * Ordering, projection, counting, and the page window all happen in
+   * Postgres, so a guild with thousands of saved birthdays still reads one
+   * page. `memberIds` is the guild's current membership, which lives in
+   * Discord's cache rather than the DB: stored rows outlive membership, so
+   * rows for departed members are filtered out in the same query. Takes the
+   * reference instant rather than a separate month and day so "today"
+   * cannot disagree with itself.
    */
   public async upcoming(
     guildId: string,
     memberIds: ReadonlySet<string>,
+    page: number = 1,
+    pageSize: number = UPCOMING_PAGE_SIZE,
     now: Date = new Date()
-  ): Promise<UpcomingBirthday[]> {
-    const rows = await db
-      .select({ userId: guildBirthdays.userId, birthDate: guildBirthdays.birthDate })
-      .from(guildBirthdays)
-      .where(eq(guildBirthdays.guildId, guildId));
-
-    const upcoming: UpcomingBirthday[] = [];
-    for (const row of rows) {
-      if (!memberIds.has(row.userId)) {
-        continue;
-      }
-      const month = row.birthDate.getUTCMonth() + 1;
-      const day = row.birthDate.getUTCDate();
-      upcoming.push({ userId: row.userId, month, day, inDays: daysUntil(month, day, now) });
-    }
-    return upcoming.sort((a, b) => a.inDays - b.inDays).slice(0, UPCOMING_LIMIT);
+  ): Promise<Page<UpcomingBirthday>> {
+    const today = now.toISOString().slice(0, 10);
+    const occurrence = nextOccurrence(today);
+    const inScope = and(
+      eq(guildBirthdays.guildId, guildId),
+      sql`${guildBirthdays.userId} = any(${sql.param([...memberIds])})`
+    );
+    return loadPage({
+      page,
+      pageSize,
+      count: async () => {
+        const [row] = await db
+          .select({ total: sql<number>`count(*)`.mapWith(Number) })
+          .from(guildBirthdays)
+          .where(inScope);
+        return row?.total ?? 0;
+      },
+      rows: (limit, offset) =>
+        db
+          .select({
+            userId: guildBirthdays.userId,
+            month: sql<number>`extract(month from ${guildBirthdays.birthDate})::int`.mapWith(Number),
+            day: sql<number>`extract(day from ${guildBirthdays.birthDate})::int`.mapWith(Number),
+            inDays: sql<number>`${occurrence} - ${today}::date`.mapWith(Number),
+          })
+          .from(guildBirthdays)
+          .where(inScope)
+          .orderBy(occurrence, guildBirthdays.userId)
+          .limit(limit)
+          .offset(offset),
+    });
   }
 
   /**

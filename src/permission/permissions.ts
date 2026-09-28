@@ -1,5 +1,5 @@
 import { PermissionFlagsBits, type Guild, type GuildMember } from "discord.js";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/index";
 import { permissionRoles } from "../db/schemas/guild-permissions";
 import { EventBus } from "../event/event-bus";
@@ -8,6 +8,7 @@ import { EventListener } from "../event/event-listener";
 import MemberRolesUpdatedEvent from "../event/events/member-roles-updated.event";
 import RoleDeletedEvent from "../event/events/role-deleted.event";
 import RoleUpdatedEvent from "../event/events/role-updated.event";
+import { loadPage, type Page } from "../lib/pagination";
 
 /**
  * One bit per bot permission; named after the command it gates. Bits are
@@ -54,6 +55,15 @@ export function hasFlags(flags: bigint, required: bigint): boolean {
 export const ALLOW_ADMIN_BYPASS = true;
 
 type RoleConfig = { own: bigint; parent: string | null };
+
+/**
+ * One configured role as listed by `/permissions view`, with the flags it
+ * effectively holds once inheritance is applied.
+ */
+export interface PaginatedRoleConfig extends RoleConfig {
+  roleId: string;
+  effective: bigint;
+}
 
 /** `guildId:roleId` → configured row (own + parent). Absent = no configured row (defaults to no flags). */
 const ROLE_CACHE = new Map<string, RoleConfig>();
@@ -188,6 +198,84 @@ export default class Permissions {
   public static async allConfigs(guildId: string): Promise<Map<string, RoleConfig>> {
     const rows = await db.select().from(permissionRoles).where(eq(permissionRoles.guildId, guildId));
     return new Map(rows.map(r => [r.roleId, { own: BigInt(r.flags), parent: r.parentRoleId }]));
+  }
+
+  /**
+   * One page of the guild's configured roles, ordered by role id, each with
+   * the flags it effectively holds. Postgres selects the page
+   * (`LIMIT`/`OFFSET`) and counts the total.
+   *
+   * Resolution walks a role's ancestry, which reaches outside the page, so
+   * the query also returns each page role's ancestor chain (depth-capped in
+   * case stored rows form a cycle). The in-memory walk stays
+   * {@link Permissions.resolveEffective}, so inheritance is defined once.
+   */
+  public static async pageConfigs(
+    guildId: string,
+    page: number,
+    pageSize: number
+  ): Promise<Page<PaginatedRoleConfig>> {
+    return loadPage({
+      page,
+      pageSize,
+      count: async () => {
+        const [row] = await db
+          .select({ total: sql<number>`count(*)`.mapWith(Number) })
+          .from(permissionRoles)
+          .where(eq(permissionRoles.guildId, guildId));
+        return row?.total ?? 0;
+      },
+      rows: async (limit, offset) => {
+        const result = await db.execute(sql`
+          with recursive page_roles as (
+            select role_id from permission_roles
+            where guild_id = ${guildId}
+            order by role_id
+            limit ${limit} offset ${offset}
+          ), ancestry as (
+            select configured.role_id as role_id, configured.flags as flags,
+              configured.parent_role_id as parent_role_id,
+              configured.role_id as root, array[configured.role_id] as visited
+            from permission_roles configured
+            join page_roles page on page.role_id = configured.role_id
+            where configured.guild_id = ${guildId}
+            union all
+            select ancestor.role_id, ancestor.flags, ancestor.parent_role_id,
+              ancestry.root, ancestry.visited || ancestor.role_id
+            from ancestry
+            join permission_roles ancestor on ancestor.role_id = ancestry.parent_role_id
+            where ancestor.guild_id = ${guildId}
+              and not (ancestor.role_id = any(ancestry.visited))
+          )
+          select role_id, flags, parent_role_id, root from ancestry
+        `);
+        const chains = new Map<string, Map<string, RoleConfig>>();
+        for (const row of result.rows as Array<{
+          role_id: string;
+          flags: string;
+          parent_role_id: string | null;
+          root: string;
+        }>) {
+          const chain = chains.get(row.root) ?? new Map<string, RoleConfig>();
+          chain.set(row.role_id, { own: BigInt(row.flags), parent: row.parent_role_id });
+          chains.set(row.root, chain);
+        }
+        const pageRoles: PaginatedRoleConfig[] = [];
+        for (const [roleId, chain] of chains) {
+          const own = chain.get(roleId);
+          if (!own) {
+            continue;
+          }
+          pageRoles.push({
+            roleId,
+            own: own.own,
+            parent: own.parent,
+            effective: Permissions.resolveEffective(chain, roleId),
+          });
+        }
+        return pageRoles.sort((a, b) => (a.roleId < b.roleId ? -1 : a.roleId > b.roleId ? 1 : 0));
+      },
+    });
   }
 
   public static async roleOwnFlags(guildId: string, roleId: string): Promise<bigint> {

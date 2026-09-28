@@ -1,8 +1,8 @@
+import { loadPage, type Page } from "../lib/pagination";
 import Leaderboard, {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
   type LeaderboardEntity,
-  type LeaderboardPage,
   type LeaderboardPosition,
   type LeaderboardRow,
   type LeaderboardScope,
@@ -41,19 +41,13 @@ export abstract class GuildLeaderboard<T extends LeaderboardRow> extends Leaderb
    */
   protected abstract total(scope: string): Promise<number>;
 
-  public async getPage(
-    scope: string,
-    page: number,
-    pageSize: number = DEFAULT_PAGE_SIZE
-  ): Promise<LeaderboardPage<T>> {
-    const clampedSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
-    const [rows, total] = await Promise.all([
-      this.fetchTop(scope, clampedSize, (page - 1) * clampedSize),
-      this.total(scope),
-    ]);
-    const pageCount = Math.max(1, Math.ceil(total / clampedSize));
-    const clampedPage = Math.min(Math.max(1, page), pageCount);
-    return { page: clampedPage, pageSize: clampedSize, pageCount, total, rows };
+  public async getPage(scope: string, page: number, pageSize: number = DEFAULT_PAGE_SIZE): Promise<Page<T>> {
+    return loadPage({
+      page,
+      pageSize: Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE),
+      count: () => this.total(scope),
+      rows: (limit, offset) => this.fetchTop(scope, limit, offset),
+    });
   }
 
   public async getPosition(scope: string, id: string): Promise<LeaderboardPosition<T>> {

@@ -3,7 +3,7 @@ import LeaderboardManager from "@/leaderboard/index";
 import type Leaderboard from "@/leaderboard/leaderboard";
 import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
 import { ordinal } from "@/lib/format";
-import LeaderboardSubCommand from "./leaderboard-subcommand";
+import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 /**
  * Show the server's levelling leaderboard, most XP first.

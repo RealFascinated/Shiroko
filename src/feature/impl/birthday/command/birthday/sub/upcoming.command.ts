@@ -1,16 +1,22 @@
 import Command, { type ExecuteContext } from "@/command/command";
-import { birthdayService } from "@/feature/impl/birthday/birthday.service";
+import {
+  birthdayService,
+  UPCOMING_PAGE_SIZE,
+  type UpcomingBirthday,
+} from "@/feature/impl/birthday/birthday.service";
 import { monthName } from "@/feature/impl/birthday/date";
 import { baseEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
+import { attachPager, type Page } from "@/lib/pagination";
 
 /**
- * List the next ten birthdays in the server, soonest first, with today's
- * celebrations called out.
+ * List the server's saved birthdays, soonest first, with today's
+ * celebrations called out and the button pager when they span more than
+ * one page. Each page is fetched from the database by the service.
  */
 export default class UpcomingCommand extends Command {
   constructor() {
-    super("upcoming", "Show the next 10 birthdays in this server");
+    super("upcoming", "Show upcoming birthdays in this server");
   }
 
   protected override async onExecuteSlash({ guild, ctx, commandName }: ExecuteContext) {
@@ -18,20 +24,36 @@ export default class UpcomingCommand extends Command {
       return;
     }
     const memberIds = new Set(guild.members.cache.keys());
-    const upcoming = await birthdayService.upcoming(guild.id, memberIds);
-    const embed = baseEmbed(commandName).setTitle(`🎂 Upcoming Birthdays: ${guild.name}`);
+    const title = `🎂 Upcoming Birthdays: ${guild.name}`;
+    const fetchPage = (page: number): Promise<Page<UpcomingBirthday>> =>
+      birthdayService.upcoming(guild.id, memberIds, page, UPCOMING_PAGE_SIZE);
+    const firstPage = await fetchPage(1);
 
-    if (upcoming.length === 0) {
+    if (firstPage.rows.length === 0) {
       return ctx.reply({
-        embeds: [embed.setDescription("No birthdays saved yet. Use `/birthday set` to add yours.")],
+        embeds: [
+          baseEmbed(commandName)
+            .setTitle(title)
+            .setDescription("No birthdays saved yet. Use `/birthday set` to add yours."),
+        ],
       });
     }
 
-    const lines = upcoming.map(entry => {
-      const when =
-        entry.inDays === 0 ? "**Today!**" : `in ${entry.inDays} day${entry.inDays === 1 ? "" : "s"}`;
-      return `<@${entry.userId}> - ${monthName(entry.month)} ${ordinal(entry.day)} (${when})`;
+    const render = (page: Page<UpcomingBirthday>) => {
+      const lines = page.rows.map(entry => {
+        const when =
+          entry.inDays === 0 ? "**Today!**" : `in ${entry.inDays} day${entry.inDays === 1 ? "" : "s"}`;
+        return `<@${entry.userId}> - ${monthName(entry.month)} ${ordinal(entry.day)} (${when})`;
+      });
+      return { embeds: [baseEmbed(commandName).setTitle(title).setDescription(lines.join("\n"))] };
+    };
+    const response = await ctx.reply(render(firstPage));
+    await attachPager(response, {
+      namespace: "birthday-upcoming",
+      userId: ctx.user.id,
+      page: firstPage,
+      fetchPage,
+      render,
     });
-    return ctx.reply({ embeds: [embed.setDescription(lines.join("\n"))] });
   }
 }

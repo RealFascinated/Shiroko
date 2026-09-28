@@ -4,7 +4,7 @@ import type Leaderboard from "@/leaderboard/leaderboard";
 import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
 import { ordinal, pluralise } from "@/lib/format";
 import type { Guild } from "discord.js";
-import LeaderboardSubCommand from "./leaderboard-subcommand";
+import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 /**
  * Show the server's invite leaderboard, most invites first.
