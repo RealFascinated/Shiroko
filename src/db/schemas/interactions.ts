@@ -1,5 +1,5 @@
 import { integer, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
-import { globalUsers } from "../../../db/schema";
+import { globalUsers } from "./global-users";
 
 export const interactions = pgTable(
   "interactions",

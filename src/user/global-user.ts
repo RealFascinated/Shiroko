@@ -1,5 +1,5 @@
 import type { User } from "discord.js";
-import type { GlobalUserSchema } from "../db/schema";
+import type { GlobalUserSchema } from "../db/schemas/global-users";
 
 export default class GlobalUser {
   public readonly id: string;

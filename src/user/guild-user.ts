@@ -1,5 +1,5 @@
 import type { User } from "discord.js";
-import type { GuildUserSchema } from "../db/schema";
+import type { GuildUserSchema } from "../db/schemas/guild-users";
 
 export default class GuildUser {
   public readonly guildId: string;

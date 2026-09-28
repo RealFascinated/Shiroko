@@ -12,7 +12,7 @@ Postgres, mirroring the `LevelsService` and `InvitesService` convention.
 
 Leaderboards cut across features (level XP, messages, invites, voice), so
 they do not belong inside a single feature folder. They read the central
-`src/db/schema.ts` the same way the feature services do, so the whole
+`src/db/schemas/` tables the same way the feature services do, so the whole
 service is self-contained in one top-level folder, sibling to
 `src/permission/` and `src/event/`:
 

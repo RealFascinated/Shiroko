@@ -1,6 +1,6 @@
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "../../db";
-import { inviteJoins } from "../../feature/impl/invites/schema";
+import { inviteJoins } from "../../db/schemas/invite-joins";
 import { LeaderboardId, type LeaderboardRow } from "../leaderboard";
 import { UserLeaderboard } from "../user-leaderboard";
 

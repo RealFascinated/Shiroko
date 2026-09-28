@@ -1,4 +1,4 @@
-import type { JsonValue } from "../db/schema";
+import type { JsonValue } from "../db/schemas/guild-settings";
 import type { FeatureIds } from "../feature/feature-ids";
 import GuildSettings from "./guild-settings";
 

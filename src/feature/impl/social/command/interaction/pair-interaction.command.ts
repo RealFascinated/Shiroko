@@ -8,7 +8,6 @@ import {
   type MessageActionRowComponentBuilder,
   type User,
 } from "discord.js";
-import SocialService, { type InteractionType } from "../../social.service";
 import Command, { type ExecuteContext } from "../../../../../command/command";
 import { userOption } from "../../../../../command/option";
 import { getGif, type AnimeGif } from "../../../../../lib/anime";
@@ -16,6 +15,7 @@ import { baseEmbed, watchButtonPress } from "../../../../../lib/embed";
 import { ordinal, titleCase } from "../../../../../lib/format";
 import { TimeUnit } from "../../../../../lib/time";
 import GlobalUsersManager from "../../../../../user/global-users-manager";
+import SocialService, { type InteractionType } from "../../social.service";
 
 /** Discriminator for this test command, e.g. `interaction-back:hug`. */
 const BACK_BUTTON_PREFIX = "interaction-back";

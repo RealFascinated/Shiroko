@@ -171,7 +171,7 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 Postgres runs via Docker Compose (`docker-compose.yml`, `postgres:16-alpine`); start it with `docker compose up -d`. Connection config lives in `.env` (`DATABASE_URL`).
 
-Drizzle ORM wraps the `pg` driver (`drizzle-orm/node-postgres`). `db` is exported from `src/db/index.ts`; tables are exported from `src/db/schema.ts`.
+Drizzle ORM wraps the `pg` driver (`drizzle-orm/node-postgres`). `db` is exported from `src/db/index.ts`; tables live in `src/db/schemas/`, one file per table named after it (`guild-users.ts`, `user-levels.ts`, `guild-settings.ts`, ...).
 
 - Migrations: `bunx drizzle-kit generate` to create, `bunx drizzle-kit migrate` to apply. `push` applies schema without migration files; `drop` removes them.
 - `drizzle/meta/` is machine-generated and prettier-ignored; don't hand-edit it.

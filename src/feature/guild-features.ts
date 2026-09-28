@@ -1,7 +1,7 @@
 import type { Guild } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db";
-import { guildFeatures } from "../db/schema";
+import { guildFeatures } from "../db/schemas/guild-features";
 import Feature from "./feature";
 import type { FeatureIds } from "./feature-ids";
 

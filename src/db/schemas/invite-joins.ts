@@ -1,17 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
-
-export const guildInvites = pgTable(
-  "guild_invites",
-  {
-    guildId: text("guild_id").notNull(),
-    code: text("code").notNull(),
-    inviterId: text("inviter_id"),
-    uses: integer("uses").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  table => [primaryKey({ columns: [table.guildId, table.code] })]
-);
+import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const inviteJoins = pgTable(
   "invite_joins",
@@ -31,5 +19,4 @@ export const inviteJoins = pgTable(
   ]
 );
 
-export type GuildInviteSchema = typeof guildInvites.$inferSelect;
 export type InviteJoinSchema = typeof inviteJoins.$inferSelect;

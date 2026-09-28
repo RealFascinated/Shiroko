@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db";
-import { messageEvents } from "../../feature/impl/stats/schema";
+import { messageEvents } from "../../db/schemas/message-events";
 import { LeaderboardId, type LeaderboardRow } from "../leaderboard";
 import { UserLeaderboard } from "../user-leaderboard";
 

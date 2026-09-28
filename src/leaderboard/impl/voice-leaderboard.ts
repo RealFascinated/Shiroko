@@ -1,6 +1,6 @@
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "../../db";
-import { voiceSessions } from "../../feature/impl/stats/schema";
+import { voiceSessions } from "../../db/schemas/voice-sessions";
 import { LeaderboardId, type LeaderboardRow } from "../leaderboard";
 import { UserLeaderboard } from "../user-leaderboard";
 

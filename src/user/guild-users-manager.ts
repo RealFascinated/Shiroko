@@ -1,7 +1,7 @@
 import type { Guild, User } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/index";
-import { guildUsers } from "../db/schema";
+import { guildUsers } from "../db/schemas/guild-users";
 import { nowMinus } from "../lib/time";
 import GuildUser from "./guild-user";
 

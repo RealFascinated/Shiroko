@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "../db";
-import { guildSettings, now, type JsonValue } from "../db/schema";
+import { db, now } from "../db";
+import { guildSettings, type JsonValue } from "../db/schemas/guild-settings";
 
 /**
  * Key-value settings store backing the generic `/settings` system. One row

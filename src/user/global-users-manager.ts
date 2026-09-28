@@ -1,7 +1,7 @@
 import type { User } from "discord.js";
 import { eq } from "drizzle-orm";
 import { db } from "../db/index";
-import { globalUsers } from "../db/schema";
+import { globalUsers } from "../db/schemas/global-users";
 import GlobalUser from "./global-user";
 
 export default class GlobalUsersManager {
