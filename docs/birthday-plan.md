@@ -209,6 +209,7 @@ src/feature/impl/birthday/command/birthday/
 └── sub/
     ├── set.command.ts
     ├── remove.command.ts
+    ├── view.command.ts
     └── upcoming.command.ts
 ```
 
@@ -240,6 +241,19 @@ src/feature/impl/birthday/command/birthday/
 Deletes the caller's row. If the member currently holds the birthday role,
 it is removed immediately rather than lingering until the next sweep. Reply
 ephemeral, and report the stored date that was cleared.
+
+### `/birthday view [user]`
+
+- One optional `user` option, defaulting to the caller, so it doubles as "my
+  birthday" and "their birthday".
+- Shows the stored month and day and how long until the next occurrence
+  (or "today"), or says the member has not saved one.
+- **Never shows the birth year**, matching `upcoming`: `getBirthday` returns
+  only month and day, so the age stays private until the announcement on the
+  day itself. Readable by anyone: the anniversary is already public in
+  `upcoming`.
+- Public reply, unlike `set`/`remove`: this is a lookup, not a disclosure of
+  data the caller just typed.
 
 ### `/birthday upcoming`
 
