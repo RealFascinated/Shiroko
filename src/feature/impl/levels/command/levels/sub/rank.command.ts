@@ -1,7 +1,7 @@
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { userOption } from "../../../../../../command/option";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
-import { levelsService } from "../../../levels.service";
+import Command, { type ExecuteContext } from "@/command/command";
+import { userOption } from "@/command/option";
+import { levelsService } from "@/feature/impl/levels/levels.service";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
 /**
  * Podium colors for the top three ranks on the server.

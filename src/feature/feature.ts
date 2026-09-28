@@ -48,7 +48,7 @@ export default class Feature extends EventListener {
     this.commands.push(command);
     // Dynamic import breaks the static cycle: `command/index.ts` imports
     // feature commands, which import `GuildFeatures` → `feature.ts`.
-    void import("../command").then(({ default: CommandManager }) => {
+    void import("../command/index").then(({ default: CommandManager }) => {
       CommandManager.registerCommand(command);
     });
   }

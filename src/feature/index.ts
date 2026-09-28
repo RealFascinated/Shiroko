@@ -1,9 +1,9 @@
 import type Feature from "./feature";
-import BirthdayFeature from "./impl/birthday";
-import InvitesFeature from "./impl/invites";
-import LevelsFeature from "./impl/levels";
-import SocialFeature from "./impl/social";
-import StatsFeature from "./impl/stats";
+import BirthdayFeature from "./impl/birthday/index";
+import InvitesFeature from "./impl/invites/index";
+import LevelsFeature from "./impl/levels/index";
+import SocialFeature from "./impl/social/index";
+import StatsFeature from "./impl/stats/index";
 
 export default class FeatureManager {
   private static FEATURES: Feature[] = [];

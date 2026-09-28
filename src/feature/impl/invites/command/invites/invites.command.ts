@@ -1,4 +1,4 @@
-import Command from "../../../../../command/command";
+import Command from "@/command/command";
 import UserCommand from "./sub/user.command";
 
 /**

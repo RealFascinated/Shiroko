@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { db, now } from "../db";
+import { db, now } from "../db/index";
 import { guildSettings, type JsonValue } from "../db/schemas/guild-settings";
 
 /**

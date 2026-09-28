@@ -1,7 +1,7 @@
+import { FeatureIds } from "@/feature/feature-ids";
+import GuildFeatures from "@/feature/guild-features";
+import { baseEmbed } from "@/lib/embed";
 import type { Client, Guild } from "discord.js";
-import { baseEmbed } from "../../../lib/embed";
-import { FeatureIds } from "../../feature-ids";
-import GuildFeatures from "../../guild-features";
 import { birthdaySettings } from "./birthday-settings";
 import { birthdayService, type Celebrant } from "./birthday.service";
 import { todayUtc } from "./date";

@@ -1,7 +1,7 @@
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
-import { renderStatsCard } from "../../../stats-card";
-import { statsService } from "../../../stats.service";
+import Command, { type ExecuteContext } from "@/command/command";
+import { renderStatsCard } from "@/feature/impl/stats/stats-card";
+import { statsService } from "@/feature/impl/stats/stats.service";
+import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
 /**
  * Show the whole server's combined activity as a card.

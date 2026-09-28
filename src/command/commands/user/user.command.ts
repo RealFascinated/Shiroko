@@ -1,4 +1,4 @@
-import Command from "../../command";
+import Command from "@/command/command";
 import AvatarCommand from "./sub/avatar.command";
 import BannerCommand from "./sub/banner.command";
 import UserInfoCommand from "./sub/user-info.command";

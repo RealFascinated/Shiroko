@@ -1,8 +1,8 @@
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { baseEmbed } from "../../../../../../lib/embed";
-import { ordinal } from "../../../../../../lib/format";
-import { birthdayService } from "../../../birthday.service";
-import { monthName } from "../../../date";
+import Command, { type ExecuteContext } from "@/command/command";
+import { birthdayService } from "@/feature/impl/birthday/birthday.service";
+import { monthName } from "@/feature/impl/birthday/date";
+import { baseEmbed } from "@/lib/embed";
+import { ordinal } from "@/lib/format";
 
 /**
  * List the next ten birthdays in the server, soonest first, with today's

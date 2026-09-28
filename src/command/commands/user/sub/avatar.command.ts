@@ -1,6 +1,6 @@
-import Command, { type ExecuteContext } from "../../../../command/command";
-import { userOption } from "../../../../command/option";
-import { baseEmbed } from "../../../../lib/embed";
+import Command, { type ExecuteContext } from "@/command/command";
+import { userOption } from "@/command/option";
+import { baseEmbed } from "@/lib/embed";
 
 export default class AvatarCommand extends Command {
   constructor() {

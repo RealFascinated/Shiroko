@@ -1,6 +1,6 @@
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
-import { levelsService } from "../../../levels.service";
+import Command, { type ExecuteContext } from "@/command/command";
+import { levelsService } from "@/feature/impl/levels/levels.service";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
 /**
  * Show every level-up reward the server has configured, one line per

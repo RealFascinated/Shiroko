@@ -1,5 +1,5 @@
+import { baseEmbed } from "@/lib/embed";
 import { ChannelType } from "discord.js";
-import { baseEmbed } from "../../lib/embed";
 import Command, { type ExecuteContext } from "../command";
 
 /**

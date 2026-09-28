@@ -1,12 +1,12 @@
+import { db } from "@/db/index";
+import { globalUsers } from "@/db/schemas/global-users";
+import { messageEvents } from "@/db/schemas/message-events";
+import { voiceSessions } from "@/db/schemas/voice-sessions";
+import { EventBus } from "@/event/event-bus";
+import VoiceSessionEndedEvent from "@/event/events/voice-session-ended.event";
+import VoiceSessionStartedEvent from "@/event/events/voice-session-started.event";
 import type { Client, Guild } from "discord.js";
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
-import { db } from "../../../db";
-import { globalUsers } from "../../../db/schemas/global-users";
-import { messageEvents } from "../../../db/schemas/message-events";
-import { voiceSessions } from "../../../db/schemas/voice-sessions";
-import { EventBus } from "../../../event/event-bus";
-import VoiceSessionEndedEvent from "../../../event/events/voice-session-ended.event";
-import VoiceSessionStartedEvent from "../../../event/events/voice-session-started.event";
 import type { StatsCardKind } from "./stats-card";
 
 /**

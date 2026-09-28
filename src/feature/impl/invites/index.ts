@@ -1,14 +1,14 @@
+import { EventHandler } from "@/event/event-handler";
+import BotReadyEvent from "@/event/events/bot-ready.event";
+import GuildJoinedEvent from "@/event/events/guild-joined.event";
+import InviteCreatedEvent from "@/event/events/invite-created.event";
+import InviteDeletedEvent from "@/event/events/invite-deleted.event";
+import MemberGuildJoinEvent from "@/event/events/member-guild-join.event";
+import Feature from "@/feature/feature";
+import { FeatureIds } from "@/feature/feature-ids";
 import type { Client } from "discord.js";
-import { EventHandler } from "../../../event/event-handler.ts";
-import BotReadyEvent from "../../../event/events/bot-ready.event.ts";
-import GuildJoinedEvent from "../../../event/events/guild-joined.event.ts";
-import InviteCreatedEvent from "../../../event/events/invite-created.event.ts";
-import InviteDeletedEvent from "../../../event/events/invite-deleted.event.ts";
-import MemberGuildJoinEvent from "../../../event/events/member-guild-join.event.ts";
-import { FeatureIds } from "../../feature-ids.ts";
-import Feature from "../../feature.ts";
-import InvitesCommand from "./command/invites/invites.command.ts";
-import { invitesService } from "./invites.service.ts";
+import InvitesCommand from "./command/invites/invites.command";
+import { invitesService } from "./invites.service";
 
 /**
  * The invites feature: `/invites` command plus invite tracking. Keeps the

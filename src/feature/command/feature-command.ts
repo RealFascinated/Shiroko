@@ -1,8 +1,8 @@
+import Command, { type ExecuteContext } from "@/command/command";
+import { booleanOption, stringOption, type CommandOptionBuilder } from "@/command/option";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { PermissionFlags } from "@/permission/permissions";
 import { PermissionFlagsBits } from "discord.js";
-import Command, { type ExecuteContext } from "../../command/command";
-import { booleanOption, stringOption, type CommandOptionBuilder } from "../../command/option";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../lib/embed";
-import { PermissionFlags } from "../../permission/permissions";
 import { FeatureIds } from "../feature-ids";
 import GuildFeatures from "../guild-features";
 

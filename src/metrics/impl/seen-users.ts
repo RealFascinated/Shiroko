@@ -1,6 +1,6 @@
+import { db } from "@/db/index";
+import { globalUsers } from "@/db/schemas/global-users";
 import { count } from "drizzle-orm";
-import { db } from "../../db";
-import { globalUsers } from "../../db/schemas/global-users";
 import { GaugeMetric } from "../gauge";
 
 /**

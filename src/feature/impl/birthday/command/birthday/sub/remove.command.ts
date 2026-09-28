@@ -1,9 +1,9 @@
+import Command, { type ExecuteContext } from "@/command/command";
+import { birthdayService } from "@/feature/impl/birthday/birthday.service";
+import { monthName } from "@/feature/impl/birthday/date";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { ordinal } from "@/lib/format";
 import { MessageFlags } from "discord.js";
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
-import { ordinal } from "../../../../../../lib/format";
-import { birthdayService } from "../../../birthday.service";
-import { monthName } from "../../../date";
 
 /**
  * Clear your stored birthday for this server, and drop the birthday role

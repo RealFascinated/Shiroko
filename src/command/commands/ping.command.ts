@@ -1,4 +1,4 @@
-import { baseEmbed } from "../../lib/embed";
+import { baseEmbed } from "@/lib/embed";
 import Command, { type ExecuteContext } from "../command";
 
 export default class PingCommand extends Command {

@@ -1,12 +1,12 @@
+import { fetchGuildMember } from "@/lib/guild";
+import Permissions, { PermissionFlags } from "@/permission/permissions";
 import type {
   ButtonInteraction,
   Interaction,
   ModalSubmitInteraction,
   StringSelectMenuInteraction,
 } from "discord.js";
-import SettingsManager from "..";
-import { fetchGuildMember } from "../../lib/guild";
-import Permissions, { PermissionFlags } from "../../permission/permissions";
+import SettingsManager from "../index";
 import {
   PANEL_ACTION,
   dialogFor,

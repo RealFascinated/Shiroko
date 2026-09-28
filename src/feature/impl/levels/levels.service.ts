@@ -1,13 +1,13 @@
+import { db } from "@/db/index";
+import { levelRewards } from "@/db/schemas/level-rewards";
+import { userLevels } from "@/db/schemas/user-levels";
+import { EventBus } from "@/event/event-bus";
+import LevelUpEvent from "@/event/events/level-up.event";
+import LeaderboardManager from "@/leaderboard/index";
+import { LeaderboardId } from "@/leaderboard/leaderboard";
+import GuildUsersManager from "@/user/guild-users-manager";
 import type { Guild } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
-import { db } from "../../../db";
-import { levelRewards } from "../../../db/schemas/level-rewards";
-import { userLevels } from "../../../db/schemas/user-levels";
-import { EventBus } from "../../../event/event-bus";
-import LevelUpEvent from "../../../event/events/level-up.event";
-import LeaderboardManager from "../../../leaderboard";
-import { LeaderboardId } from "../../../leaderboard/leaderboard";
-import GuildUsersManager from "../../../user/guild-users-manager";
 import { levelsSettings } from "./levels-settings";
 import { levelForXp, progressToNext, xpForLevel } from "./xp";
 

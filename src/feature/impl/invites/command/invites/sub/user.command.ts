@@ -1,11 +1,11 @@
+import Command, { type ExecuteContext } from "@/command/command";
+import { userOption } from "@/command/option";
+import { db } from "@/db/index";
+import { inviteJoins } from "@/db/schemas/invite-joins";
+import { invitesService } from "@/feature/impl/invites/invites.service";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { pluralise } from "@/lib/format";
 import { and, count, eq } from "drizzle-orm";
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { userOption } from "../../../../../../command/option";
-import { db } from "../../../../../../db";
-import { inviteJoins } from "../../../../../../db/schemas/invite-joins";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
-import { pluralise } from "../../../../../../lib/format";
-import { invitesService } from "../../../invites.service";
 
 /**
  * Show the total invites attributed to one user in the guild.

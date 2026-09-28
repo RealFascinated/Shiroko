@@ -1,7 +1,7 @@
-import SettingsManager from "..";
-import Command, { type ExecuteContext } from "../../command/command";
-import { ephemeralErrorReply, errorEmbed } from "../../lib/embed";
-import { PermissionFlags } from "../../permission/permissions";
+import Command, { type ExecuteContext } from "@/command/command";
+import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { PermissionFlags } from "@/permission/permissions";
+import SettingsManager from "../index";
 import { renderPanel } from "../panel";
 
 /**

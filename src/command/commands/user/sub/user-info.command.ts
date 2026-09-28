@@ -1,3 +1,9 @@
+import Command, { type ExecuteContext } from "@/command/command";
+import { userOption } from "@/command/option";
+import { baseEmbed } from "@/lib/embed";
+import { fetchGuildMember } from "@/lib/guild";
+import type GlobalUser from "@/user/global-user";
+import GlobalUsersManager from "@/user/global-users-manager";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -8,12 +14,6 @@ import {
   type MessageActionRowComponentBuilder,
   type User,
 } from "discord.js";
-import Command, { type ExecuteContext } from "../../../../command/command";
-import { userOption } from "../../../../command/option";
-import { baseEmbed } from "../../../../lib/embed";
-import { fetchGuildMember } from "../../../../lib/guild";
-import type GlobalUser from "../../../../user/global-user";
-import GlobalUsersManager from "../../../../user/global-users-manager";
 
 /**
  * Show a user's info: first seen, ids, avatar, banner, and server roles

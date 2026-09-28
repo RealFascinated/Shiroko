@@ -1,7 +1,7 @@
+import { renderStatsCard, type StatsCardKind } from "@/feature/impl/stats/stats-card";
+import { statsService } from "@/feature/impl/stats/stats.service";
+import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { type ChatInputCommandInteraction, type User } from "discord.js";
-import { ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
-import { renderStatsCard, type StatsCardKind } from "../../../stats-card";
-import { statsService } from "../../../stats.service";
 
 /**
  * Fetch `target`'s card data, render the PNG, and reply with it. Stats are

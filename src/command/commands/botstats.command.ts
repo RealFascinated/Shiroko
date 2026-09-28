@@ -1,3 +1,7 @@
+import { db } from "@/db/index";
+import { globalUsers } from "@/db/schemas/global-users";
+import { baseEmbed } from "@/lib/embed";
+import { formatDuration } from "@/lib/time";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -6,10 +10,6 @@ import {
 } from "discord.js";
 import { sql } from "drizzle-orm";
 import { getHeapStatistics } from "node:v8";
-import { db } from "../../db";
-import { globalUsers } from "../../db/schemas/global-users";
-import { baseEmbed } from "../../lib/embed";
-import { formatDuration } from "../../lib/time";
 import Command, { type ExecuteContext } from "../command";
 
 /**

@@ -1,6 +1,6 @@
-import Canvas from "../../../lib/canvas";
-import { pluralise } from "../../../lib/format";
-import { TimeUnit, formatDuration } from "../../../lib/time";
+import Canvas from "@/lib/canvas";
+import { pluralise } from "@/lib/format";
+import { TimeUnit, formatDuration } from "@/lib/time";
 import type { DaySeries, StatsSummary, VoiceSummary } from "./stats.service";
 
 /**

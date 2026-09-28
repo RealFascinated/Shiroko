@@ -1,4 +1,4 @@
-import Command from "../../../command/command";
+import Command from "@/command/command";
 import InvitesLeaderboardCommand from "./sub/invites.command";
 import LevelLeaderboardCommand from "./sub/level.command";
 import MessagesLeaderboardCommand from "./sub/messages.command";

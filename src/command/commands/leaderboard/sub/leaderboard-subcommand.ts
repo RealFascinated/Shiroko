@@ -1,9 +1,9 @@
+import Command, { type ExecuteContext } from "@/command/command";
+import type Leaderboard from "@/leaderboard/leaderboard";
+import { type LeaderboardRow } from "@/leaderboard/leaderboard";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { attachPager } from "@/lib/pagination";
 import type { Guild } from "discord.js";
-import Command, { type ExecuteContext } from "../../../../command/command";
-import type Leaderboard from "../../../../leaderboard/leaderboard";
-import { type LeaderboardRow } from "../../../../leaderboard/leaderboard";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../lib/embed";
-import { attachPager } from "../../../../lib/pagination";
 
 /**
  * A leaderboard subcommand: shows the given board from page 1 and attaches

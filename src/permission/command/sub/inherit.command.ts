@@ -1,7 +1,7 @@
-import Command, { type ExecuteContext } from "../../../command/command";
-import { roleOption, type CommandOptionBuilder } from "../../../command/option";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
-import Permissions, { flagLabels } from "../../permissions";
+import Command, { type ExecuteContext } from "@/command/command";
+import { roleOption, type CommandOptionBuilder } from "@/command/option";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import Permissions, { flagLabels } from "@/permission/permissions";
 
 /**
  * Change only a role's parent link, leaving own permissions untouched.

@@ -1,6 +1,6 @@
-import SettingsManager from "../../../settings";
-import Feature from "../../feature";
-import { FeatureIds } from "../../feature-ids";
+import Feature from "@/feature/feature";
+import { FeatureIds } from "@/feature/feature-ids";
+import SettingsManager from "@/settings/index";
 import { birthdaySettings } from "./birthday-settings";
 import BirthdayCommand from "./command/birthday/birthday.command";
 

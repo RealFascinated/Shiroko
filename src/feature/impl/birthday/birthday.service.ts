@@ -1,7 +1,7 @@
+import { db } from "@/db/index";
+import { guildBirthdays } from "@/db/schemas/guild-birthdays";
 import type { Guild } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
-import { db } from "../../../db";
-import { guildBirthdays } from "../../../db/schemas/guild-birthdays";
 import { birthdaySettings } from "./birthday-settings";
 import { ageInYears, daysUntil } from "./date";
 

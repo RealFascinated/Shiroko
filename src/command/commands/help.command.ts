@@ -1,11 +1,11 @@
+import { baseEmbed } from "@/lib/embed";
+import { env } from "@/lib/env";
 import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   type MessageActionRowComponentBuilder,
 } from "discord.js";
-import { baseEmbed } from "../../lib/embed";
-import { env } from "../../lib/env";
 import Command, { type ExecuteContext } from "../command";
 
 /**

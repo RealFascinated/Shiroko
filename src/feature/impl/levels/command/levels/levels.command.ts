@@ -1,4 +1,4 @@
-import Command from "../../../../../command/command";
+import Command from "@/command/command";
 import RankCommand from "./sub/rank.command";
 import RewardsCommand from "./sub/rewards.command";
 

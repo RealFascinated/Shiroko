@@ -1,14 +1,14 @@
-import { EventHandler } from "../../../event/event-handler.ts";
-import LevelUpEvent from "../../../event/events/level-up.event.ts";
-import MessageRecordedEvent from "../../../event/events/message-recorded.event.ts";
-import VoiceSessionEndedEvent from "../../../event/events/voice-session-ended.event.ts";
-import { baseEmbed } from "../../../lib/embed.ts";
-import SettingsManager from "../../../settings";
-import { FeatureIds } from "../../feature-ids.ts";
-import Feature from "../../feature.ts";
-import LevelsCommand from "./command/levels/levels.command.ts";
-import { levelsSettings } from "./levels-settings.ts";
-import { levelsService } from "./levels.service.ts";
+import { EventHandler } from "@/event/event-handler";
+import LevelUpEvent from "@/event/events/level-up.event";
+import MessageRecordedEvent from "@/event/events/message-recorded.event";
+import VoiceSessionEndedEvent from "@/event/events/voice-session-ended.event";
+import Feature from "@/feature/feature";
+import { FeatureIds } from "@/feature/feature-ids";
+import { baseEmbed } from "@/lib/embed";
+import SettingsManager from "@/settings/index";
+import LevelsCommand from "./command/levels/levels.command";
+import { levelsSettings } from "./levels-settings";
+import { levelsService } from "./levels.service";
 
 /**
  * The levelling feature: `/levels` command plus XP listeners. Consumes the

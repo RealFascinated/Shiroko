@@ -1,3 +1,11 @@
+import Command, { type ExecuteContext } from "@/command/command";
+import { userOption } from "@/command/option";
+import SocialService, { type InteractionType } from "@/feature/impl/social/social.service";
+import { getGif, type AnimeGif } from "@/lib/anime/index";
+import { baseEmbed, watchButtonPress } from "@/lib/embed";
+import { ordinal, titleCase } from "@/lib/format";
+import { TimeUnit } from "@/lib/time";
+import GlobalUsersManager from "@/user/global-users-manager";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -8,14 +16,6 @@ import {
   type MessageActionRowComponentBuilder,
   type User,
 } from "discord.js";
-import Command, { type ExecuteContext } from "../../../../../command/command";
-import { userOption } from "../../../../../command/option";
-import { getGif, type AnimeGif } from "../../../../../lib/anime";
-import { baseEmbed, watchButtonPress } from "../../../../../lib/embed";
-import { ordinal, titleCase } from "../../../../../lib/format";
-import { TimeUnit } from "../../../../../lib/time";
-import GlobalUsersManager from "../../../../../user/global-users-manager";
-import SocialService, { type InteractionType } from "../../social.service";
 
 /** Discriminator for this test command, e.g. `interaction-back:hug`. */
 const BACK_BUTTON_PREFIX = "interaction-back";

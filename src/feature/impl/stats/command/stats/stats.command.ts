@@ -1,4 +1,4 @@
-import Command from "../../../../../command/command";
+import Command from "@/command/command";
 import KindCommand from "./sub/kind.command";
 import ServerCommand from "./sub/server.command";
 

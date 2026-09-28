@@ -1,3 +1,4 @@
+import { TimeUnit } from "@/lib/time";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -7,7 +8,6 @@ import {
   type InteractionResponse,
   type MessageActionRowComponentBuilder,
 } from "discord.js";
-import { TimeUnit } from "../../../lib/time";
 
 /** Custom button ids emitted by this pager, namespaced so they can't collide. */
 const PAGE_FIRST = "perm-view-first";

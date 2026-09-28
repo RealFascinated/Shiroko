@@ -1,5 +1,5 @@
-import SettingsModule from "../../../settings/settings-module";
-import { FeatureIds } from "../../feature-ids";
+import { FeatureIds } from "@/feature/feature-ids";
+import SettingsModule from "@/settings/settings-module";
 
 export interface LevelsSettingsData {
   messageXp: number;

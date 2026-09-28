@@ -1,4 +1,4 @@
-import { FLAG_DISPLAY_NAMES } from "../../permissions";
+import { FLAG_DISPLAY_NAMES } from "@/permission/permissions";
 
 /**
  * Resolve the raw flag choice strings (`set`) into a bitfield. Unknown

@@ -1,6 +1,6 @@
 import { PermissionFlagsBits, type Guild, type GuildMember } from "discord.js";
 import { and, eq } from "drizzle-orm";
-import { db } from "../db";
+import { db } from "../db/index";
 import { permissionRoles } from "../db/schemas/guild-permissions";
 import { EventBus } from "../event/event-bus";
 import { EventHandler } from "../event/event-handler";

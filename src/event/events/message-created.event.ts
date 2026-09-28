@@ -1,5 +1,5 @@
+import type GlobalUser from "@/user/global-user";
 import type { Guild, Message } from "discord.js";
-import type GlobalUser from "../../user/global-user";
 import Event from "../event";
 
 /**

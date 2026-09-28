@@ -1,6 +1,6 @@
+import { db } from "@/db/index";
+import { interactions } from "@/db/schemas/interactions";
 import { sql } from "drizzle-orm";
-import { db } from "../../../db/index";
-import { interactions } from "../../../db/schemas/interactions";
 
 export type InteractionType =
   | "hug"

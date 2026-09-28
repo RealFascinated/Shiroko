@@ -1,5 +1,5 @@
+import { baseEmbed } from "@/lib/embed";
 import { ApplicationCommandType, type UserContextMenuCommandInteraction } from "discord.js";
-import { baseEmbed } from "../../lib/embed";
 import ContextMenuCommand, { type ContextMenuExecuteContext } from "../context-menu-command";
 
 export default class BannerCommand extends ContextMenuCommand {

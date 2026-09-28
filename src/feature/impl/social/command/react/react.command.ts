@@ -1,4 +1,4 @@
-import Command from "../../../../../command/command";
+import Command from "@/command/command";
 import AngryCommand from "./sub/angry.command";
 import BlehCommand from "./sub/bleh.command";
 import BlushCommand from "./sub/blush.command";

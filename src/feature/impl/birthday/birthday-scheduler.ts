@@ -1,7 +1,7 @@
-import { EventBus } from "../../../event/event-bus";
-import { EventHandler } from "../../../event/event-handler";
-import { EventListener } from "../../../event/event-listener";
-import BotReadyEvent from "../../../event/events/bot-ready.event";
+import { EventBus } from "@/event/event-bus";
+import { EventHandler } from "@/event/event-handler";
+import { EventListener } from "@/event/event-listener";
+import BotReadyEvent from "@/event/events/bot-ready.event";
 import { runBirthdaySweep } from "./birthday-sweep";
 
 const CRON = "1 0 * * *"; // 00:01 daily

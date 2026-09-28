@@ -1,7 +1,7 @@
-import { FeatureIds } from "../../feature-ids.ts";
-import Feature from "../../feature.ts";
-import InteractionCommand from "./command/interaction/interaction.command.ts";
-import ReactCommand from "./command/react/react.command.ts";
+import Feature from "@/feature/feature";
+import { FeatureIds } from "@/feature/feature-ids";
+import InteractionCommand from "./command/interaction/interaction.command";
+import ReactCommand from "./command/react/react.command";
 
 /**
  * The social feature: interaction commands (`/interaction`, `/react`).

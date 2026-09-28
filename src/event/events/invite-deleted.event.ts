@@ -1,5 +1,5 @@
+import { FeatureIds } from "@/feature/feature-ids";
 import type { Invite } from "discord.js";
-import { FeatureIds } from "../../feature/feature-ids";
 import Event from "../event";
 
 /**

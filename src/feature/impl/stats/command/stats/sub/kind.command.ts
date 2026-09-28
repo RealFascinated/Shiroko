@@ -1,7 +1,7 @@
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { userOption } from "../../../../../../command/option";
-import { ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
-import type { StatsCardKind } from "../../../stats-card";
+import Command, { type ExecuteContext } from "@/command/command";
+import { userOption } from "@/command/option";
+import type { StatsCardKind } from "@/feature/impl/stats/stats-card";
+import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { replyStatsCard } from "./reply-stats-card";
 
 /**

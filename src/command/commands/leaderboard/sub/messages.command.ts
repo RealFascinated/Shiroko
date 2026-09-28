@@ -1,7 +1,7 @@
-import LeaderboardManager from "../../../../leaderboard";
-import type Leaderboard from "../../../../leaderboard/leaderboard";
-import { LeaderboardId, type LeaderboardRow } from "../../../../leaderboard/leaderboard";
-import { ordinal, pluralise } from "../../../../lib/format";
+import LeaderboardManager from "@/leaderboard/index";
+import type Leaderboard from "@/leaderboard/leaderboard";
+import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
+import { ordinal, pluralise } from "@/lib/format";
 import LeaderboardSubCommand from "./leaderboard-subcommand";
 
 /**

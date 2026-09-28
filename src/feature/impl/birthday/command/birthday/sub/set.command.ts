@@ -1,11 +1,11 @@
+import Command, { type ExecuteContext } from "@/command/command";
+import { integerOption } from "@/command/option";
+import { birthdayService } from "@/feature/impl/birthday/birthday.service";
+import { isValidBirthDate, isValidBirthYear, monthName, todayUtc } from "@/feature/impl/birthday/date";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { ordinal } from "@/lib/format";
+import GlobalUsersManager from "@/user/global-users-manager";
 import { MessageFlags } from "discord.js";
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { integerOption } from "../../../../../../command/option";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../../../../lib/embed";
-import { ordinal } from "../../../../../../lib/format";
-import GlobalUsersManager from "../../../../../../user/global-users-manager";
-import { birthdayService } from "../../../birthday.service";
-import { isValidBirthDate, isValidBirthYear, monthName, todayUtc } from "../../../date";
 
 /**
  * Save (or replace) your own date of birth for this server. The reply is

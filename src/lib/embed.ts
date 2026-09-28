@@ -5,8 +5,8 @@ import {
   type InteractionReplyOptions,
   type InteractionResponse,
 } from "discord.js";
-import { discordClient } from "..";
 import { Constants } from "../constants";
+import { discordClient } from "../index";
 
 /**
  * Base constructors for every embed. See `DESIGN.md` for the full system.

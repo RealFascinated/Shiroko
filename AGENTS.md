@@ -55,7 +55,7 @@ Bot permissions live entirely under `src/permission/`: the logic in `src/permiss
 - Commands declare a `requiredFlags: bigint` getter (default `0n` = anyone). `CommandManager` enforces it after the feature check; the guild owner and members with Discord `Administrator` (when `ALLOW_ADMIN_BYPASS` is on) bypass all checks. A gate usually lives on the **parent** command (e.g. `/permissions`, `/level-config`); subcommands inherit it unless they declare their own `requiredFlags`, so a parent can stay open while a specific subcommand is gated (e.g. `/levels` open, `/level-config` admin-only). `featureId` inheritance mirrors this: the resolved subcommand's `featureId` wins, otherwise the parent's applies.
 - Effective flags: a role's own flags OR'd with its parent's effective flags (additive inheritance, cycle-safe), then OR'd across all the member's roles.
 - Cache resolution per guild (`loadGuild`) with invalidation on role events. Mirror the existing pattern, don't add ad-hoc checks.
-- Subcommands of `/permissions` live in `src/permission/command/sub/`, and shared helpers in the same folder (e.g. `sub/permissions-helpers.ts`). Only the parent imports `Command` from `src/command/command`; `../../command` would resolve to `src/command/index.ts` (`CommandManager`).
+- Subcommands of `/permissions` live in `src/permission/command/sub/`, and shared helpers in the same folder (e.g. `sub/permissions-helpers.ts`). Only the parent imports `Command` from `@/command/command`; `@/command` would resolve to `src/command/index.ts` (`CommandManager`).
 
 ## Events
 
@@ -68,7 +68,7 @@ Internal event system in `src/event/` (Docs: `DESIGN.md`, see "Internal Events")
 ```ts
 import type { Guild, VoiceState } from "discord.js";
 import Event from "../event";
-import { FeatureIds } from "../../feature/feature-ids";
+import { FeatureIds } from "@/feature/feature-ids";
 
 export default class VoiceSessionEndedEvent extends Event {
   public override readonly userId: string;
@@ -89,10 +89,10 @@ export default class VoiceSessionEndedEvent extends Event {
 3. **Listen** via a class extending `EventListener`:
 
 ```ts
-import { EventBus } from "../event-bus";
-import { EventListener } from "../event-listener";
-import { EventHandler } from "../event-handler";
-import { MessageCreatedEvent } from "../events/message-created.event";
+import { EventBus } from "@/event/event-bus";
+import { EventListener } from "@/event/event-listener";
+import { EventHandler } from "@/event/event-handler";
+import { MessageCreatedEvent } from "@/event/events/message-created.event";
 
 export class MyListeners extends EventListener {
   constructor() {
@@ -115,7 +115,7 @@ Co-locate the listener class with the code it serves: a feature listener (e.g. `
 - **Resolve global users via `GlobalUsersManager.getUser(user)`**; it get-or-creates the row in the DB. There is no in-process cache, so hot paths (per-message events) go straight to the DB.
 - **Dispatch order**: handlers run in subscription order (priority tier reserved for later). Multiple listeners for one event are fine.
 - **Lifecycle**: listeners subscribe in their constructor via `EventBus.subscribe(this)`; remove via `EventBus.unsubscribe(listener)`.
-- **Import discipline** (avoid cycles): listeners import from leaf modules (`../event-bus`, `../event-listener`, `../event-handler`, `../events/<name>.event`), never the `src/event/index.ts` barrel which only re-exports the core (`Event`, `EventBus`, `EventHandler`, `EventListener`). Feature code imports `FeatureIds` from `./feature-ids` (leaf), and `Feature` never statically imports `CommandManager` (dynamic import to dodge the command/feature cycle).
+- **Import discipline** (avoid cycles): listeners import from leaf modules (`../event-bus`, `../event-listener`, `../event-handler`, `../events/<name>.event`), never the `src/event/index.ts` barrel which only re-exports the core (`Event`, `EventBus`, `EventHandler`, `EventListener`). Feature code imports `FeatureIds` from `@/feature/feature-ids` (leaf), and `Feature` never statically imports `CommandManager` (dynamic import to dodge the command/feature cycle).
 
 ## Read the Subsystem
 
@@ -182,6 +182,21 @@ Drizzle ORM wraps the `pg` driver (`drizzle-orm/node-postgres`). `db` is exporte
 ## Punctuation
 
 Never use em dashes (`—`) in code, comments, docs, or this file. Use a period to split into two sentences, a colon to introduce, or a semicolon to join related clauses. The codebase is kept free of them, so new text must follow suit. En dashes (`–`) should also be avoided; use a plain hyphen in ranges and compound words.
+
+## Imports
+
+Use relative specifiers for anything at or below the current directory, and the `@/` alias (which maps to `src/`, per `"@/*": ["./src/*"]` in `tsconfig.json`) once a path climbs two or more directories up.
+
+```ts
+// src/command/commands/ping.command.ts
+import Command from "../command"; // one up
+import { baseEmbed } from "@/lib/embed"; // three up, too deep to count
+```
+
+- Same directory: `./option`, `./sub/rank.command`. Descending never changes the specifier's form.
+- One level up: `../command`, `../event/event-bus`.
+- Two or more levels up: `@/lib/embed`, `@/db/index`. Never `../../lib/embed`.
+- Omit the file extension, and keep `index` explicit when you mean the entry itself: `@/command` is `src/command/index.ts` (`CommandManager`), so import `@/command/command` for the `Command` class. The distinction matters: resolving a directory to its `index.ts` is how a barrel gets pulled in by accident.
 
 ## Design
 

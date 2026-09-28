@@ -1,4 +1,4 @@
-import Command from "../../../../../command/command";
+import Command from "@/command/command";
 import RemoveCommand from "./sub/remove.command";
 import SetCommand from "./sub/set.command";
 import UpcomingCommand from "./sub/upcoming.command";

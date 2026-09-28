@@ -1,9 +1,9 @@
+import Command, { type ExecuteContext } from "@/command/command";
+import { roleOption, type CommandOptionBuilder } from "@/command/option";
+import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { attachPager } from "@/lib/pagination";
+import Permissions, { FLAG_DISPLAY_NAMES, flagLabels } from "@/permission/permissions";
 import { InteractionResponse, type ChatInputCommandInteraction } from "discord.js";
-import Command, { type ExecuteContext } from "../../../command/command";
-import { roleOption, type CommandOptionBuilder } from "../../../command/option";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "../../../lib/embed";
-import { attachPager } from "../../../lib/pagination";
-import Permissions, { FLAG_DISPLAY_NAMES, flagLabels } from "../../permissions";
 
 /** How many permissions to list per page. */
 const PERMISSIONS_PER_PAGE = 10;

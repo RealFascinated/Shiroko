@@ -1,14 +1,14 @@
-import { EventBus } from "../../../event/event-bus.ts";
-import { EventHandler } from "../../../event/event-handler.ts";
-import BotReadyEvent from "../../../event/events/bot-ready.event.ts";
-import MessageCreatedEvent from "../../../event/events/message-created.event.ts";
-import MessageRecordedEvent from "../../../event/events/message-recorded.event.ts";
-import VoiceStateChangedEvent from "../../../event/events/voice-state-changed.event.ts";
-import GlobalUsersManager from "../../../user/global-users-manager.ts";
-import { FeatureIds } from "../../feature-ids.ts";
-import Feature from "../../feature.ts";
-import StatsCommand from "./command/stats/stats.command.ts";
-import { statsService } from "./stats.service.ts";
+import { EventBus } from "@/event/event-bus";
+import { EventHandler } from "@/event/event-handler";
+import BotReadyEvent from "@/event/events/bot-ready.event";
+import MessageCreatedEvent from "@/event/events/message-created.event";
+import MessageRecordedEvent from "@/event/events/message-recorded.event";
+import VoiceStateChangedEvent from "@/event/events/voice-state-changed.event";
+import Feature from "@/feature/feature";
+import { FeatureIds } from "@/feature/feature-ids";
+import GlobalUsersManager from "@/user/global-users-manager";
+import StatsCommand from "./command/stats/stats.command";
+import { statsService } from "./stats.service";
 
 /**
  * The stats feature: `/stats` command plus voice/message tracking.

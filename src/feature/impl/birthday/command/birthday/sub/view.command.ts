@@ -1,9 +1,9 @@
-import Command, { type ExecuteContext } from "../../../../../../command/command";
-import { userOption } from "../../../../../../command/option";
-import { baseEmbed } from "../../../../../../lib/embed";
-import { ordinal, pluralise } from "../../../../../../lib/format";
-import { birthdayService } from "../../../birthday.service";
-import { daysUntil, monthName, todayUtc } from "../../../date";
+import Command, { type ExecuteContext } from "@/command/command";
+import { userOption } from "@/command/option";
+import { birthdayService } from "@/feature/impl/birthday/birthday.service";
+import { daysUntil, monthName, todayUtc } from "@/feature/impl/birthday/date";
+import { baseEmbed } from "@/lib/embed";
+import { ordinal, pluralise } from "@/lib/format";
 
 /**
  * Show the birthday one member has saved in this server, defaulting to
