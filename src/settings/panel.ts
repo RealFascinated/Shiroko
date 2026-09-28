@@ -1,12 +1,13 @@
-import { LabelBuilder, TextDisplayBuilder } from "@discordjs/builders";
 import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  LabelBuilder,
   MessageFlags,
   ModalBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
   type EmbedBuilder,
