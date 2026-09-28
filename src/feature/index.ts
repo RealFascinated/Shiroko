@@ -1,4 +1,5 @@
 import type Feature from "./feature";
+import BirthdayFeature from "./impl/birthday";
 import InvitesFeature from "./impl/invites";
 import LevelsFeature from "./impl/levels";
 import SocialFeature from "./impl/social";
@@ -12,6 +13,7 @@ export default class FeatureManager {
     FeatureManager.registerFeature(new SocialFeature());
     FeatureManager.registerFeature(new InvitesFeature());
     FeatureManager.registerFeature(new LevelsFeature());
+    FeatureManager.registerFeature(new BirthdayFeature());
   }
 
   public static registerFeature(feature: Feature): void {

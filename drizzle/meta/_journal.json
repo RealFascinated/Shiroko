@@ -183,6 +183,13 @@
       "when": 1789918654784,
       "tag": "0025_settings_guild_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790560936203,
+      "tag": "0026_birthdays",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { globalUsers } from "./schemas/global-users";
+import { guildBirthdays } from "./schemas/guild-birthdays";
 import { guildFeatures } from "./schemas/guild-features";
 import { guildInvites } from "./schemas/guild-invites";
 import { permissionRoles } from "./schemas/guild-permissions";
@@ -20,6 +21,7 @@ const pool = new Pool({
 
 export const schema = {
   globalUsers,
+  guildBirthdays,
   guildUsers,
   guildFeatures,
   permissionRoles,

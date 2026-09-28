@@ -12,8 +12,10 @@ import BotReadyEvent from "./event/events/bot-ready.event";
 import GuildJoinedEvent from "./event/events/guild-joined.event";
 import GuildLeftEvent from "./event/events/guild-left.event";
 import FeatureManager from "./feature";
+import { BirthdayScheduler } from "./feature/impl/birthday/birthday-scheduler";
 import { env } from "./lib/env";
 import { PresenceListener } from "./lib/presence";
+import { formatDuration } from "./lib/time";
 import { VoiceKeepaliveListener } from "./lib/voice";
 import { MetricManager } from "./metrics";
 import { EventVolumeListeners } from "./metrics/event-volume-listeners";
@@ -29,7 +31,6 @@ import { SeenUsersMetric } from "./metrics/impl/seen-users";
 import { UptimeMetric } from "./metrics/impl/uptime-seconds";
 import { PermissionsListeners } from "./permission/permissions";
 import SettingsManager from "./settings";
-import { formatDuration } from "./lib/time";
 
 const beforeMigrate = Date.now();
 await migrate(db, { migrationsFolder: "./drizzle" });
@@ -113,6 +114,7 @@ new SlashCommandListener();
 new ContextMenuCommandListener();
 
 new FeatureManager();
+new BirthdayScheduler();
 
 if (env.VM_PUSH_URL) {
   const exporter = new VictoriaMetricsExporter(metricManager, {
