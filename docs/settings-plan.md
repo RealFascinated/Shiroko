@@ -70,7 +70,7 @@ No in-process cache, matching `level_configs` reads and the repo's
 
 ```ts
 export type SettingType =
-  "boolean" | "number" | "string" | "choice" | "channel" | "role" | "duration" | "string-list";
+  "boolean" | "number" | "string" | "choice" | "channel" | "role" | "role-list" | "duration" | "string-list";
 
 /** The setting-value shape each SettingType requires of `C[K]`. */
 export type SettingValueMap = {
@@ -80,6 +80,7 @@ export type SettingValueMap = {
   choice: string;
   channel: string | null; // null = unset
   role: string | null; // null = unset
+  "role-list": string[];
   duration: number; // milliseconds
   "string-list": string[];
 };
@@ -91,8 +92,8 @@ interface SettingDescriptorBase<C, K extends keyof C, T extends SettingType> {
   type: T;
   default: C[K]; // code-side default
   choices?: T extends "choice" ? Record<string, string> : never; // "choice" only
-  min?: T extends "number" ? number : never; // "number" only
-  max?: T extends "number" ? number : never; // "number" only
+  min?: T extends "number" | "duration" ? number : never; // "number"/"duration" only
+  max?: T extends "number" | "duration" | "role-list" ? number : never; // "role-list": max roles
   validate?(value: C[K]): string | null; // error message, or null when valid
   format?(value: C[K]): string; // display formatting
 }
@@ -257,11 +258,13 @@ point when wiring it.
      ephemeral error, panel unchanged
    - `duration`: single-line text input pre-filled with the current value
      (e.g. "2d"), parsed by `parseDuration`; invalid input is an error
-   - `channel`: single-line text input accepting a `#mention`, channel
-     name, or raw id; resolved against the guild's channels, rejected if
-     it matches nothing
-   - `role`: same shape, `@mention` / name / id, resolved against the
-     guild's roles
+   - `channel`: a native `ChannelSelectMenu` inside the modal, with the
+     current channel preselected (`default_values`), searchable by name,
+     and cleared to unset the setting
+   - `role`: a native `RoleSelectMenu`, same shape
+   - `role-list`: a native `RoleSelectMenu` allowing up to `max` roles
+     (default 25, Discord's select ceiling), every current role
+     preselected, and an empty selection clearing the list
    - `string-list`: paragraph text input, one entry per line
    - `choice`: `StringSelectMenu` inside the modal (`choices`, current
      value preselected)
@@ -270,15 +273,26 @@ point when wiring it.
      The prefill text comes from `descriptor.format(value)` when present,
      else `String(value)`.
 3. On submit the dialog re-validates (`validate`, numeric bounds,
-   channel/role resolution, duration parse), persists via the module's
-   `set`, then `interaction.update()` re-renders the module page in place.
-   A failed validation replies ephemeral with the error and leaves the
-   panel and the stored value untouched.
+   duration parse), persists via the module's `set`, then
+   `interaction.update()` re-renders the module page in place. A failed
+   validation replies ephemeral with the error and leaves the panel and
+   the stored value untouched.
 
 Dialogs (modals) are the single edit path for every type. Discord allows
-`StringSelectMenu` rows inside modals, so even `choice` and `boolean`
-fit the dialog: one `showModal` / submit flow for the whole system, no
-per-type inline controls, no header layout per setting kind.
+select menus inside modal `Label`s, so `string`/`number`/`duration`/
+`string-list` use a text input while `channel`/`role`/`role-list` use the
+native pickers and `choice`/`boolean` use a `StringSelectMenu`: one
+`showModal` / submit flow for the whole system, no per-type inline
+controls, no header layout per setting kind.
+
+Native pickers replace mention/name/id text entry, which modals cannot
+resolve (Discord does not parse or autocomplete mentions in a text
+input). The submitted field carries the resolved id directly, with no
+guild lookup, and the pickers are optional (`required: false`,
+`min_values: 0`) so clearing the selection stores `null` (or an empty
+list for `role-list`). An untouched or cleared picker is absent from the
+submitted field map entirely, so the submit handler reads that map rather
+than the typed getters, which throw when the component is missing.
 
 ## 5. Interaction plumbing
 

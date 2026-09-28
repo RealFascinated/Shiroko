@@ -6,7 +6,7 @@ import GuildSettings from "./guild-settings";
  * The kind of a setting, driving both its edit dialog and its value shape.
  */
 export type SettingType =
-  "boolean" | "number" | "string" | "choice" | "channel" | "role" | "duration" | "string-list";
+  "boolean" | "number" | "string" | "choice" | "channel" | "role" | "role-list" | "duration" | "string-list";
 
 /**
  * The JSON value shape each SettingType requires of `C[K]`.
@@ -18,6 +18,7 @@ export type SettingValueMap = {
   choice: string;
   channel: string | null; // null = unset
   role: string | null; // null = unset
+  "role-list": string[];
   duration: number; // milliseconds
   "string-list": string[];
 };
@@ -31,7 +32,8 @@ interface SettingDescriptorBase<C, K extends keyof C, T extends SettingType> {
   /** Option values, required for `choice`. */
   choices?: T extends "choice" ? Record<string, string> : never;
   min?: T extends "number" | "duration" ? number : never;
-  max?: T extends "number" | "duration" ? number : never;
+  /** Upper bound; for `role-list` it caps how many roles can be selected. */
+  max?: T extends "number" | "duration" | "role-list" ? number : never;
   /** Return an error message, or null when the value is valid. */
   validate?(value: C[K]): string | null;
   /** Display formatting for the panel. */

@@ -2,9 +2,11 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ChannelSelectMenuBuilder,
   LabelBuilder,
   MessageFlags,
   ModalBuilder,
+  RoleSelectMenuBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
   TextDisplayBuilder,
@@ -34,6 +36,11 @@ export const PANEL_ACTION = {
   submit: "submit",
   apply: "apply",
 } as const;
+
+/**
+ * The hard ceiling on roles in a `role-list`: Discord's 25 select options.
+ */
+export const ROLE_LIST_MAX = 25;
 
 const NAV_PREFIX = `settings:${PANEL_ACTION.page}`;
 
@@ -149,6 +156,8 @@ export function formatValue(descriptor: RuntimeSettingDescriptor, value: unknown
       return `<#${value}>`;
     case "role":
       return `<@&${value}>`;
+    case "role-list":
+      return (value as string[]).map(id => `<@&${id}>`).join(", ");
     case "string-list":
       return (value as string[]).join(", ");
     default:
@@ -268,7 +277,8 @@ function selectOptionsFor(
  * Build the edit dialog (modal) for a descriptor on a page, pre-filled
  * with the guild's current value and prefixed by help text (the setting's
  * description plus a per-type hint) so it's obvious how to input the
- * value.
+ * value. Channel and role settings use Discord's native pickers; every
+ * other type takes a text input.
  */
 export async function dialogFor<C>(
   module: SettingsModule<C>,
@@ -277,8 +287,6 @@ export async function dialogFor<C>(
   page: number = 0
 ): Promise<ModalBuilder> {
   const current = await module.get(guild.id, descriptor.key as keyof C);
-  const prefill = prefillFor(descriptor, current);
-  const isParagraph = descriptor.type === "string-list";
   const modal = new ModalBuilder()
     .setCustomId(controlId(module.id, guild.id, page, descriptor.key, PANEL_ACTION.submit))
     .setTitle(descriptor.label);
@@ -296,14 +304,117 @@ export async function dialogFor<C>(
     modal.addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
   }
 
+  if (descriptor.type === "channel") {
+    modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel(descriptor.label)
+        .setChannelSelectMenuComponent(channelPicker(descriptor, current, guild))
+    );
+    return modal;
+  }
+  if (descriptor.type === "role") {
+    modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel(descriptor.label)
+        .setRoleSelectMenuComponent(rolePicker(descriptor, current, guild))
+    );
+    return modal;
+  }
+  if (descriptor.type === "role-list") {
+    modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel(descriptor.label)
+        .setRoleSelectMenuComponent(roleListPicker(descriptor, current, guild))
+    );
+    return modal;
+  }
+
   const input = new TextInputBuilder()
     .setCustomId("value")
-    .setStyle(isParagraph ? TextInputStyle.Paragraph : TextInputStyle.Short)
-    .setValue(prefill)
+    .setStyle(descriptor.type === "string-list" ? TextInputStyle.Paragraph : TextInputStyle.Short)
+    .setValue(prefillFor(descriptor, current))
     .setRequired(true)
     .setPlaceholder(placeholderFor(descriptor));
   modal.addLabelComponents(new LabelBuilder().setLabel(descriptor.label).setTextInputComponent(input));
   return modal;
+}
+
+/**
+ * The native channel picker for a channel setting: the current value is
+ * preselected (when the channel still exists) and clearing it unsets the
+ * setting. A target the guild no longer has is skipped, since the API
+ * rejects default values it cannot resolve.
+ */
+function channelPicker(
+  descriptor: RuntimeSettingDescriptor,
+  current: unknown,
+  guild: Guild
+): ChannelSelectMenuBuilder {
+  const picker = new ChannelSelectMenuBuilder()
+    .setCustomId("value")
+    .setPlaceholder(`Choose: ${descriptor.label}`)
+    .setMinValues(0)
+    .setMaxValues(1)
+    .setRequired(false);
+  if (typeof current === "string" && guild.channels.cache.has(current)) {
+    picker.setDefaultChannels(current);
+  }
+  return picker;
+}
+
+/**
+ * The native role picker for a role setting; same semantics as
+ * {@link channelPicker}.
+ */
+function rolePicker(
+  descriptor: RuntimeSettingDescriptor,
+  current: unknown,
+  guild: Guild
+): RoleSelectMenuBuilder {
+  const picker = new RoleSelectMenuBuilder()
+    .setCustomId("value")
+    .setPlaceholder(`Choose: ${descriptor.label}`)
+    .setMinValues(0)
+    .setMaxValues(1)
+    .setRequired(false);
+  if (typeof current === "string" && guild.roles.cache.has(current)) {
+    picker.setDefaultRoles(current);
+  }
+  return picker;
+}
+
+/**
+ * The most roles a role-list setting can hold: the descriptor's `max`,
+ * capped at the 25 select-menu options Discord allows.
+ */
+export function roleListLimit(descriptor: RuntimeSettingDescriptor): number {
+  const max = descriptor.max ?? ROLE_LIST_MAX;
+  return Math.min(Math.max(1, max), ROLE_LIST_MAX);
+}
+/**
+ * The native role picker for a role-list setting: up to
+ * {@link roleListLimit} roles, all current ones preselected, and an empty
+ * selection allowed to clear the list.
+ */
+function roleListPicker(
+  descriptor: RuntimeSettingDescriptor,
+  current: unknown,
+  guild: Guild
+): RoleSelectMenuBuilder {
+  const picker = new RoleSelectMenuBuilder()
+    .setCustomId("value")
+    .setPlaceholder(`Choose up to ${roleListLimit(descriptor)}: ${descriptor.label}`)
+    .setMinValues(0)
+    .setMaxValues(roleListLimit(descriptor))
+    .setRequired(false);
+  // default_values must be resolvable, so roles the guild no longer has are dropped.
+  const selected = (Array.isArray(current) ? current : []).filter(
+    (id): id is string => typeof id === "string" && guild.roles.cache.has(id)
+  );
+  if (selected.length > 0) {
+    picker.setDefaultRoles(...selected.slice(0, roleListLimit(descriptor)));
+  }
+  return picker;
 }
 
 /**
@@ -316,11 +427,11 @@ function dialogHintFor(descriptor: RuntimeSettingDescriptor): string {
     case "duration":
       return "Enter a duration like 90s, 1h30m, or 2d. Leave empty to reset to the default.";
     case "channel":
-      return descriptor.description
-        ? "Paste a #channel mention or the channel name/id. Leave empty to clear."
-        : "Paste a #channel mention or channel name/id. Leave empty to clear.";
+      return "Pick a channel, or clear the selection to unset it.";
     case "role":
-      return "Paste an @role mention or role name/id. Leave empty to clear.";
+      return "Pick a role, or clear the selection to unset it.";
+    case "role-list":
+      return `Pick up to ${roleListLimit(descriptor)} roles. Remove all to clear.`;
     case "string-list":
       return "One entry per line. Remove all lines to clear.";
     case "string":
@@ -347,10 +458,6 @@ function placeholderFor(descriptor: RuntimeSettingDescriptor): string {
       return "A number";
     case "duration":
       return "e.g. 90s, 1h30m, 2d";
-    case "channel":
-      return "#channel, channel name, or id (or empty to clear)";
-    case "role":
-      return "@role, role name, or id (or empty to clear)";
     case "string-list":
       return "One entry per line";
     default:
@@ -359,14 +466,13 @@ function placeholderFor(descriptor: RuntimeSettingDescriptor): string {
 }
 
 /**
- * Validate and parse a submitted dialog value into a JSON value. For
- * channel/role an empty input means "clear" (null); resolution against the
- * guild happens in {@link handleDialogSubmit}. Select-sourced values
+ * Validate and parse a submitted dialog value into a JSON value. An empty
+ * channel/role picker means "clear" (null). Select-sourced values
  * (boolean/choice) are also parsed here for {@link handleSelectApply}.
  */
 export function parseDialogValue(
   descriptor: RuntimeSettingDescriptor,
-  raw: string | readonly string[]
+  raw: string | readonly string[] | null
 ): { error?: string; value?: unknown } {
   switch (descriptor.type) {
     case "boolean": {
@@ -409,8 +515,17 @@ export function parseDialogValue(
     }
     case "channel":
     case "role": {
-      const text = (Array.isArray(raw) ? raw[0] : raw).trim();
-      return { value: text.length === 0 ? null : text };
+      if (raw === null) {
+        return { value: null };
+      }
+      return { value: Array.isArray(raw) ? (raw[0] ?? null) : raw };
+    }
+    case "role-list": {
+      const ids = raw === null ? [] : typeof raw === "string" ? [raw] : raw;
+      if (descriptor.max !== undefined && ids.length > roleListLimit(descriptor)) {
+        return { error: `${descriptor.label} allows at most ${roleListLimit(descriptor)} roles.` };
+      }
+      return { value: ids };
     }
     case "string-list": {
       const text = (Array.isArray(raw) ? raw[0] : raw).trim();
@@ -432,64 +547,48 @@ export function parseDialogValue(
 }
 
 /**
- * Resolve a `#mention` / `@mention` / name / id against the guild. Returns
- * the stable id, or `null` when nothing matches.
+ * Read the submitted value out of a modal: the resolved id from a
+ * channel/role picker (null when the selection was cleared), otherwise
+ * the text-input string. Cleared and untouched pickers are read from the
+ * raw field map, because the typed getters throw when a component is
+ * absent from the submission rather than reporting an empty selection.
  */
-async function resolveMentionLike(guild: Guild, input: string): Promise<string | null> {
-  const bare = input.replace(/^<#(\d+)>$/, "$1").replace(/^<@&(\d+)>$/, "$1");
-  if (/^\d+$/.test(bare)) {
-    return bare;
+export function dialogValueFrom(
+  interaction: ModalSubmitInteraction,
+  descriptor: RuntimeSettingDescriptor
+): string | readonly string[] | null {
+  if (descriptor.type === "channel" || descriptor.type === "role") {
+    const field = interaction.fields.fields.get("value") as { values?: readonly string[] } | undefined;
+    return field?.values?.[0] ?? null;
   }
-  const lower = input.toLowerCase();
-  const foundChannel = Array.from(guild.channels.cache.values()).find(ch => ch.name.toLowerCase() === lower);
-  if (foundChannel) {
-    return foundChannel.id;
+  if (descriptor.type === "role-list") {
+    const field = interaction.fields.fields.get("value") as { values?: readonly string[] } | undefined;
+    return field?.values ?? [];
   }
-  const foundRole = Array.from(guild.roles.cache.values()).find(r => r.name.toLowerCase() === lower);
-  return foundRole?.id ?? null;
-}
-
-/**
- * Read the submitted value out of a modal by its component custom id.
- */
-export function dialogValueFrom(interaction: ModalSubmitInteraction): string {
   return interaction.fields.getTextInputValue("value");
 }
 
 /**
- * Validate and resolve a raw dialog value (channel/role resolution
- * included), returning the JSON value to persist.
+ * Run a setting's own validator over a parsed value, returning the JSON
+ * value to persist.
  */
-async function finalizeValue(
+function finalizeValue(
   descriptor: RuntimeSettingDescriptor,
-  value: unknown,
-  guild: Guild
-): Promise<{ error?: string; value?: unknown }> {
-  let result: unknown = value;
-  if (descriptor.type === "channel" || descriptor.type === "role") {
-    if (value === null) {
-      result = null;
-    } else {
-      const resolved = await resolveMentionLike(guild, String(value));
-      if (resolved === null) {
-        return { error: `Could not find a ${descriptor.type} matching that.` };
-      }
-      result = resolved;
-    }
-  }
+  value: unknown
+): { error?: string; value?: unknown } {
   if (descriptor.validate) {
-    const message = descriptor.validate(result);
+    const message = descriptor.validate(value);
     if (message !== null) {
       return { error: message };
     }
   }
-  return { value: result };
+  return { value };
 }
 
 /**
- * Handle a modal submit: validate, resolve channel/role, persist, and
- * re-render the module page in place (on the page the dialog opened
- * from, encoded in the modal's custom id).
+ * Handle a modal submit: validate, persist, and re-render the module page
+ * in place (on the page the dialog opened from, encoded in the modal's
+ * custom id).
  */
 export async function handleDialogSubmit<C>(
   interaction: ModalSubmitInteraction,
@@ -503,7 +602,7 @@ export async function handleDialogSubmit<C>(
   if (!guild) {
     return;
   }
-  const parsed = parseDialogValue(descriptor, dialogValueFrom(interaction));
+  const parsed = parseDialogValue(descriptor, dialogValueFrom(interaction, descriptor));
   if (parsed.error !== undefined) {
     await interaction.reply({
       embeds: [errorEmbed(commandName).setDescription(parsed.error)],
@@ -511,7 +610,7 @@ export async function handleDialogSubmit<C>(
     });
     return;
   }
-  const finalized = await finalizeValue(descriptor, parsed.value, guild);
+  const finalized = finalizeValue(descriptor, parsed.value);
   if (finalized.error !== undefined) {
     await interaction.reply({
       embeds: [errorEmbed(commandName).setDescription(finalized.error)],
@@ -556,7 +655,7 @@ export async function handleSelectApply<C>(
     });
     return;
   }
-  const finalized = await finalizeValue(descriptor, parsed.value, guild);
+  const finalized = finalizeValue(descriptor, parsed.value);
   if (finalized.error !== undefined) {
     await interaction.reply({
       embeds: [errorEmbed(commandName).setDescription(finalized.error)],
