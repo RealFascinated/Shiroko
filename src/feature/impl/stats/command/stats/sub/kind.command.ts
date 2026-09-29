@@ -2,7 +2,7 @@ import Command, { type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
 import type { StatsCardKind } from "@/feature/impl/stats/stats-card";
 import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
-import { replyStatsCard } from "./reply-stats-card";
+import { replyStatsCard } from "../reply-stats-card";
 
 /**
  * One `/stats` subcommand: the kind selects the card and its chart, the
