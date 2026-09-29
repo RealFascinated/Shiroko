@@ -24,6 +24,7 @@ export const PermissionFlags = Object.freeze({
   FEATURE_COMMAND: 1n << 1n,
   PERMISSIONS_COMMAND: 1n << 2n,
   SETTINGS_COMMAND: 1n << 4n,
+  AUTOROLE_COMMAND: 1n << 5n,
 } as const satisfies Record<string, bigint>);
 
 /**
@@ -34,6 +35,7 @@ export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: st
   { flag: PermissionFlags.FEATURE_COMMAND, label: "Feature Command" },
   { flag: PermissionFlags.PERMISSIONS_COMMAND, label: "Permissions Command" },
   { flag: PermissionFlags.SETTINGS_COMMAND, label: "Settings Command" },
+  { flag: PermissionFlags.AUTOROLE_COMMAND, label: "Autoroles Command" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];
@@ -85,6 +87,7 @@ export default class Permissions {
   private static readonly CACHE = Caches.register(
     new Cache<Map<string, RoleConfig>>({ name: "permissions", mode: "authoritative", max: 5_000 })
   );
+
   /**
    * Sanity check: a `bigint` beyond the loaded window is meaningless.
    */

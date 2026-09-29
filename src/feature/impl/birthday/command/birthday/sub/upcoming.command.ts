@@ -19,10 +19,8 @@ export default class UpcomingCommand extends Command {
     super("upcoming", "Show upcoming birthdays in this server");
   }
 
-  protected override async onExecuteSlash({ guild, ctx, commandName }: ExecuteContext) {
-    if (!guild) {
-      return;
-    }
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const memberIds = new Set(guild.members.cache.keys());
     const title = `🎂 Upcoming Birthdays: ${guild.name}`;
     const fetchPage = (page: number): Promise<Page<UpcomingBirthday>> =>

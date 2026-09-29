@@ -28,15 +28,7 @@ export default class FeatureCommand extends Command {
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
-    const guild = ctx.guild;
-    if (!guild) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription("Features can only be changed in servers.")
-        )
-      );
-    }
+    const guild = ctx.guild!;
     const featureId = ctx.options.getString("feature", true)! as FeatureIds;
     if (!Object.values(FeatureIds).includes(featureId)) {
       return ctx.reply(

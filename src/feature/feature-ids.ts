@@ -4,6 +4,7 @@
  * wrappers, without pulling in the `Feature` class and the command cycle.
  */
 export enum FeatureIds {
+  Autoroles = "autoroles",
   Birthday = "birthday",
   Interaction = "interaction",
   Invites = "invites",

@@ -26,10 +26,8 @@ export default class RankCommand extends Command {
     return [userOption(false, "user", "Whose rank to show (defaults to you)")];
   }
 
-  protected override async onExecuteSlash({ user, guild, ctx, args, commandName }: ExecuteContext) {
-    if (!guild) {
-      return;
-    }
+  protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const guildId = guild.id;
     const target = args.user("user") ?? user.discordUser;
     if (target.bot) {

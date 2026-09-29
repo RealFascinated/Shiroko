@@ -20,15 +20,8 @@ export default class PermissionsSetCommand extends Command {
     ];
   }
 
-  protected override async onExecuteSlash({ guild, ctx, args, commandName }: ExecuteContext) {
-    if (!guild) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription("Permissions are only available in servers.")
-        )
-      );
-    }
+  protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const role = args.role("role");
     if (!role) {
       return ctx.reply(

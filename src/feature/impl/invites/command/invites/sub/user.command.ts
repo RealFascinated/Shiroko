@@ -3,7 +3,7 @@ import { userOption } from "@/command/option";
 import { db } from "@/db/index";
 import { inviteJoins } from "@/db/schemas/invite-joins";
 import { invitesService } from "@/feature/impl/invites/invites.service";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { baseEmbed } from "@/lib/embed";
 import { pluralise } from "@/lib/format";
 import { and, count, eq } from "drizzle-orm";
 
@@ -19,15 +19,8 @@ export default class InvitesUserCommand extends Command {
     return [userOption(false, "user", "Whose invites to show (defaults to you)")];
   }
 
-  protected override async onExecuteSlash({ user, guild, ctx, args, commandName }: ExecuteContext) {
-    if (!guild) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription("Invites are only available in servers.")
-        )
-      );
-    }
+  protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const target = args.user("user") ?? user.discordUser;
     const canTrack = await invitesService.canTrack(guild);
     const [row] = await db

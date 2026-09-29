@@ -14,10 +14,8 @@ export default class RemoveCommand extends Command {
     super("remove", "Remove your saved birthday");
   }
 
-  protected override async onExecuteSlash({ user, guild, ctx, commandName }: ExecuteContext) {
-    if (!guild) {
-      return;
-    }
+  protected override async onExecuteSlash({ user, ctx, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const existing = await birthdayService.getBirthday(guild.id, user.id);
     if (!existing) {
       return ctx.reply(

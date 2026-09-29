@@ -31,10 +31,8 @@ export default class SetCommand extends Command {
     ];
   }
 
-  protected override async onExecuteSlash({ user, guild, ctx, args, commandName }: ExecuteContext) {
-    if (!guild) {
-      return;
-    }
+  protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const day = args.integer("day")!;
     const month = args.integer("month")!;
     const year = args.integer("year")!;

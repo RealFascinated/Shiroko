@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { roleOption, type CommandOptionBuilder } from "@/command/option";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { baseEmbed } from "@/lib/embed";
 import { attachPager, loadPage, type Page } from "@/lib/pagination";
 import Permissions, {
   FLAG_DISPLAY_NAMES,
@@ -29,15 +29,8 @@ export default class PermissionsViewCommand extends Command {
     return [roleOption(false, "role", "Role to inspect (defaults to all configured roles)")];
   }
 
-  protected override async onExecuteSlash({ guild, ctx, args, commandName }: ExecuteContext) {
-    if (!guild) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription("Permissions are only available in servers.")
-        )
-      );
-    }
+  protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const role = args.role("role");
     if (role) {
       return this.showRole(

@@ -11,10 +11,8 @@ export default class RewardsCommand extends Command {
     super("rewards", "Show the server's level-up rewards");
   }
 
-  protected override async onExecuteSlash({ guild, ctx, commandName }: ExecuteContext) {
-    if (!guild) {
-      return;
-    }
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const rewards = await levelsService.rewards(guild.id);
     if (rewards.length === 0) {
       return ctx.reply(

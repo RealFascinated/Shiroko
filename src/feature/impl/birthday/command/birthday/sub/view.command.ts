@@ -19,10 +19,8 @@ export default class ViewCommand extends Command {
     return [userOption(false, "user", "Whose birthday to show (defaults to you)")];
   }
 
-  protected override async onExecuteSlash({ user, guild, ctx, args, commandName }: ExecuteContext) {
-    if (!guild) {
-      return;
-    }
+  protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const target = args.user("user") ?? user.discordUser;
     const isSelf = target.id === user.id;
     const birthday = await birthdayService.getBirthday(guild.id, target.id);

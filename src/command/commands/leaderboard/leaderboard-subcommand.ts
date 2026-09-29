@@ -49,10 +49,8 @@ export default abstract class LeaderboardSubCommand extends Command {
     }
   }
 
-  protected override async onExecuteSlash({ guild, ctx, commandName }: ExecuteContext) {
-    if (!guild) {
-      return;
-    }
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const guildId = guild.id;
     const board = this.board;
     const render = async (page: Page<LeaderboardRow>) => {

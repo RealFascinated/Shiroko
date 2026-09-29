@@ -19,16 +19,8 @@ export default class SettingsCommand extends Command {
     return PermissionFlags.SETTINGS_COMMAND;
   }
 
-  protected override async onExecuteSlash({ guild, ctx, commandName }: ExecuteContext) {
-    if (!guild) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription("Settings can only be changed in servers.")
-        )
-      );
-    }
-
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
+    const guild = ctx.guild!;
     const modules = await SettingsManager.enabledModules(guild);
     if (modules.length === 0) {
       return ctx.reply(
