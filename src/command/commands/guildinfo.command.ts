@@ -45,7 +45,7 @@ export default class GuildInfoCommand extends Command {
         `**Offline:** ${statusCounts.offline.toLocaleString("en-US")}`,
       ],
       [
-        "**️ History**",
+        "**🕰️ History**",
         `**Created:** <t:${Math.floor(guild.createdTimestamp / 1000)}:R>`,
         `**Bot Joined:** <t:${Math.floor(guild.joinedTimestamp / 1000)}:R>`,
         `**Owner:** <@${guild.ownerId}>`,
