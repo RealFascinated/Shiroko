@@ -1,9 +1,9 @@
-import { getVoiceConnection } from "@discordjs/voice";
-import type { ApplicationCommandDataResolvable, Client } from "discord.js";
 import { EventBus } from "@/event/event-bus";
 import { EventHandler } from "@/event/event-handler";
 import { EventListener } from "@/event/event-listener";
 import PostCommandLoadEvent from "@/event/events/post-command-load.event";
+import { getVoiceConnection } from "@discordjs/voice";
+import type { ApplicationCommandDataResolvable, Client } from "discord.js";
 
 const API_BASE_URL = "https://discordbotlist.com/api/v1/bots";
 const STATS_INTERVAL_MS = 60 * 60 * 1000;

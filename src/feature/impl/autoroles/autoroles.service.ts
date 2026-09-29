@@ -1,3 +1,6 @@
+import { Cache } from "@/cache/cache";
+import { Caches } from "@/cache/index";
+import { guildKey } from "@/cache/key";
 import { db } from "@/db/index";
 import { autoroles } from "@/db/schemas/autoroles";
 import type { Guild, GuildMember, Role } from "discord.js";
@@ -22,6 +25,16 @@ export type AutorolesSyncProgress = (scanned: number, total: number) => Promise<
 
 export default class AutorolesService {
   /**
+   * Per-guild list of configured autorole role IDs. Authoritative: `add` and
+   * `remove` invalidate the guild's entry, and guild leave purges it through
+   * the cache registry. Role objects are resolved from the guild cache on
+   * every read, so a cached list never outlives a role's state.
+   */
+  private static readonly CACHE = Caches.register(
+    new Cache<string[]>({ name: "autoroles", mode: "authoritative", max: 5_000 })
+  );
+
+  /**
    * Add a role to the guild's autorole list. Returns `true` if the role
    * was new, `false` if it was already configured.
    */
@@ -31,6 +44,9 @@ export default class AutorolesService {
       .values({ guildId, roleId })
       .onConflictDoNothing({ target: [autoroles.guildId, autoroles.roleId] })
       .returning({ roleId: autoroles.roleId });
+    if (result.length > 0) {
+      AutorolesService.CACHE.invalidate(guildKey(guildId));
+    }
     return result.length > 0;
   }
 
@@ -43,19 +59,26 @@ export default class AutorolesService {
       .delete(autoroles)
       .where(and(eq(autoroles.guildId, guildId), eq(autoroles.roleId, roleId)))
       .returning({ roleId: autoroles.roleId });
+    if (result.length > 0) {
+      AutorolesService.CACHE.invalidate(guildKey(guildId));
+    }
     return result.length > 0;
   }
 
   /**
    * All roles configured as autoroles in a guild, with any that no longer
-   * exist in the guild cache filtered out.
+   * exist in the guild cache filtered out. Reads the role ID list from the
+   * per-guild cache; role resolution and expiry filtering stay outside it.
    */
   public async list(guild: Guild): Promise<Role[]> {
-    const rows = await db
-      .select({ roleId: autoroles.roleId })
-      .from(autoroles)
-      .where(eq(autoroles.guildId, guild.id));
-    return rows.map(r => guild.roles.cache.get(r.roleId)).filter((r): r is Role => r !== undefined);
+    const roleIds = await AutorolesService.CACHE.load(guildKey(guild.id), async () => {
+      const rows = await db
+        .select({ roleId: autoroles.roleId })
+        .from(autoroles)
+        .where(eq(autoroles.guildId, guild.id));
+      return rows.map(r => r.roleId);
+    });
+    return roleIds.map(id => guild.roles.cache.get(id)).filter((r): r is Role => r !== undefined);
   }
 
   /**
