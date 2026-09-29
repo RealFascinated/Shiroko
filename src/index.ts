@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { CacheListeners } from "./cache/index";
+import { CacheListeners } from "./cache/cache-listeners";
 import CommandManager, { SlashCommandListener } from "./command/index";
 import { Constants } from "./constants";
 import ContextMenuCommandManager, { ContextMenuCommandListener } from "./context-menu/index";

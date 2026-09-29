@@ -1,7 +1,3 @@
-import { EventBus } from "../event/event-bus";
-import { EventHandler } from "../event/event-handler";
-import { EventListener } from "../event/event-listener";
-import GuildLeftEvent from "../event/events/guild-left.event";
 import type { Cache, CacheStats } from "./cache";
 import { guildScope, userScope } from "./key";
 
@@ -44,21 +40,5 @@ export class Caches {
 
   public static stats(): CacheStats[] {
     return Array.from(Caches.REGISTRY.values(), cache => cache.stats());
-  }
-}
-
-/** Drops cached data for guilds the bot is no longer in. */
-export class CacheListeners extends EventListener {
-  constructor() {
-    super();
-    EventBus.subscribe(this);
-  }
-
-  @EventHandler(GuildLeftEvent)
-  public async onGuildLeft(event: GuildLeftEvent): Promise<void> {
-    const purged = Caches.purgeGuild(event.guildData.id);
-    if (purged > 0) {
-      console.log(`Purged ${purged} cached entries for guild ${event.guildData.id}`);
-    }
   }
 }
