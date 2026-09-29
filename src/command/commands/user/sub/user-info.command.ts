@@ -1,5 +1,10 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
+import { FeatureIds } from "@/feature/feature-ids";
+import GuildFeatures from "@/feature/guild-features";
+import { birthdayService } from "@/feature/impl/birthday/birthday.service";
+import { daysUntil, monthName } from "@/feature/impl/birthday/date";
+import { levelsService } from "@/feature/impl/levels/levels.service";
 import { baseEmbed } from "@/lib/embed";
 import { fetchGuildMember } from "@/lib/guild";
 import type GlobalUser from "@/user/global-user";
@@ -16,8 +21,9 @@ import {
 } from "discord.js";
 
 /**
- * Show a user's info: first seen, ids, avatar, banner, and server roles
- * when run in a guild.
+ * Show a user's info: first seen, ids, avatar, banner, and when in a guild
+ * server roles plus the level and birthday sections if those features are
+ * enabled.
  */
 export default class UserInfoCommand extends Command {
   constructor() {
@@ -50,33 +56,65 @@ export default class UserInfoCommand extends Command {
       member = await fetchGuildMember(guild, target.id);
     }
 
-    const sections: string[][] = [];
+    const lines: string[] = [];
     if (member) {
       const roles = member.roles.cache
         .filter(role => role.id !== guild!.id)
         .sort((a, b) => b.position - a.position)
         .map(role => role.toString());
-      sections.push([
-        `**🎭 Server**`,
-        `**Roles:** ${roles.length ? roles.join(" ") : "None"}`,
-        ...(member.premiumSince
-          ? [`**Boosting Since:** <t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`]
-          : []),
-      ]);
-    }
-    sections.push([
-      `**🗓️ Account**`,
-      `**Account Created:** <t:${Math.floor(target.createdAt.getTime() / 1000)}:R>`,
-      `**First Seen:** <t:${Math.floor(targetGlobal.firstSeen.getTime() / 1000)}:R>`,
-      `**User ID:** \`${target.id}\``,
-    ]);
+      lines.push("**🎭 Server**");
+      lines.push(`**Roles:** ${roles.length ? roles.join(" ") : "None"}`);
+      if (member.joinedAt) {
+        lines.push(`**Joined Server:** <t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>`);
+      }
+      if (member.premiumSince) {
+        lines.push(`**Boosting Since:** <t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`);
+      }
 
-    const lines = sections.map(section => section.join("\n")).join("\n\n");
+      if (guild) {
+        const [levelsEnabled, birthdayEnabled] = await Promise.all([
+          GuildFeatures.isFeatureEnabled(guild, FeatureIds.Levels),
+          GuildFeatures.isFeatureEnabled(guild, FeatureIds.Birthday),
+        ]);
+        if (levelsEnabled) {
+          const rank = await levelsService.getRankState(guild.id, target.id);
+          const barLength = 10;
+          const filled = Math.round(rank.progress * barLength);
+          const bar = `\`${"█".repeat(filled)}${"░".repeat(barLength - filled)}\``;
+          lines.push("");
+          lines.push("**📊 Levels**");
+          lines.push(`**Level:** ${rank.level} (${rank.xp.toLocaleString("en-US")} XP)`);
+          lines.push(`${bar} **${filled * (100 / barLength)}%** to level ${rank.level + 1}`);
+          lines.push(
+            `**Server Rank:** ${rank.guildRank === null ? "Not ranked yet" : `#${rank.guildRank} of ${rank.totalTracked}`}`
+          );
+        }
+        if (birthdayEnabled) {
+          const birthday = await birthdayService.getBirthday(guild.id, target.id);
+          if (birthday) {
+            const days = daysUntil(birthday.month, birthday.day);
+            lines.push("");
+            lines.push("**🎂 Birthday**");
+            lines.push(`**Date:** ${monthName(birthday.month)} ${birthday.day}`);
+            lines.push(
+              days === 0 ? "**Happy Birthday!** 🎉" : `**Next:** in ${days} day${days === 1 ? "" : "s"}`
+            );
+          }
+        }
+      }
+    }
+    if (lines.length > 0) {
+      lines.push("");
+    }
+    lines.push("**🗓️ Account**");
+    lines.push(`**Account Created:** <t:${Math.floor(target.createdAt.getTime() / 1000)}:R>`);
+    lines.push(`**First Seen:** <t:${Math.floor(targetGlobal.firstSeen.getTime() / 1000)}:R>`);
+    lines.push(`**User ID:** \`${target.id}\``);
 
     const embed = baseEmbed(commandName)
       .setTitle(`👤 ${target.displayName}'s Info`)
       .setThumbnail(avatarUrl)
-      .setDescription(lines);
+      .setDescription(lines.join("\n"));
 
     const buttons = [new ButtonBuilder().setLabel("Avatar").setStyle(ButtonStyle.Link).setURL(avatarUrl)];
     if (bannerUrl) {
