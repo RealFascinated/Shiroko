@@ -943,8 +943,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"messages\"}[5m])",
-                        "legendFormat": "messages",
+                        "expr": "cache_entries{job=\"$job\",cache=~\"[^:]+:size\"}",
+                        "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -960,7 +960,7 @@
           "description": "",
           "id": 9,
           "links": [],
-          "title": "Messages",
+          "title": "Entries",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1013,7 +1013,7 @@
                       }
                     ]
                   },
-                  "unit": "ops",
+                  "unit": "short",
                   "min": 0
                 },
                 "overrides": []
@@ -1055,8 +1055,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"slash_commands\"}[5m])",
-                        "legendFormat": "slash",
+                        "expr": "rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]) / (rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]) + rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m]))",
+                        "legendFormat": "hit rate",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1072,7 +1072,7 @@
           "description": "",
           "id": 10,
           "links": [],
-          "title": "Slash commands",
+          "title": "Hit rate",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1125,8 +1125,9 @@
                       }
                     ]
                   },
-                  "unit": "ops",
-                  "min": 0
+                  "unit": "percentunit",
+                  "min": 0,
+                  "max": 1
                 },
                 "overrides": []
               },
@@ -1167,8 +1168,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"components\"}[5m])",
-                        "legendFormat": "components",
+                        "expr": "rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m])",
+                        "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1184,7 +1185,7 @@
           "description": "",
           "id": 11,
           "links": [],
-          "title": "Components",
+          "title": "Loads per second",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1279,8 +1280,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"context_menus\"}[5m])",
-                        "legendFormat": "context",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"messages\"}[5m])",
+                        "legendFormat": "messages",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1296,7 +1297,7 @@
           "description": "",
           "id": 12,
           "links": [],
-          "title": "Context menus",
+          "title": "Messages",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1391,8 +1392,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"member_joins\"}[5m])",
-                        "legendFormat": "joins",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"slash_commands\"}[5m])",
+                        "legendFormat": "slash",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1408,7 +1409,7 @@
           "description": "",
           "id": 13,
           "links": [],
-          "title": "Member joins",
+          "title": "Slash commands",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1503,8 +1504,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"presence_changes\"}[5m])",
-                        "legendFormat": "presence",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"components\"}[5m])",
+                        "legendFormat": "components",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1520,7 +1521,7 @@
           "description": "",
           "id": 14,
           "links": [],
-          "title": "Presence changes",
+          "title": "Components",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1615,6 +1616,342 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"context_menus\"}[5m])",
+                        "legendFormat": "context",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 15,
+          "links": [],
+          "title": "Context menus",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-16": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"member_joins\"}[5m])",
+                        "legendFormat": "joins",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 16,
+          "links": [],
+          "title": "Member joins",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-17": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"presence_changes\"}[5m])",
+                        "legendFormat": "presence",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 17,
+          "links": [],
+          "title": "Presence changes",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-18": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
                         "expr": "rate(event_loop_ms_sum{job=\"$job\"}[5m]) / rate(event_loop_ms_count{job=\"$job\"}[5m])",
                         "legendFormat": "average",
                         "queryType": "MetricsQL"
@@ -1630,7 +1967,7 @@
             }
           },
           "description": "",
-          "id": 15,
+          "id": 18,
           "links": [],
           "title": "Event loop delay (average)",
           "vizConfig": {
@@ -1709,7 +2046,7 @@
           }
         }
       },
-      "panel-16": {
+      "panel-19": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -1742,7 +2079,7 @@
             }
           },
           "description": "",
-          "id": 16,
+          "id": 19,
           "links": [],
           "title": "Event loop delay (p95)",
           "vizConfig": {
@@ -2030,7 +2367,7 @@
                           "name": "panel-9"
                         },
                         "height": 8,
-                        "width": 8,
+                        "width": 12,
                         "x": 0,
                         "y": 0
                       }
@@ -2043,8 +2380,8 @@
                           "name": "panel-10"
                         },
                         "height": 8,
-                        "width": 8,
-                        "x": 8,
+                        "width": 12,
+                        "x": 12,
                         "y": 0
                       }
                     },
@@ -2056,11 +2393,25 @@
                           "name": "panel-11"
                         },
                         "height": 8,
-                        "width": 8,
-                        "x": 16,
-                        "y": 0
+                        "width": 24,
+                        "x": 0,
+                        "y": 8
                       }
-                    },
+                    }
+                  ]
+                }
+              },
+              "title": "\ud83d\uddc3\ufe0f Caches"
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
@@ -2071,7 +2422,7 @@
                         "height": 8,
                         "width": 8,
                         "x": 0,
-                        "y": 8
+                        "y": 0
                       }
                     },
                     {
@@ -2084,7 +2435,7 @@
                         "height": 8,
                         "width": 8,
                         "x": 8,
-                        "y": 8
+                        "y": 0
                       }
                     },
                     {
@@ -2093,6 +2444,45 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-14"
+                        },
+                        "height": 8,
+                        "width": 8,
+                        "x": 16,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-15"
+                        },
+                        "height": 8,
+                        "width": 8,
+                        "x": 0,
+                        "y": 8
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-16"
+                        },
+                        "height": 8,
+                        "width": 8,
+                        "x": 8,
+                        "y": 8
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-17"
                         },
                         "height": 8,
                         "width": 8,
@@ -2119,7 +2509,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-15"
+                          "name": "panel-18"
                         },
                         "height": 8,
                         "width": 12,
@@ -2132,7 +2522,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-16"
+                          "name": "panel-19"
                         },
                         "height": 8,
                         "width": 12,
@@ -2160,24 +2550,10 @@
       }
     },
     "preload": false,
-    "tags": [
-      "arona",
-      "metrics"
-    ],
+    "tags": ["arona", "metrics"],
     "timeSettings": {
       "autoRefresh": "10s",
-      "autoRefreshIntervals": [
-        "5s",
-        "10s",
-        "30s",
-        "1m",
-        "5m",
-        "15m",
-        "30m",
-        "1h",
-        "2h",
-        "1d"
-      ],
+      "autoRefreshIntervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
       "fiscalYearStartMonth": 0,
       "from": "now-7d",
       "hideTimepicker": false,

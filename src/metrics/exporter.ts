@@ -33,14 +33,11 @@ function encodePushPayload(snapshot: MetricSnapshot[], labels: Record<string, st
         break;
       }
       case "counter_map": {
-        // One line per map key: each key becomes its own series (`event=`)
-        // under the same `_total` id, so `rate()` works per event.
+        // One line per map key: each key becomes its own series under the
+        // metric's label, so `rate()` works per series.
         const counts = entry.value as Record<string, number>;
-        const extra = formatLabels(labels);
-        for (const [event, count] of Object.entries(counts)) {
-          const labelsWithEvent =
-            extra === "" ? `{event="${event}"}` : extra.slice(0, -1) + `,event="${event}"}`;
-          lines.push(`${entry.id}${labelsWithEvent} ${formatValue(count)}`);
+        for (const [key, count] of Object.entries(counts)) {
+          lines.push(`${entry.id}${withLabel(base, entry.label, key)} ${formatValue(count)}`);
         }
         break;
       }
@@ -63,8 +60,12 @@ function encodePushPayload(snapshot: MetricSnapshot[], labels: Record<string, st
 
 /** `le` is the only per-series label a histogram adds; others inherit `base`. */
 function leLabel(bound: number, base: string): string {
-  const le = Number.isFinite(bound) ? String(bound) : "+Inf";
-  return base === "" ? `{le="${le}"}` : base.slice(0, -1) + `,le="${le}"}`;
+  return withLabel(base, "le", Number.isFinite(bound) ? String(bound) : "+Inf");
+}
+
+/** Append one `name="value"` label to an already-formatted label set. */
+function withLabel(base: string, name: string, value: string): string {
+  return base === "" ? `{${name}="${value}"}` : base.slice(0, -1) + `,${name}="${value}"}`;
 }
 
 function formatLabels(labels: Record<string, string>): string {

@@ -9,6 +9,11 @@ export interface MetricRegistration {
   readonly kind: MetricKind;
   readonly help: string;
   readonly unit?: string;
+  /**
+   * For `counter_map`: the label each map key is exported under
+   * (defaults to `event`). Keys must be valid Prometheus label names.
+   */
+  readonly label?: string;
 }
 
 /**
@@ -27,6 +32,8 @@ export abstract class Metric<T = unknown> {
   public readonly kind: MetricKind;
   public readonly help: string;
   public readonly unit?: string;
+  /** The label `counter_map` keys are exported under. See {@link MetricRegistration}. */
+  public readonly label: string;
 
   /** Whether {@link collect} has run at least once. */
   private collected = false;
@@ -36,6 +43,7 @@ export abstract class Metric<T = unknown> {
     this.kind = registration.kind;
     this.help = registration.help;
     this.unit = registration.unit;
+    this.label = registration.label ?? "event";
   }
 
   /** Whether {@link collect} has run at least once. */

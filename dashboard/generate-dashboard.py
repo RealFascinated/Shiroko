@@ -154,6 +154,46 @@ CATEGORIES = [
         ],
     },
     {
+        # One panel per cache series, split on the `cache` label's measure
+        # suffix so occupancy and hit rate stay on separate charts.
+        "key": "caches",
+        "title": "🗃️ Caches",
+        "panels": [
+            {
+                "key": "cache-size",
+                "title": "Entries",
+                "expr": "cache_entries{job=\"$job\",cache=~\"[^:]+:size\"}",
+                "unit": "short",
+                "min": 0,
+                "width": 12,
+                "legend": "{{cache}}",
+            },
+            {
+                "key": "cache-hit-rate",
+                "title": "Hit rate",
+                "expr": (
+                    "rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]) "
+                    "/ (rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]) "
+                    "+ rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m]))"
+                ),
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1,
+                "width": 12,
+                "legend": "hit rate",
+            },
+            {
+                "key": "cache-loads",
+                "title": "Loads per second",
+                "expr": "rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m])",
+                "unit": "ops",
+                "min": 0,
+                "width": 24,
+                "legend": "{{cache}}",
+            },
+        ],
+    },
+    {
         "key": "events",
         "title": "📈 Events per second",
         "panels": [

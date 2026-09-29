@@ -51,7 +51,7 @@ export class MetricManager extends EventListener {
         // bogus 0 in the dashboard before the first real sample.
         continue;
       }
-      out.push({ id: metric.id, kind: metric.kind, value: metric.value() });
+      out.push({ id: metric.id, kind: metric.kind, label: metric.label, value: metric.value() });
     }
     return out;
   }
@@ -79,5 +79,7 @@ export class MetricManager extends EventListener {
 export interface MetricSnapshot {
   readonly id: string;
   readonly kind: MetricKind;
+  /** The label `counter_map` keys are exported under. */
+  readonly label: string;
   readonly value: unknown;
 }
