@@ -198,7 +198,7 @@ export interface MetricSnapshot {
 | `guilds`               | gauge       | `client.guilds.cache.size`           |
 | `seen_users`           | gauge       | `COUNT(*)` over `global_users`       |
 | `process_ram_used`     | gauge       | `process.memoryUsage().rss` (bytes)  |
-| `process_ram_total`    | gauge       | `os.totalmem()` (bytes)              |
+| `process_ram_total`    | gauge       | `getHeapStatistics().heap_size_limit` (bytes) |
 | `process_cpu_usage`    | gauge       | `process.cpuUsage()` delta (percent) |
 | `gateway_latency_ms`   | gauge       | `client.ws.ping`                     |
 | `uptime_seconds`       | gauge       | `process.uptime()`                   |
