@@ -1055,8 +1055,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]) / (rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]) + rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m]))",
-                        "legendFormat": "hit rate",
+                        "expr": "label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\") / (label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\") + label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\"))",
+                        "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"

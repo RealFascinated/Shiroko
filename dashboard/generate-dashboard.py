@@ -97,6 +97,19 @@ JOB_VARIABLE = {
     },
 }
 
+def cache_rate(measure: str, window: str = "[5m]") -> str:
+    """`rate()` the cumulative `<cache>:<measure>` counter, relabelling the
+    `cache` series to its bare name by stripping the `:measure` suffix. The
+    measure suffix is what makes `cache="x:hits" != cache="x:misses"`, so
+    without this a hits/misses comparison (which needs one-to-one label
+    matching) collapses to empty.
+    """
+    return (
+        f'label_replace(rate(cache_entries{{job="$job",cache=~"[^:]+:{measure}"}}{window}),'
+        f'"cache","$1","cache","([^:]+):.*")'
+    )
+
+
 # One entry per category: a row title (emoji) and the panels under it.
 # Panel width is grid units; panels pack into 24-wide bands.
 CATEGORIES = [
@@ -171,16 +184,18 @@ CATEGORIES = [
             {
                 "key": "cache-hit-rate",
                 "title": "Hit rate",
-                "expr": (
-                    "rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]) "
-                    "/ (rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]) "
-                    "+ rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m]))"
-                ),
+                # hits and misses must align one-to-one under `+` and `/`, but the
+                # raw `cache` label carries the measure (x:hits vs x:misses), so
+                # normalizing each operand to the bare cache name is what makes
+                # the ratio resolvable (see cache_rate).
+                "expr": f"{cache_rate('hits')} / ({cache_rate('hits')} + {cache_rate('misses')})",
                 "unit": "percentunit",
                 "min": 0,
                 "max": 1,
                 "width": 12,
-                "legend": "hit rate",
+                # cache_rate normalizes the label to the bare name, so this
+                # legends each series by cache.
+                "legend": "{{cache}}",
             },
             {
                 "key": "cache-loads",
