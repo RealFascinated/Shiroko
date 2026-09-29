@@ -1,33 +1,33 @@
 import type { Guild } from "discord.js";
 import { and, eq } from "drizzle-orm";
+import { Cache } from "../cache/cache";
+import { Caches } from "../cache/index";
+import { guildKey } from "../cache/key";
 import { db } from "../db/index";
 import { guildFeatures } from "../db/schemas/guild-features";
 import Feature from "./feature";
 import type { FeatureIds } from "./feature-ids";
 
 export default class GuildFeatures {
-  private static CACHE = new Map<string, boolean>();
+  private static readonly CACHE = Caches.register(
+    new Cache<boolean>({ name: "guild-features", mode: "authoritative" })
+  );
 
   /**
    * Whether `featureId` is enabled in `guild`. Stored rows override the
    * feature default; missing rows fall back to it.
    */
   public static async isFeatureEnabled(guild: Guild, featureId: FeatureIds): Promise<boolean> {
-    const guildId = guild.id;
-    const key = `${guildId}:${featureId}`;
-    const cached = GuildFeatures.CACHE.get(key);
-    if (cached !== undefined) {
-      return cached;
-    }
-    const [row] = await db
-      .select()
-      .from(guildFeatures)
-      .where(and(eq(guildFeatures.guildId, guildId), eq(guildFeatures.featureId, featureId)));
-    if (row !== undefined) {
-      GuildFeatures.CACHE.set(key, row.enabled);
-      return row.enabled;
-    }
-    return Feature.get(featureId)?.options.defaultEnabled ?? true;
+    return GuildFeatures.CACHE.load(guildKey(guild.id, featureId), async () => {
+      const [row] = await db
+        .select()
+        .from(guildFeatures)
+        .where(and(eq(guildFeatures.guildId, guild.id), eq(guildFeatures.featureId, featureId)));
+      if (row !== undefined) {
+        return row.enabled;
+      }
+      return Feature.get(featureId)?.options.defaultEnabled ?? true;
+    });
   }
 
   /**
@@ -38,36 +38,16 @@ export default class GuildFeatures {
     featureId: FeatureIds,
     enabled: boolean
   ): Promise<boolean> {
-    const guildId = guild.id;
     const [row] = await db
       .insert(guildFeatures)
-      .values({ guildId, featureId, enabled })
+      .values({ guildId: guild.id, featureId, enabled })
       .onConflictDoUpdate({
         target: [guildFeatures.guildId, guildFeatures.featureId],
         set: { enabled },
       })
       .returning();
     const value = row?.enabled ?? enabled;
-    GuildFeatures.CACHE.set(`${guildId}:${featureId}`, value);
+    GuildFeatures.CACHE.set(guildKey(guild.id, featureId), value);
     return value;
-  }
-
-  /**
-   * Drop cached toggles for one guild, one feature, or everything.
-   */
-  public static clearCache(guildId?: string, featureId?: FeatureIds): void {
-    if (guildId === undefined && featureId === undefined) {
-      GuildFeatures.CACHE.clear();
-      return;
-    }
-    for (const key of GuildFeatures.CACHE.keys()) {
-      if (guildId !== undefined && !key.startsWith(`${guildId}:`)) {
-        continue;
-      }
-      if (featureId !== undefined && !key.endsWith(`:${featureId}`)) {
-        continue;
-      }
-      GuildFeatures.CACHE.delete(key);
-    }
   }
 }
