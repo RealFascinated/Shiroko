@@ -2,7 +2,7 @@ import type { User } from "discord.js";
 import { eq } from "drizzle-orm";
 import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
-import { userKey, type CacheKey } from "../cache/key";
+import { userKey } from "../cache/key";
 import { db } from "../db/index";
 import { globalUsers, type GlobalUserSchema } from "../db/schemas/global-users";
 import GlobalUser from "./global-user";
@@ -22,11 +22,7 @@ export default class GlobalUsersManager {
    * Get (creating if needed) the global user for `user`.
    */
   public static async getUser(user: User): Promise<GlobalUser> {
-    return new GlobalUser(user, await GlobalUsersManager.row(user));
-  }
-
-  private static async row(user: User): Promise<GlobalUserSchema> {
-    return GlobalUsersManager.CACHE.load(GlobalUsersManager.key(user.id), async () => {
+    const row = await GlobalUsersManager.CACHE.load(userKey(user.id), async () => {
       const [existing] = await db.select().from(globalUsers).where(eq(globalUsers.id, user.id));
       if (existing) {
         return existing;
@@ -43,9 +39,6 @@ export default class GlobalUsersManager {
       const [row] = await db.select().from(globalUsers).where(eq(globalUsers.id, user.id));
       return row!;
     });
-  }
-
-  private static key(userId: string): CacheKey {
-    return userKey(userId);
+    return new GlobalUser(user, row);
   }
 }

@@ -73,7 +73,7 @@ export default class PermissionsViewCommand extends Command {
     roleId: string,
     guild: NonNullable<ExecuteContext["guild"]>
   ): Promise<InteractionResponse<boolean> | void> {
-    const configs = await Permissions.allConfigs(guild.id);
+    const configs = await Permissions.loadGuild(guild.id);
     const config = configs.get(roleId);
     const effective = Permissions.resolveEffective(configs, roleId);
     const parentName = config?.parent ? this.roleName(guild, config.parent) : "None";

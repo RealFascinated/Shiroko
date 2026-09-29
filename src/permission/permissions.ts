@@ -1,11 +1,13 @@
 import { PermissionFlagsBits, type Guild, type GuildMember } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
+import { Cache } from "../cache/cache";
+import { Caches } from "../cache/index";
+import { guildKey } from "../cache/key";
 import { db } from "../db/index";
 import { permissionRoles } from "../db/schemas/guild-permissions";
 import { EventBus } from "../event/event-bus";
 import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
-import MemberRolesUpdatedEvent from "../event/events/member-roles-updated.event";
 import RoleDeletedEvent from "../event/events/role-deleted.event";
 import RoleUpdatedEvent from "../event/events/role-updated.event";
 import { loadPage, type Page } from "../lib/pagination";
@@ -65,19 +67,24 @@ export interface PaginatedRoleConfig extends RoleConfig {
   effective: bigint;
 }
 
-/** `guildId:roleId` → configured row (own + parent). Absent = no configured row (defaults to no flags). */
-const ROLE_CACHE = new Map<string, RoleConfig>();
-
 /**
  * Role-based bot permissions.
  *
  * Resolution: a role's effective flags are its own flags OR'd with its
  * parent's effective flags (additive inheritance), and a member's flags are
  * the OR across every role they hold. Owner and (optionally) Discord
- * `Administrator` bypass everything. Cache mirrors `GuildFeatures`;
- * invalidated on role events and permission writes.
+ * `Administrator` bypass everything.
+ *
+ * The whole guild's configured roles are cached as one entry, because every
+ * read needs the full map anyway: resolution walks a role's ancestry, which
+ * the cache cannot know in advance. Any write to a guild's rows drops that
+ * guild's entry, so the cache is authoritative. Guild leave purges it
+ * through the cache registry.
  */
 export default class Permissions {
+  private static readonly CACHE = Caches.register(
+    new Cache<Map<string, RoleConfig>>({ name: "permissions", mode: "authoritative", max: 5_000 })
+  );
   /**
    * Sanity check: a `bigint` beyond the loaded window is meaningless.
    */
@@ -87,9 +94,8 @@ export default class Permissions {
 
   /**
    * Set a role's own flags and (optionally) its parent, rejecting cycles
-   * where `roleId` would appear in its own ancestry. Clears the cache for
-   * the role and every role that inherits from it. Returns the new
-   * effective flags for the role.
+   * where `roleId` would appear in its own ancestry. Drops the guild's
+   * cached config. Returns the new effective flags for the role.
    */
   public static async setRole(
     guildId: string,
@@ -110,14 +116,13 @@ export default class Permissions {
         target: [permissionRoles.guildId, permissionRoles.roleId],
         set: { flags: String(ownFlags), parentRoleId },
       });
-    Permissions.clearRoleCascade(guildId, roleId);
+    Permissions.invalidateGuild(guildId);
     return Permissions.roleEffectiveFlags(guildId, roleId);
   }
 
   /**
    * Change only a role's parent link (upserting with `0n` own flags if the
-   * role has no row yet), clearing the cache for the role and descendants.
-   * Returns the role's new effective flags.
+   * role has no row yet). Returns the role's new effective flags.
    */
   public static async setParent(
     guildId: string,
@@ -138,7 +143,7 @@ export default class Permissions {
     await db
       .delete(permissionRoles)
       .where(and(eq(permissionRoles.guildId, guildId), eq(permissionRoles.roleId, roleId)));
-    Permissions.clearRoleCascade(guildId, roleId);
+    Permissions.invalidateGuild(guildId);
   }
 
   /**
@@ -152,7 +157,7 @@ export default class Permissions {
       .update(permissionRoles)
       .set({ parentRoleId: null, updatedAt: new Date() })
       .where(and(eq(permissionRoles.guildId, guildId), eq(permissionRoles.parentRoleId, roleId)));
-    Permissions.clearRoleCascade(guildId, roleId);
+    Permissions.invalidateGuild(guildId);
   }
 
   /**
@@ -190,14 +195,6 @@ export default class Permissions {
   public static async roleEffectiveFlags(guildId: string, roleId: string): Promise<bigint> {
     const configs = await Permissions.loadGuild(guildId);
     return Permissions.resolveEffective(configs, roleId);
-  }
-
-  /**
-   * All configured roles in a guild, keyed by role id.
-   */
-  public static async allConfigs(guildId: string): Promise<Map<string, RoleConfig>> {
-    const rows = await db.select().from(permissionRoles).where(eq(permissionRoles.guildId, guildId));
-    return new Map(rows.map(r => [r.roleId, { own: BigInt(r.flags), parent: r.parentRoleId }]));
   }
 
   /**
@@ -284,12 +281,13 @@ export default class Permissions {
   }
 
   /**
-   * Load (and cache) the whole guild's permission rows. `null` cache entry
-   * means the resolved role has no configured row.
+   * Load the whole guild's permission rows, through the cache.
    */
   public static async loadGuild(guildId: string): Promise<Map<string, RoleConfig>> {
-    const rows = await db.select().from(permissionRoles).where(eq(permissionRoles.guildId, guildId));
-    return new Map(rows.map(r => [r.roleId, { own: BigInt(r.flags), parent: r.parentRoleId }]));
+    return Permissions.CACHE.load(guildKey(guildId), async () => {
+      const rows = await db.select().from(permissionRoles).where(eq(permissionRoles.guildId, guildId));
+      return new Map(rows.map(r => [r.roleId, { own: BigInt(r.flags), parent: r.parentRoleId }]));
+    });
   }
 
   /**
@@ -315,46 +313,13 @@ export default class Permissions {
     return effective;
   }
 
-  public static clearRoleCascade(guildId: string, roleId: string): void {
-    for (const key of ROLE_CACHE.keys()) {
-      if (!key.startsWith(`${guildId}:`)) {
-        continue;
-      }
-      const cachedRole = key.slice(guildId.length + 1);
-      if (cachedRole === roleId || Permissions.chainContains(guildId, cachedRole, roleId)) {
-        ROLE_CACHE.delete(key);
-      }
-    }
-  }
-
-  public static clearGuild(guildId: string): void {
-    for (const key of ROLE_CACHE.keys()) {
-      if (key.startsWith(`${guildId}:`)) {
-        ROLE_CACHE.delete(key);
-      }
-    }
-  }
-
-  public static clearAll(): void {
-    ROLE_CACHE.clear();
-  }
-
   /**
-   * Walk `roleId`'s ancestry from the cache's resolved configs; return true
-   * if `ancestorId` appears in the chain.
+   * Drop a guild's cached config. Every write to a guild's rows goes
+   * through here, so inheritance cannot serve a stale map. The cache holds
+   * one entry per guild, so there is no per-role case to narrow.
    */
-  public static chainContains(guildId: string, roleId: string, ancestorId: string): boolean {
-    const visited = new Set<string>();
-    let current: string | undefined = roleId;
-    while (current !== undefined && !visited.has(current)) {
-      if (current === ancestorId) {
-        return true;
-      }
-      visited.add(current);
-      const config = ROLE_CACHE.get(`${guildId}:${current}`);
-      current = config?.parent ?? undefined;
-    }
-    return false;
+  public static invalidateGuild(guildId: string): void {
+    Permissions.CACHE.invalidate(guildKey(guildId));
   }
 
   private static async assertNoCycle(
@@ -368,7 +333,7 @@ export default class Permissions {
     if (parentRoleId === roleId) {
       throw new Error("A role cannot be its own parent.");
     }
-    const configs = await Permissions.allConfigs(guildId);
+    const configs = await Permissions.loadGuild(guildId);
     let current: string | undefined = parentRoleId;
     const visited = new Set<string>();
     while (current !== undefined && !visited.has(current)) {
@@ -382,9 +347,10 @@ export default class Permissions {
 }
 
 /**
- * Keeps the permission role cache consistent with gateway role/member
- * events. The invalidation hooks the old `Permissions.registerHandlers`
- * attached are now event listeners.
+ * Keeps the permission config cache consistent with gateway role events.
+ * Only changes to a guild's configured rows matter: a member gaining or
+ * losing a role does not change the config, so member events are not
+ * subscribed.
  */
 export class PermissionsListeners extends EventListener {
   constructor() {
@@ -400,12 +366,5 @@ export class PermissionsListeners extends EventListener {
   @EventHandler(RoleDeletedEvent)
   public async onRoleDeleted(event: RoleDeletedEvent): Promise<void> {
     await Permissions.onRoleDeleted(event.guildData.id, event.roleId);
-  }
-
-  @EventHandler(MemberRolesUpdatedEvent)
-  public async onMemberRolesUpdated(event: MemberRolesUpdatedEvent): Promise<void> {
-    if (event.oldMember.roles.cache.size !== event.newMember.roles.cache.size) {
-      await Permissions.clearGuild(event.newMember.guild.id);
-    }
   }
 }

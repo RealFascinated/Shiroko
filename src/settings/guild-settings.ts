@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
-import { guildKey, type CacheKey } from "../cache/key";
+import { guildKey } from "../cache/key";
 import { db, now } from "../db/index";
 import { guildSettings, type JsonValue } from "../db/schemas/guild-settings";
 
@@ -26,7 +26,14 @@ export default class GuildSettings {
    * caller falls back to its module default).
    */
   public static async get(guildId: string, key: string): Promise<JsonValue | null> {
-    return (await GuildSettings.stored(guildId)).get(key) ?? null;
+    const stored = await GuildSettings.CACHE.load(guildKey(guildId), async () => {
+      const rows = await db
+        .select({ key: guildSettings.key, value: guildSettings.value })
+        .from(guildSettings)
+        .where(eq(guildSettings.guildId, guildId));
+      return new Map(rows.map(row => [row.key, row.value]));
+    });
+    return stored.get(key) ?? null;
   }
 
   /**
@@ -46,27 +53,6 @@ export default class GuildSettings {
           set: { value, updatedAt: now },
         });
     }
-    GuildSettings.CACHE.invalidate(GuildSettings.key(guildId));
-  }
-
-  /**
-   * Every stored row for a guild.
-   */
-  public static async all(guildId: string): Promise<Map<string, JsonValue>> {
-    return GuildSettings.stored(guildId);
-  }
-
-  private static async stored(guildId: string): Promise<Map<string, JsonValue>> {
-    return GuildSettings.CACHE.load(GuildSettings.key(guildId), async () => {
-      const rows = await db
-        .select({ key: guildSettings.key, value: guildSettings.value })
-        .from(guildSettings)
-        .where(eq(guildSettings.guildId, guildId));
-      return new Map(rows.map(row => [row.key, row.value]));
-    });
-  }
-
-  private static key(guildId: string): CacheKey {
-    return guildKey(guildId);
+    GuildSettings.CACHE.invalidate(guildKey(guildId));
   }
 }
