@@ -12,9 +12,11 @@ import { EventListener } from "./event/event-listener";
 import BotReadyEvent from "./event/events/bot-ready.event";
 import GuildJoinedEvent from "./event/events/guild-joined.event";
 import GuildLeftEvent from "./event/events/guild-left.event";
+import PostCommandLoadEvent from "./event/events/post-command-load.event";
 import { BirthdayScheduler } from "./feature/impl/birthday/birthday-scheduler";
 import FeatureManager from "./feature/index";
 import { env } from "./lib/env";
+import { DiscordBotListManager } from "./lib/misc/discordbotlist";
 import { PresenceListener } from "./lib/presence";
 import { formatDuration } from "./lib/time";
 import { VoiceKeepaliveListener } from "./lib/voice";
@@ -89,6 +91,7 @@ class LifecycleListeners extends EventListener {
     const allCommands = [...new CommandManager().build(), ...new ContextMenuCommandManager().build()];
     await application.commands.set(allCommands);
     console.log(`Synced ${allCommands.length} command(s)`);
+    await EventBus.post(new PostCommandLoadEvent(client, allCommands));
   }
 
   @EventHandler(GuildJoinedEvent)
@@ -134,6 +137,13 @@ if (env.VM_PUSH_URL) {
   );
 } else {
   console.log("VM_PUSH_URL not set; metrics collection is on, push is off");
+}
+
+if (env.DISCORDBOTLIST_TOKEN) {
+  new DiscordBotListManager({ token: env.DISCORDBOTLIST_TOKEN });
+  console.log("Publishing commands and hourly statistics to discordbotlist.com");
+} else {
+  console.log("DISCORDBOTLIST_TOKEN not set; discordbotlist.com publishing is off");
 }
 
 discordClient.login(env.DISCORD_BOT_TOKEN);

@@ -14,6 +14,7 @@ export const env = createEnv({
     TERMS_OF_SERVICE_URL: type("string > 0"),
     VM_PUSH_URL: type("string | undefined"),
     VM_PUSH_INTERVAL_MS: type("string | undefined"),
+    DISCORDBOTLIST_TOKEN: type("string | undefined"),
   },
   runtimeEnv: process.env,
 });
