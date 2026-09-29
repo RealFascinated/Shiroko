@@ -38,7 +38,7 @@ export default class ViewCommand extends Command {
     const summary =
       today.month === birthday.month && today.day === birthday.day
         ? "That is **today!**"
-        : `That is in ${inDays} ${pluralise(inDays, "day")}.`;
+        : `That is in ${inDays} ${pluralise(inDays, "day")}, when ${target} turns **${birthday.age}**.`;
     return ctx.reply({ embeds: [embed.setDescription(`${target}'s birthday is ${date}. ${summary}`)] });
   }
 }

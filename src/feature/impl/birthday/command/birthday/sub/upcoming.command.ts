@@ -43,7 +43,7 @@ export default class UpcomingCommand extends Command {
       const lines = page.rows.map(entry => {
         const when =
           entry.inDays === 0 ? "**Today!**" : `in ${entry.inDays} day${entry.inDays === 1 ? "" : "s"}`;
-        return `<@${entry.userId}> - ${monthName(entry.month)} ${ordinal(entry.day)} (${when})`;
+        return `<@${entry.userId}> - ${monthName(entry.month)} ${ordinal(entry.day)} (${when}), turning **${entry.age}**`;
       });
       return { embeds: [baseEmbed(commandName).setTitle(title).setDescription(lines.join("\n"))] };
     };

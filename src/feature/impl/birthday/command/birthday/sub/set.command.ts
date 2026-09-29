@@ -1,7 +1,13 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { integerOption } from "@/command/option";
 import { birthdayService } from "@/feature/impl/birthday/birthday.service";
-import { isValidBirthDate, isValidBirthYear, monthName, todayUtc } from "@/feature/impl/birthday/date";
+import {
+  ageInYears,
+  isValidBirthDate,
+  isValidBirthYear,
+  monthName,
+  todayUtc,
+} from "@/feature/impl/birthday/date";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
 import GlobalUsersManager from "@/user/global-users-manager";
@@ -54,10 +60,11 @@ export default class SetCommand extends Command {
 
     const today = todayUtc();
     const isToday = today.month === month && today.day === day;
+    const age = ageInYears(new Date(Date.UTC(year, month - 1, day)));
     const embed = baseEmbed(commandName)
       .setTitle("🎂 Birthday Saved")
       .setDescription(
-        `Your birthday is set to **${monthName(month)} ${ordinal(day)}**.` +
+        `Your birthday is set to **${monthName(month)} ${ordinal(day)}** (you are **${age}**).` +
           (isToday ? "\n\nSince that is today, it will be announced from next year." : "")
       );
     return ctx.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });

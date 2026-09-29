@@ -9,6 +9,8 @@ import { ageInYears } from "./date";
 export interface BirthdayRow {
   month: number;
   day: number;
+  /** Their age today, counting a not-yet-arrived birthday as not yet gained. */
+  age: number;
 }
 
 export interface Celebrant {
@@ -23,6 +25,8 @@ export interface UpcomingBirthday {
   day: number;
   /** Days from today until the next occurrence; 0 means today. */
   inDays: number;
+  /** The age they turn on that day. */
+  age: number;
 }
 
 /** Default rows per page for {@link BirthdayService.upcoming}. */
@@ -95,13 +99,21 @@ export default class BirthdayService {
    */
   public async getBirthday(guildId: string, userId: string): Promise<BirthdayRow | null> {
     const [row] = await db
-      .select({ birthDate: guildBirthdays.birthDate })
+      .select({
+        month: sql<number>`extract(month from ${guildBirthdays.birthDate})::int`.mapWith(Number),
+        day: sql<number>`extract(day from ${guildBirthdays.birthDate})::int`.mapWith(Number),
+        year: sql<number>`extract(year from ${guildBirthdays.birthDate})::int`.mapWith(Number),
+      })
       .from(guildBirthdays)
       .where(and(eq(guildBirthdays.guildId, guildId), eq(guildBirthdays.userId, userId)));
     if (!row) {
       return null;
     }
-    return { month: row.birthDate.getUTCMonth() + 1, day: row.birthDate.getUTCDate() };
+    return {
+      month: row.month,
+      day: row.day,
+      age: ageInYears(new Date(Date.UTC(row.year, row.month - 1, row.day))),
+    };
   }
 
   /**
@@ -146,6 +158,9 @@ export default class BirthdayService {
             month: sql<number>`extract(month from ${guildBirthdays.birthDate})::int`.mapWith(Number),
             day: sql<number>`extract(day from ${guildBirthdays.birthDate})::int`.mapWith(Number),
             inDays: sql<number>`${occurrence} - ${today}::date`.mapWith(Number),
+            age: sql<number>`extract(year from ${occurrence})::int - extract(year from ${guildBirthdays.birthDate})::int`.mapWith(
+              Number
+            ),
           })
           .from(guildBirthdays)
           .where(inScope)
