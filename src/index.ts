@@ -22,6 +22,7 @@ import { EventVolumeListeners } from "./metrics/event-volume-listeners";
 import { VictoriaMetricsExporter } from "./metrics/exporter";
 import { CacheMetricsMetric } from "./metrics/impl/cache";
 import { ProcessCpuUsageMetric } from "./metrics/impl/cpu-usage";
+import { DiscordCacheMetric } from "./metrics/impl/discord-cache";
 import { DiscordEventsMetric } from "./metrics/impl/discord-events";
 import { EventLoopMetric } from "./metrics/impl/event-loop-delay";
 import { GatewayLatencyMetric } from "./metrics/impl/gateway-latency";
@@ -61,6 +62,7 @@ metricManager.register(new ProcessCpuUsageMetric());
 metricManager.register(new UptimeMetric());
 metricManager.register(new EventLoopMetric());
 metricManager.register(new CacheMetricsMetric());
+metricManager.register(new DiscordCacheMetric(discordClient));
 const discordEventsMetric = metricManager.register(new DiscordEventsMetric());
 new EventVolumeListeners(discordEventsMetric);
 

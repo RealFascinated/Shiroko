@@ -3,6 +3,23 @@ import { autoroles } from "@/db/schemas/autoroles";
 import type { Guild, GuildMember, Role } from "discord.js";
 import { and, eq } from "drizzle-orm";
 
+/**
+ * Counts from a guild-wide autorole sync. `changed` counts members who
+ * received at least one role; `granted` counts the roles handed out.
+ */
+export interface AutorolesSyncResult {
+  scanned: number;
+  changed: number;
+  granted: number;
+  failed: number;
+}
+
+/**
+ * Progress callback for {@link AutorolesService.syncToGuild}: `scanned` of
+ * `total` members have been examined so far.
+ */
+export type AutorolesSyncProgress = (scanned: number, total: number) => Promise<void>;
+
 export default class AutorolesService {
   /**
    * Add a role to the guild's autorole list. Returns `true` if the role
@@ -38,9 +55,42 @@ export default class AutorolesService {
       .select({ roleId: autoroles.roleId })
       .from(autoroles)
       .where(eq(autoroles.guildId, guild.id));
-    return rows
-      .map(r => guild.roles.cache.get(r.roleId))
-      .filter((r): r is Role => r !== undefined);
+    return rows.map(r => guild.roles.cache.get(r.roleId)).filter((r): r is Role => r !== undefined);
+  }
+
+  /**
+   * Grant every missing assignable autorole to the guild's human members,
+   * covering anyone who joined before a role was configured or whose
+   * original grant failed. Roles above the bot's highest role are skipped
+   * and bots are ignored, mirroring the join grant. `onProgress` is
+   * awaited every 100 members and on the final member. Grant failures are
+   * logged, never fatal.
+   */
+  public async syncToGuild(guild: Guild, onProgress?: AutorolesSyncProgress): Promise<AutorolesSyncResult> {
+    const roles = (await this.list(guild)).filter(role => this.isAssignable(role));
+    const result: AutorolesSyncResult = { scanned: 0, changed: 0, granted: 0, failed: 0 };
+    const members = await guild.members.fetch();
+    const total = members.size;
+    for (const member of members.values()) {
+      result.scanned++;
+      if (!member.user.bot) {
+        const missing = roles.filter(role => !member.roles.cache.has(role.id));
+        if (missing.length > 0) {
+          try {
+            await member.roles.add(missing);
+            result.changed++;
+            result.granted += missing.length;
+          } catch (error) {
+            result.failed++;
+            console.error(`Failed to grant autoroles to ${member.id} in ${guild.id}:`, error);
+          }
+        }
+      }
+      if (onProgress && (result.scanned % 100 === 0 || result.scanned === total)) {
+        await onProgress(result.scanned, total);
+      }
+    }
+    return result;
   }
 
   /**

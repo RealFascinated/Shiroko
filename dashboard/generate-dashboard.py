@@ -194,6 +194,24 @@ CATEGORIES = [
         ],
     },
     {
+        # Entry count per discord.js client cache. Guild-scoped caches
+        # (members, presences, ...) are summed across guilds by the metric,
+        # so each series is the process's total held entries.
+        "key": "discord-caches",
+        "title": "🧰 Discord Caches",
+        "panels": [
+            {
+                "key": "discord-cache-entries",
+                "title": "Discord cache entries",
+                "expr": "discord_cache_entries{job=\"$job\"}",
+                "unit": "short",
+                "min": 0,
+                "width": 24,
+                "legend": "{{cache}}",
+            },
+        ],
+    },
+    {
         "key": "events",
         "title": "📈 Events per second",
         "panels": [
