@@ -1,8 +1,5 @@
 import { getVoiceConnection } from "@discordjs/voice";
 import type { ApplicationCommandDataResolvable, Client } from "discord.js";
-import { count } from "drizzle-orm";
-import { db } from "@/db/index";
-import { globalUsers } from "@/db/schemas/global-users";
 import { EventBus } from "@/event/event-bus";
 import { EventHandler } from "@/event/event-handler";
 import { EventListener } from "@/event/event-listener";
@@ -69,7 +66,6 @@ export class DiscordBotListManager extends EventListener {
     if (!botId) {
       return;
     }
-    const [row] = await db.select({ count: count() }).from(globalUsers);
     let voiceConnections = 0;
     for (const guild of client.guilds.cache.values()) {
       if (getVoiceConnection(guild.id)) {
@@ -78,7 +74,7 @@ export class DiscordBotListManager extends EventListener {
     }
     await this.post(`/${botId}/stats`, {
       guilds: client.guilds.cache.size,
-      users: row?.count ?? 0,
+      users: client.users.cache.size,
       voice_connections: voiceConnections,
     });
   }
