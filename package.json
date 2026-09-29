@@ -28,7 +28,6 @@
     "lru-cache": "^11.5.3",
     "pg": "^8.23.0",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "reflect-metadata": "^0.2.2",
-    "zlib-sync": "^0.1.10"
+    "reflect-metadata": "^0.2.2"
   }
 }
