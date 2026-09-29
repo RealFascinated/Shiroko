@@ -26,8 +26,8 @@ export default class InvitesLeaderboardCommand extends LeaderboardSubCommand {
     return "No invites tracked in this server yet.";
   }
 
-  protected override renderRow(row: LeaderboardRow, position: number): string {
-    return `**${ordinal(position)}.** <@${row.id}>: **${row.value}** ${pluralise(row.value, "invite")}`;
+  protected override renderRow(row: LeaderboardRow, position: number, name: string): string {
+    return `**${ordinal(position)}.** ${name}: **${row.value}** ${pluralise(row.value, "invite")}`;
   }
 
   protected override async footerText(guild: Guild): Promise<string | null> {

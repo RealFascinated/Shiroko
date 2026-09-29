@@ -25,7 +25,7 @@ export default class VoiceLeaderboardCommand extends LeaderboardSubCommand {
     return "No voice time tracked in this server yet.";
   }
 
-  protected override renderRow(row: LeaderboardRow, position: number): string {
-    return `**${ordinal(position)}.** <@${row.id}>: **${formatDuration(row.value * 1000)}** voice time`;
+  protected override renderRow(row: LeaderboardRow, position: number, name: string): string {
+    return `**${ordinal(position)}.** ${name}: **${formatDuration(row.value * 1000)}** voice time`;
   }
 }
