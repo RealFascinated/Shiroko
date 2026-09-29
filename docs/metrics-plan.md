@@ -193,17 +193,17 @@ export interface MetricSnapshot {
 
 ## 5. Required metrics
 
-| Metric                 | Type        | Source                               |
-| ---------------------- | ----------- | ------------------------------------ |
-| `guilds`               | gauge       | `client.guilds.cache.size`           |
-| `seen_users`           | gauge       | `COUNT(*)` over `global_users`       |
-| `process_ram_used`     | gauge       | `process.memoryUsage().rss` (bytes)  |
+| Metric                 | Type        | Source                                        |
+| ---------------------- | ----------- | --------------------------------------------- |
+| `guilds`               | gauge       | `client.guilds.cache.size`                    |
+| `seen_users`           | gauge       | `COUNT(*)` over `global_users`                |
+| `process_ram_used`     | gauge       | `process.memoryUsage().rss` (bytes)           |
 | `process_ram_total`    | gauge       | `getHeapStatistics().heap_size_limit` (bytes) |
-| `process_cpu_usage`    | gauge       | `process.cpuUsage()` delta (percent) |
-| `gateway_latency_ms`   | gauge       | `client.ws.ping`                     |
-| `uptime_seconds`       | gauge       | `process.uptime()`                   |
-| `event_loop_ms`        | histogram   | loop-slip measurement (see §6)       |
-| `discord_events_total` | counter_map | bus events (see §6)                  |
+| `process_cpu_usage`    | gauge       | `process.cpuUsage()` delta (percent)          |
+| `gateway_latency_ms`   | gauge       | `client.ws.ping`                              |
+| `uptime_seconds`       | gauge       | `process.uptime()`                            |
+| `event_loop_ms`        | histogram   | loop-slip measurement (see §6)                |
+| `discord_events_total` | counter_map | bus events (see §6)                           |
 
 `discord_events_total` accumulates since boot with an `event` label per
 kind; the dashboard renders per-event per-second rates via PromQL
