@@ -124,8 +124,8 @@ tiebreak makes pages deterministic across calls. Ties on `value` share the
 same position (competition ranking: 1, 2, 2, 4), matching the old rank
 card and `/levels leaderboard` behaviour.
 
-**Page size.** `DEFAULT_PAGE_SIZE = 10` (matches the current
-`/levels leaderboard` render); `pageSize` is clamped to `[1, 50]`.
+**Page size.** `DEFAULT_PAGE_SIZE = 20`; `pageSize` is clamped to
+`[1, 50]`.
 
 ## 3. The generic mechanics
 

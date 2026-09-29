@@ -19,7 +19,7 @@ export default abstract class LeaderboardSubCommand extends Command {
 
   /**
    * Format one row of the page. `position` is the 1-based position in the
-   * full ranking, so a 10-per-page board's second page starts at 11.
+   * full ranking, so a 20-per-page board's second page starts at 21.
    */
   protected abstract renderRow(row: LeaderboardRow, position: number): string;
 

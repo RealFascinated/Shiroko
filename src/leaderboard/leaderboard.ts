@@ -43,7 +43,7 @@ export interface LeaderboardPosition<T extends LeaderboardRow> {
 }
 
 /** Default page size; matches the existing leaderboard renders. */
-export const DEFAULT_PAGE_SIZE = 10;
+export const DEFAULT_PAGE_SIZE = 20;
 /** Hard ceiling for requested page sizes. */
 export const MAX_PAGE_SIZE = 50;
 
