@@ -91,9 +91,9 @@ function formatOverwriteTarget(guild: Guild, id: string): string {
 }
 
 /**
- * Details worth logging on channel create: the parent, the text-only fields
- * when present (topic and slow mode), and the overwrite count. Guards on
- * each concrete type, since only text channels carry a topic.
+ * Details worth logging on channel create: the parent and the text-only
+ * fields when present (topic and slow mode). Guards on each concrete type,
+ * since only text channels carry a topic.
  */
 function channelDetails(channel: NonThreadGuildBasedChannel): Array<[string, string]> {
   const details: Array<[string, string]> = [];
@@ -106,8 +106,33 @@ function channelDetails(channel: NonThreadGuildBasedChannel): Array<[string, str
   if ("rateLimitPerUser" in channel && channel.rateLimitPerUser) {
     details.push(["Slow Mode", `${channel.rateLimitPerUser}s`]);
   }
-  details.push(["Permission Overwrites", `${channel.permissionOverwrites.cache.size}`]);
   return details;
+}
+
+/**
+ * The channel's permission overwrites as ready-to-print embed lines: one
+ * header per target followed by its allowed and denied permissions, nested
+ * like the update log's diff. Reports "None" when the channel has no
+ * overwrites, and a target that is no longer cached falls back to its id.
+ */
+function channelOverwriteLines(channel: NonThreadGuildBasedChannel): string[] {
+  const targets = [...channel.permissionOverwrites.cache.entries()].sort(([a], [b]) =>
+    formatOverwriteTarget(channel.guild, a).localeCompare(formatOverwriteTarget(channel.guild, b))
+  );
+  if (targets.length === 0) {
+    return ["**➜** Permission Overwrites: None"];
+  }
+  const lines: string[] = [];
+  for (const [id, overwrite] of targets) {
+    lines.push(`**➜** Overwrite ${formatOverwriteTarget(channel.guild, id)}`);
+    const states = [...overwriteStates(overwrite).entries()].sort(([a], [b]) =>
+      permissionLabel(a).localeCompare(permissionLabel(b))
+    );
+    for (const [name, state] of states) {
+      lines.push(`  **➜** **${permissionLabel(name)}**: ${state}`);
+    }
+  }
+  return lines;
 }
 
 /**
@@ -177,8 +202,8 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.member.user.tag}** joined the server.`,
             "",
-            `**➜** ID: ${event.member.id}`,
-            `**➜** Username: ${event.member.user.username}`,
+            `**➜** ID: \`${event.member.id}\``,
+            `**➜** Username: \`${event.member.user.username}\``,
             `**➜** Account Created: <t:${Math.floor(event.member.user.createdAt.getTime() / 1000)}>`,
           ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
@@ -191,8 +216,8 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.member.user.tag}** left the server.`,
             "",
-            `**➜** ID: ${event.member.id}`,
-            `**➜** Username: ${event.member.user.username}`,
+            `**➜** ID: \`${event.member.id}\``,
+            `**➜** Username: \`${event.member.user.username}\``,
           ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -204,8 +229,8 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.newUser.tag}** changed their avatar.`,
             "",
-            `**➜** ID: ${event.newUser.id}`,
-            `**➜** Username: ${event.newUser.username}`,
+            `**➜** ID: \`${event.newUser.id}\``,
+            `**➜** Username: \`${event.newUser.username}\``,
           ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -217,9 +242,9 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.newUser.tag}** changed their username.`,
             "",
-            `**➜** ID: ${event.newUser.id}`,
-            `**➜** Before: ${event.oldUser.username}`,
-            `**➜** After: ${event.newUser.username}`,
+            `**➜** ID: \`${event.newUser.id}\``,
+            `**➜** Before: \`${event.oldUser.username}\``,
+            `**➜** After: \`${event.newUser.username}\``,
           ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -231,9 +256,9 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.newUser.tag}** changed their display name.`,
             "",
-            `**➜** ID: ${event.newUser.id}`,
-            `**➜** Before: ${event.oldUser.displayName}`,
-            `**➜** After: ${event.newUser.displayName}`,
+            `**➜** ID: \`${event.newUser.id}\``,
+            `**➜** Before: \`${event.oldUser.displayName}\``,
+            `**➜** After: \`${event.newUser.displayName}\``,
           ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -248,7 +273,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.newMember.user.tag}** was given roles.`,
             "",
-            `**➜** ID: ${event.newMember.id}`,
+            `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.added.map(role => role.toString()).join(", ")}`,
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
@@ -264,7 +289,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.newMember.user.tag}** had roles removed.`,
             "",
-            `**➜** ID: ${event.newMember.id}`,
+            `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
@@ -277,9 +302,9 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.newMember.user.tag}** changed their nickname.`,
             "",
-            `**➜** ID: ${event.newMember.id}`,
-            `**➜** Before: ${event.oldMember.nickname ?? "None"}`,
-            `**➜** After: ${event.newMember.nickname ?? "Removed"}`,
+            `**➜** ID: \`${event.newMember.id}\``,
+            `**➜** Before: \`${event.oldMember.nickname ?? "None"}\``,
+            `**➜** After: \`${event.newMember.nickname ?? "Removed"}\``,
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -304,9 +329,10 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${channelLabel(event.channel)}** was created.`,
             "",
-            `**➜** Type: ${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}`,
-            `**➜** ID: ${event.channel.id}`,
+            `**➜** Type: \`${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}\``,
+            `**➜** ID: \`${event.channel.id}\``,
             ...channelDetails(event.channel).map(([label, value]) => `**➜** ${label}: ${value}`),
+            ...channelOverwriteLines(event.channel),
           ]),
         ],
       });
@@ -322,7 +348,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${channelLabel(event.newChannel)}** was updated.`,
             "",
-            `**➜** ID: ${event.newChannel.id}`,
+            `**➜** ID: \`${event.newChannel.id}\``,
             ...changes.map(([label, before, after]) =>
               before.length > 0 ? `${label}: ${before} → ${after}` : label
             ),
@@ -337,8 +363,8 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${event.channel.name}** was deleted.`,
             "",
-            `**➜** Type: ${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}`,
-            `**➜** ID: ${event.channel.id}`,
+            `**➜** Type: \`${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}\``,
+            `**➜** ID: \`${event.channel.id}\``,
           ]),
         ],
       });
@@ -351,10 +377,10 @@ export default class LoggingFeature extends Feature {
             `Role **${event.role.name}** was created.`,
             "",
             `**➜** Mention: ${event.role.toString()}`,
-            `**➜** ID: ${event.role.id}`,
-            `**➜** Color: ${event.role.hexColor}`,
-            `**➜** Hoisted: ${yesNo(event.role.hoist)}`,
-            `**➜** Mentionable: ${yesNo(event.role.mentionable)}`,
+            `**➜** ID: \`${event.role.id}\``,
+            `**➜** Color: \`${event.role.hexColor}\``,
+            `**➜** Hoisted: \`${yesNo(event.role.hoist)}\``,
+            `**➜** Mentionable: \`${yesNo(event.role.mentionable)}\``,
           ]),
         ],
       });
@@ -370,7 +396,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Role **${event.newRole.name}** was updated.`,
             "",
-            `**➜** ID: ${event.newRole.id}`,
+            `**➜** ID: \`${event.newRole.id}\``,
             ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
           ]),
         ],
@@ -383,8 +409,8 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Role **${event.role.name}** was deleted.`,
             "",
-            `**➜** ID: ${event.role.id}`,
-            `**➜** Color: ${event.role.hexColor}`,
+            `**➜** ID: \`${event.role.id}\``,
+            `**➜** Color: \`${event.role.hexColor}\``,
           ]),
         ],
       });
@@ -396,9 +422,9 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Emoji ${event.emoji} was created.`,
             "",
-            `**➜** Name: ${event.emoji.name}`,
-            `**➜** ID: ${event.emoji.id}`,
-            `**➜** Animated: ${yesNo(event.emoji.animated)}`,
+            `**➜** Name: \`${event.emoji.name}\``,
+            `**➜** ID: \`${event.emoji.id}\``,
+            `**➜** Animated: \`${yesNo(event.emoji.animated)}\``,
           ]).setThumbnail(event.emoji.imageURL({ size: 4096 })),
         ],
       });
@@ -414,7 +440,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Emoji ${event.newEmoji} was updated.`,
             "",
-            `**➜** ID: ${event.newEmoji.id}`,
+            `**➜** ID: \`${event.newEmoji.id}\``,
             ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
           ]).setThumbnail(event.newEmoji.imageURL({ size: 4096 })),
         ],
@@ -427,8 +453,8 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Emoji **${event.emoji.name}** was deleted.`,
             "",
-            `**➜** ID: ${event.emoji.id}`,
-            `**➜** Animated: ${yesNo(event.emoji.animated)}`,
+            `**➜** ID: \`${event.emoji.id}\``,
+            `**➜** Animated: \`${yesNo(event.emoji.animated)}\``,
           ]).setThumbnail(event.emoji.imageURL({ size: 4096 })),
         ],
       });
@@ -440,10 +466,10 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Sticker **${event.sticker.name}** was created.`,
             "",
-            `**➜** ID: ${event.sticker.id}`,
-            `**➜** Description: ${event.sticker.description ?? "None"}`,
-            `**➜** Format: ${STICKER_FORMAT_NAMES[event.sticker.format] ?? "Unknown"}`,
-            `**➜** Tags: ${event.sticker.tags ?? "None"}`,
+            `**➜** ID: \`${event.sticker.id}\``,
+            `**➜** Description: \`${event.sticker.description ?? "None"}\``,
+            `**➜** Format: \`${STICKER_FORMAT_NAMES[event.sticker.format] ?? "Unknown"}\``,
+            `**➜** Tags: \`${event.sticker.tags ?? "None"}\``,
           ]).setImage(event.sticker.url),
         ],
       });
@@ -459,7 +485,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Sticker **${event.newSticker.name}** was updated.`,
             "",
-            `**➜** ID: ${event.newSticker.id}`,
+            `**➜** ID: \`${event.newSticker.id}\``,
             ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
           ]).setImage(event.newSticker.url),
         ],
@@ -472,8 +498,8 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Sticker **${event.sticker.name}** was deleted.`,
             "",
-            `**➜** ID: ${event.sticker.id}`,
-            `**➜** Format: ${STICKER_FORMAT_NAMES[event.sticker.format] ?? "Unknown"}`,
+            `**➜** ID: \`${event.sticker.id}\``,
+            `**➜** Format: \`${STICKER_FORMAT_NAMES[event.sticker.format] ?? "Unknown"}\``,
           ]).setImage(event.sticker.url),
         ],
       });
@@ -489,9 +515,9 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${ban.user.tag}** was banned.`,
             "",
-            `**➜** ID: ${ban.user.id}`,
-            `**➜** Username: ${ban.user.username}`,
-            `**➜** Reason: ${ban.reason ?? "None"}`,
+            `**➜** ID: \`${ban.user.id}\``,
+            `**➜** Username: \`${ban.user.username}\``,
+            `**➜** Reason: \`${ban.reason ?? "None"}\``,
           ]).setThumbnail(ban.user.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -507,8 +533,8 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `**${ban.user.tag}** was unbanned.`,
             "",
-            `**➜** ID: ${ban.user.id}`,
-            `**➜** Username: ${ban.user.username}`,
+            `**➜** ID: \`${ban.user.id}\``,
+            `**➜** Username: \`${ban.user.username}\``,
           ]).setThumbnail(ban.user.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -522,9 +548,9 @@ export default class LoggingFeature extends Feature {
             `**${event.guild!.name}** had an invite created.`,
             "",
             `**➜** Code: \`${invite.code}\``,
-            `**➜** Channel: ${invite.channel ? `<#${invite.channel.id}>` : "unknown"}`,
+            `**➜** Channel: \`${invite.channel ? `<#${invite.channel.id}>` : "unknown"}\``,
             `**➜** Inviter: ${invite.inviter ? `${invite.inviter.tag} (${invite.inviter.id})` : "unknown"}`,
-            `**➜** Uses: ${invite.uses ?? 0}`,
+            `**➜** Uses: \`${invite.uses ?? 0}\``,
             `**➜** Expires: ${invite.expiresAt ? `<t:${Math.floor(invite.expiresAt.getTime() / 1000)}>` : "never"}`,
           ]).setThumbnail(invite.inviter?.displayAvatarURL({ size: 4096, extension: "webp" }) ?? null),
         ],
