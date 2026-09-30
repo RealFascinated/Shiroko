@@ -113,6 +113,19 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
 export const welcomerPanel = new WelcomerPanel();
 
 /**
+ * A message body rendered for a field line. A multi-line body becomes a
+ * fenced code block, which needs the fence at the start of its own line;
+ * a single-line body is wrapped in inline code instead.
+ */
+function formatParagraph(value: unknown): string {
+  const text = String(value ?? "");
+  if (text.includes("\n")) {
+    return "\n```\n" + text + "\n```";
+  }
+  return "`" + text + "`";
+}
+
+/**
  * The controls for the message. Only the fields its current mode uses are
  * offered, so a simple message has no title or colour control.
  */
@@ -134,6 +147,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       input: "paragraph",
       label: "Description",
       hint: "Placeholders like {guild_name} and {user_mention} are replaced.",
+      format: formatParagraph,
       validate: input => (input.trim().length > 0 ? null : "The description cannot be empty."),
     });
     controls.push({
@@ -153,6 +167,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       input: "paragraph",
       label: "Description",
       hint: "Placeholders like {guild_name} and {user_mention} are replaced.",
+      format: formatParagraph,
       validate: input => (input.trim().length > 0 ? null : "The description cannot be empty."),
     });
   }
