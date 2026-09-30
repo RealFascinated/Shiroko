@@ -279,7 +279,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(MemberRolesUpdatedEvent, "role_add", async (event, channel) => {
+    this.handleEvent(MemberRolesUpdatedEvent, "member_roles", async (event, channel) => {
       if (event.added.size === 0) {
         return;
       }
@@ -295,7 +295,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(MemberRolesUpdatedEvent, "role_remove", async (event, channel) => {
+    this.handleEvent(MemberRolesUpdatedEvent, "member_roles", async (event, channel) => {
       if (event.removed.size === 0) {
         return;
       }
@@ -338,7 +338,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({ embeds: [embed] });
     });
 
-    this.handleEvent(ChannelCreatedEvent, "channel_create", async (event, channel) => {
+    this.handleEvent(ChannelCreatedEvent, "channel", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -353,7 +353,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(ChannelUpdatedEvent, "channel_update", async (event, channel) => {
+    this.handleEvent(ChannelUpdatedEvent, "channel", async (event, channel) => {
       const changes = this.describeChannelChanges(event.oldChannel, event.newChannel);
       if (changes.length === 0) {
         return;
@@ -370,7 +370,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(ChannelDeletedEvent, "channel_delete", async (event, channel) => {
+    this.handleEvent(ChannelDeletedEvent, "channel", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -383,7 +383,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(RoleCreatedEvent, "role_create", async (event, channel) => {
+    this.handleEvent(RoleCreatedEvent, "role", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -399,7 +399,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(RoleUpdatedEvent, "role_update", async (event, channel) => {
+    this.handleEvent(RoleUpdatedEvent, "role", async (event, channel) => {
       const changes = this.describeRoleChanges(event.oldRole, event.newRole);
       if (changes.length === 0) {
         return;
@@ -416,7 +416,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(RoleDeletedEvent, "role_delete", async (event, channel) => {
+    this.handleEvent(RoleDeletedEvent, "role", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -429,7 +429,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(EmojiCreatedEvent, "emoji_create", async (event, channel) => {
+    this.handleEvent(EmojiCreatedEvent, "emoji", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -443,7 +443,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(EmojiUpdatedEvent, "emoji_update", async (event, channel) => {
+    this.handleEvent(EmojiUpdatedEvent, "emoji", async (event, channel) => {
       const changes = this.describeEmojiChanges(event.oldEmoji, event.newEmoji);
       if (changes.length === 0) {
         return;
@@ -460,7 +460,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(EmojiDeletedEvent, "emoji_delete", async (event, channel) => {
+    this.handleEvent(EmojiDeletedEvent, "emoji", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -473,7 +473,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(StickerCreatedEvent, "sticker_create", async (event, channel) => {
+    this.handleEvent(StickerCreatedEvent, "sticker", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -488,7 +488,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(StickerUpdatedEvent, "sticker_update", async (event, channel) => {
+    this.handleEvent(StickerUpdatedEvent, "sticker", async (event, channel) => {
       const changes = this.describeStickerChanges(event.oldSticker, event.newSticker);
       if (changes.length === 0) {
         return;
@@ -505,7 +505,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(StickerDeletedEvent, "sticker_delete", async (event, channel) => {
+    this.handleEvent(StickerDeletedEvent, "sticker", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -518,7 +518,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(MemberBannedEvent, "ban_add", async (event, channel) => {
+    this.handleEvent(MemberBannedEvent, "ban", async (event, channel) => {
       if (!event.banned) {
         return;
       }
@@ -536,7 +536,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(MemberBannedEvent, "ban_remove", async (event, channel) => {
+    this.handleEvent(MemberBannedEvent, "ban", async (event, channel) => {
       if (event.banned) {
         return;
       }
@@ -553,7 +553,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(InviteCreatedEvent, "invite_create", async (event, channel) => {
+    this.handleEvent(InviteCreatedEvent, "invite", async (event, channel) => {
       const { invite } = event;
       await channel.send({
         embeds: [
@@ -570,7 +570,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(InviteDeletedEvent, "invite_delete", async (event, channel) => {
+    this.handleEvent(InviteDeletedEvent, "invite", async (event, channel) => {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
