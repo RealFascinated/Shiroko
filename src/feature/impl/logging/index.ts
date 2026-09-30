@@ -346,12 +346,10 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `**${channelLabel(event.newChannel)}** was updated.`,
+            `Channel \`${channelLabel(event.newChannel)}\` was updated.`,
             "",
             `**➜** ID: \`${event.newChannel.id}\``,
-            ...changes.map(([label, before, after]) =>
-              before.length > 0 ? `${label}: ${before} → ${after}` : label
-            ),
+            ...changes,
           ]),
         ],
       });
@@ -641,86 +639,42 @@ export default class LoggingFeature extends Feature {
   private describeChannelChanges(
     oldChannel: NonThreadGuildBasedChannel,
     newChannel: NonThreadGuildBasedChannel
-  ): Array<[string, string, string]> {
-    const changes: Array<[string, string, string]> = [];
+  ): string[] {
+    const lines: string[] = [];
     if (oldChannel.name !== newChannel.name) {
-      changes.push(["Name", `\`${oldChannel.name}\``, `\`${newChannel.name}\``]);
+      lines.push(`**➜** Name: \`${oldChannel.name}\` → \`${newChannel.name}\``);
     }
     if (oldChannel.type !== newChannel.type) {
-      changes.push([
-        "Type",
-        CHANNEL_TYPE_NAMES[oldChannel.type] ?? String(oldChannel.type),
-        CHANNEL_TYPE_NAMES[newChannel.type] ?? String(newChannel.type),
-      ]);
+      lines.push(
+        `**➜** Type: ${CHANNEL_TYPE_NAMES[oldChannel.type] ?? String(oldChannel.type)} → ${
+          CHANNEL_TYPE_NAMES[newChannel.type] ?? String(newChannel.type)
+        }`
+      );
     }
     const oldParent = "parent" in oldChannel ? oldChannel.parent : null;
     const newParent = "parent" in newChannel ? newChannel.parent : null;
     if (oldParent?.id !== newParent?.id) {
-      changes.push([
-        "Category",
-        oldParent ? `\`${oldParent.name}\`` : "None",
-        newParent ? `\`${newParent.name}\`` : "None",
-      ]);
+      lines.push(
+        `**➜** Category: ${oldParent ? `\`${oldParent.name}\`` : "None"} → ${
+          newParent ? `\`${newParent.name}\`` : "None"
+        }`
+      );
     }
     if ("topic" in oldChannel && "topic" in newChannel && oldChannel.topic !== newChannel.topic) {
-      changes.push(["Topic", oldChannel.topic ?? "None", newChannel.topic ?? "None"]);
+      lines.push(`**➜** Topic: ${oldChannel.topic ?? "None"} → ${newChannel.topic ?? "None"}`);
     }
     if ("rateLimitPerUser" in oldChannel && "rateLimitPerUser" in newChannel) {
       const oldSlowMode = oldChannel.rateLimitPerUser ?? 0;
       const newSlowMode = newChannel.rateLimitPerUser ?? 0;
       if (oldSlowMode !== newSlowMode) {
-        changes.push(["Slow Mode", `${oldSlowMode}s`, `${newSlowMode}s`]);
+        lines.push(`**➜** Slow Mode: ${oldSlowMode}s → ${newSlowMode}s`);
       }
     }
     if ("nsfw" in oldChannel && "nsfw" in newChannel && oldChannel.nsfw !== newChannel.nsfw) {
-      changes.push(["NSFW", yesNo(oldChannel.nsfw), yesNo(newChannel.nsfw)]);
+      lines.push(`**➜** NSFW: ${yesNo(oldChannel.nsfw)} → ${yesNo(newChannel.nsfw)}`);
     }
-    changes.push(...this.describeOverwriteChanges(oldChannel, newChannel));
-    return changes;
-  }
-
-  /**
-   * Per-overwrite changes, as `[label, before, after]` rows keyed by the
-   * overwrite target. Compares the allow and deny bitfields, so a
-   * permission tweak is reported rather than just "an overwrite changed".
-   * Overwrites whose target role or member is no longer cached report the
-   * raw id.
-   */
-  private describeOverwriteChanges(
-    oldChannel: NonThreadGuildBasedChannel,
-    newChannel: NonThreadGuildBasedChannel
-  ): Array<[string, string, string]> {
-    const changes: Array<[string, string, string]> = [];
-    const oldOverwrites = oldChannel.permissionOverwrites.cache;
-    const newOverwrites = newChannel.permissionOverwrites.cache;
-    const ids = [...new Set([...oldOverwrites.keys(), ...newOverwrites.keys()])].sort((a, b) =>
-      formatOverwriteTarget(newChannel.guild, a).localeCompare(formatOverwriteTarget(newChannel.guild, b))
-    );
-    for (const id of ids) {
-      const before = oldOverwrites.get(id);
-      const after = newOverwrites.get(id);
-      const target = formatOverwriteTarget(newChannel.guild, id);
-      if (!before) {
-        changes.push([`**➜** Overwrite ${target}`, "removed", "None"]);
-        continue;
-      }
-      if (!after) {
-        changes.push([`**➜** Overwrite ${target}`, "None", "added"]);
-        continue;
-      }
-      // Only an overwrite that actually moved earns a row: emitting the
-      // header unconditionally left an empty entry for every unchanged
-      // target, since the transitions list came out empty.
-      const transitions = formatOverwriteTransitions(before, after);
-      if (transitions.length === 0) {
-        continue;
-      }
-      changes.push([`**➜** Overwrite ${target}`, "", ""]);
-      for (const transition of transitions) {
-        changes.push([`  **➜** **${transition[0]}**`, transition[1], transition[2]]);
-      }
-    }
-    return changes;
+    lines.push(...describeOverwriteBlocks(oldChannel, newChannel));
+    return lines;
   }
 
   /**
@@ -822,4 +776,65 @@ export default class LoggingFeature extends Feature {
       { featureId: FeatureIds.Logging }
     );
   }
+}
+
+/**
+ * Permission overwrite changes as embed lines, one block per target: the
+ * verb that applies (added, removed, updated) and the resulting allowed and
+ * denied permissions. A target with nothing to report produces no lines at
+ * all, so unchanged overwrites never appear.
+ */
+function describeOverwriteBlocks(
+  oldChannel: NonThreadGuildBasedChannel,
+  newChannel: NonThreadGuildBasedChannel
+): string[] {
+  const lines: string[] = [];
+  const oldOverwrites = oldChannel.permissionOverwrites.cache;
+  const newOverwrites = newChannel.permissionOverwrites.cache;
+  const ids = [...new Set([...oldOverwrites.keys(), ...newOverwrites.keys()])].sort((a, b) =>
+    formatOverwriteTarget(newChannel.guild, a).localeCompare(formatOverwriteTarget(newChannel.guild, b))
+  );
+  for (const id of ids) {
+    const before = oldOverwrites.get(id);
+    const after = newOverwrites.get(id);
+    const target = formatOverwriteTarget(newChannel.guild, id);
+    if (!before && after) {
+      lines.push(`**➜** Added permissions for ${target}`, ...overwriteBlock(after));
+      continue;
+    }
+    if (before && !after) {
+      lines.push(`**➜** Removed permissions for ${target}`, ...overwriteBlock(before));
+      continue;
+    }
+    if (!before || !after) {
+      continue;
+    }
+    const transitions = formatOverwriteTransitions(before, after);
+    if (transitions.length === 0) {
+      continue;
+    }
+    lines.push(
+      `**➜** Updated permissions for ${target}`,
+      "**✓** Allowed permissions",
+      formatPermissionLabels(transitions.filter(([, , to]) => to === "allowed").map(([name]) => name)),
+      "**✘** Denied permissions",
+      formatPermissionLabels(transitions.filter(([, , to]) => to === "denied").map(([name]) => name))
+    );
+  }
+  return lines;
+}
+
+/** The allowed and denied permission lines for a single overwrite. */
+function overwriteBlock(overwrite: PermissionOverwrites): string[] {
+  return [
+    "**✓** Allowed permissions",
+    formatPermissionLabels(overwrite.allow.toArray()),
+    "**✘** Denied permissions",
+    formatPermissionLabels(overwrite.deny.toArray()),
+  ];
+}
+
+/** Render permission names as a comma-separated list, or "none" when empty. */
+function formatPermissionLabels(names: string[]): string {
+  return names.length > 0 ? names.map(permissionLabel).sort().join(", ") : "none";
 }
