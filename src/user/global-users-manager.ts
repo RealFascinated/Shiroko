@@ -4,7 +4,7 @@ import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { userKey } from "../cache/key";
 import { db } from "../db/index";
-import { globalUsers, type GlobalUserSchema } from "../db/schemas/global-users";
+import { globalUsersSchema, type GlobalUserSchema } from "../db/schemas/global-users";
 import GlobalUser from "./global-user";
 
 /**
@@ -23,20 +23,20 @@ export default class GlobalUsersManager {
    */
   public static async getUser(user: User): Promise<GlobalUser> {
     const row = await GlobalUsersManager.CACHE.load(userKey(user.id), async () => {
-      const [existing] = await db.select().from(globalUsers).where(eq(globalUsers.id, user.id));
+      const [existing] = await db.select().from(globalUsersSchema).where(eq(globalUsersSchema.id, user.id));
       if (existing) {
         return existing;
       }
       const [inserted] = await db
-        .insert(globalUsers)
+        .insert(globalUsersSchema)
         .values({ id: user.id })
-        .onConflictDoNothing({ target: globalUsers.id })
+        .onConflictDoNothing({ target: globalUsersSchema.id })
         .returning();
       if (inserted) {
         console.log(`Created new global user for ${user.tag} (${user.id})`);
         return inserted;
       }
-      const [row] = await db.select().from(globalUsers).where(eq(globalUsers.id, user.id));
+      const [row] = await db.select().from(globalUsersSchema).where(eq(globalUsersSchema.id, user.id));
       return row!;
     });
     return new GlobalUser(user, row);

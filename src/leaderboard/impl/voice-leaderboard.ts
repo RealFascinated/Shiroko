@@ -1,5 +1,5 @@
 import { db } from "@/db/index";
-import { voiceSessions } from "@/db/schemas/voice-sessions";
+import { voiceSessionsSchema } from "@/db/schemas/voice-sessions";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { LeaderboardId, type LeaderboardRow } from "../leaderboard";
 import { UserLeaderboard } from "../user-leaderboard";
@@ -15,13 +15,13 @@ export default class VoiceLeaderboard extends UserLeaderboard<LeaderboardRow> {
   protected async fetchTop(scope: string, limit: number, offset: number): Promise<LeaderboardRow[]> {
     return db
       .select({
-        id: voiceSessions.userId,
-        value: sql<number>`sum(${voiceSessions.durationSeconds})`.mapWith(Number),
+        id: voiceSessionsSchema.userId,
+        value: sql<number>`sum(${voiceSessionsSchema.durationSeconds})`.mapWith(Number),
       })
-      .from(voiceSessions)
-      .where(and(eq(voiceSessions.guildId, scope), isNotNull(voiceSessions.leftAt)))
-      .groupBy(voiceSessions.userId)
-      .orderBy(desc(sql`sum(${voiceSessions.durationSeconds})`), voiceSessions.userId)
+      .from(voiceSessionsSchema)
+      .where(and(eq(voiceSessionsSchema.guildId, scope), isNotNull(voiceSessionsSchema.leftAt)))
+      .groupBy(voiceSessionsSchema.userId)
+      .orderBy(desc(sql`sum(${voiceSessionsSchema.durationSeconds})`), voiceSessionsSchema.userId)
       .limit(limit)
       .offset(offset);
   }
@@ -29,26 +29,26 @@ export default class VoiceLeaderboard extends UserLeaderboard<LeaderboardRow> {
   protected async fetchRow(scope: string, id: string): Promise<LeaderboardRow | null> {
     const [row] = await db
       .select({
-        id: voiceSessions.userId,
-        value: sql<number>`sum(${voiceSessions.durationSeconds})`.mapWith(Number),
+        id: voiceSessionsSchema.userId,
+        value: sql<number>`sum(${voiceSessionsSchema.durationSeconds})`.mapWith(Number),
       })
-      .from(voiceSessions)
+      .from(voiceSessionsSchema)
       .where(
-        and(eq(voiceSessions.guildId, scope), eq(voiceSessions.userId, id), isNotNull(voiceSessions.leftAt))
+        and(eq(voiceSessionsSchema.guildId, scope), eq(voiceSessionsSchema.userId, id), isNotNull(voiceSessionsSchema.leftAt))
       )
-      .groupBy(voiceSessions.userId);
+      .groupBy(voiceSessionsSchema.userId);
     return row ?? null;
   }
 
   protected async countAhead(scope: string, value: number): Promise<number> {
     const grouped = db
       .select({
-        id: voiceSessions.userId,
-        value: sql<number>`sum(${voiceSessions.durationSeconds})`.mapWith(Number).as("value"),
+        id: voiceSessionsSchema.userId,
+        value: sql<number>`sum(${voiceSessionsSchema.durationSeconds})`.mapWith(Number).as("value"),
       })
-      .from(voiceSessions)
-      .where(and(eq(voiceSessions.guildId, scope), isNotNull(voiceSessions.leftAt)))
-      .groupBy(voiceSessions.userId)
+      .from(voiceSessionsSchema)
+      .where(and(eq(voiceSessionsSchema.guildId, scope), isNotNull(voiceSessionsSchema.leftAt)))
+      .groupBy(voiceSessionsSchema.userId)
       .as("t");
     const [row] = await db
       .select({ ahead: sql<number>`count(*) filter (where ${grouped.value} > ${value})`.mapWith(Number) })
@@ -59,12 +59,12 @@ export default class VoiceLeaderboard extends UserLeaderboard<LeaderboardRow> {
   protected async total(scope: string): Promise<number> {
     const grouped = db
       .select({
-        id: voiceSessions.userId,
-        value: sql<number>`sum(${voiceSessions.durationSeconds})`.mapWith(Number).as("value"),
+        id: voiceSessionsSchema.userId,
+        value: sql<number>`sum(${voiceSessionsSchema.durationSeconds})`.mapWith(Number).as("value"),
       })
-      .from(voiceSessions)
-      .where(and(eq(voiceSessions.guildId, scope), isNotNull(voiceSessions.leftAt)))
-      .groupBy(voiceSessions.userId)
+      .from(voiceSessionsSchema)
+      .where(and(eq(voiceSessionsSchema.guildId, scope), isNotNull(voiceSessionsSchema.leftAt)))
+      .groupBy(voiceSessionsSchema.userId)
       .as("t");
     const [row] = await db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(grouped);
     return row?.total ?? 0;

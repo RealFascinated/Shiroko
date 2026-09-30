@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { globalUsers } from "./global-users";
+import { globalUsersSchema } from "./global-users";
 
-export const voiceSessions = pgTable(
+export const voiceSessionsSchema = pgTable(
   "voice_sessions",
   {
     id: uuid("id")
@@ -10,7 +10,7 @@ export const voiceSessions = pgTable(
       .default(sql`uuidv7()`),
     userId: text("user_id")
       .notNull()
-      .references(() => globalUsers.id, { onDelete: "cascade" }),
+      .references(() => globalUsersSchema.id, { onDelete: "cascade" }),
     guildId: text("guild_id").notNull(),
     channelId: text("channel_id").notNull(),
     joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
@@ -24,4 +24,4 @@ export const voiceSessions = pgTable(
   ]
 );
 
-export type VoiceSessionSchema = typeof voiceSessions.$inferSelect;
+export type VoiceSessionSchema = typeof voiceSessionsSchema.$inferSelect;

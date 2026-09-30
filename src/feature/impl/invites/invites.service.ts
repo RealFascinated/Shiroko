@@ -1,6 +1,6 @@
 import { db } from "@/db/index";
-import { guildInvites } from "@/db/schemas/guild-invites";
-import { inviteJoins } from "@/db/schemas/invite-joins";
+import { guildInvitesSchema } from "@/db/schemas/guild-invites";
+import { inviteJoinsSchema } from "@/db/schemas/invite-joins";
 import { PermissionFlagsBits, type Guild, type Invite } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
 
@@ -82,13 +82,13 @@ export default class InvitesService {
     }
     this.guildState(guild.id).delete(invite.code);
     const known = await db
-      .select({ inviterId: guildInvites.inviterId })
-      .from(guildInvites)
-      .where(and(eq(guildInvites.guildId, guild.id), eq(guildInvites.code, invite.code)));
+      .select({ inviterId: guildInvitesSchema.inviterId })
+      .from(guildInvitesSchema)
+      .where(and(eq(guildInvitesSchema.guildId, guild.id), eq(guildInvitesSchema.code, invite.code)));
     if (known.length === 1) {
       await db
-        .delete(guildInvites)
-        .where(and(eq(guildInvites.guildId, guild.id), eq(guildInvites.code, invite.code)));
+        .delete(guildInvitesSchema)
+        .where(and(eq(guildInvitesSchema.guildId, guild.id), eq(guildInvitesSchema.code, invite.code)));
     }
   }
 
@@ -143,7 +143,7 @@ export default class InvitesService {
     attribution: JoinAttribution | null,
     now: Date = new Date()
   ): Promise<void> {
-    await db.insert(inviteJoins).values({
+    await db.insert(inviteJoinsSchema).values({
       guildId,
       memberId,
       inviterId: attribution?.inviterId ?? null,
@@ -191,7 +191,7 @@ export default class InvitesService {
    */
   private async upsertGuildInvite(guildId: string, invite: Invite): Promise<void> {
     await db
-      .insert(guildInvites)
+      .insert(guildInvitesSchema)
       .values({
         guildId,
         code: invite.code,
@@ -199,7 +199,7 @@ export default class InvitesService {
         uses: invite.uses ?? 0,
       })
       .onConflictDoUpdate({
-        target: [guildInvites.guildId, guildInvites.code],
+        target: [guildInvitesSchema.guildId, guildInvitesSchema.code],
         set: {
           inviterId: sql`excluded.inviter_id`,
           uses: sql`excluded.uses`,

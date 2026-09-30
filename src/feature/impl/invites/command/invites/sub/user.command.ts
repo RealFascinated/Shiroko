@@ -1,7 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
 import { db } from "@/db/index";
-import { inviteJoins } from "@/db/schemas/invite-joins";
+import { inviteJoinsSchema } from "@/db/schemas/invite-joins";
 import { invitesService } from "@/feature/impl/invites/invites.service";
 import { baseEmbed } from "@/lib/embed";
 import { pluralise } from "@/lib/format";
@@ -24,9 +24,9 @@ export default class InvitesUserCommand extends Command {
     const target = args.user("user") ?? user.discordUser;
     const canTrack = await invitesService.canTrack(guild);
     const [row] = await db
-      .select({ invites: count(inviteJoins.inviterId) })
-      .from(inviteJoins)
-      .where(and(eq(inviteJoins.guildId, guild.id), eq(inviteJoins.inviterId, target.id)));
+      .select({ invites: count(inviteJoinsSchema.inviterId) })
+      .from(inviteJoinsSchema)
+      .where(and(eq(inviteJoinsSchema.guildId, guild.id), eq(inviteJoinsSchema.inviterId, target.id)));
     const total = row?.invites ?? 0;
     const embed = baseEmbed(commandName)
       .setTitle("📨 Invites")

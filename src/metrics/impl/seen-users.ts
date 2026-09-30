@@ -1,5 +1,5 @@
 import { db } from "@/db/index";
-import { globalUsers } from "@/db/schemas/global-users";
+import { globalUsersSchema } from "@/db/schemas/global-users";
 import { count } from "drizzle-orm";
 import { GaugeMetric } from "../gauge";
 
@@ -15,7 +15,7 @@ export class SeenUsersMetric extends GaugeMetric {
   }
 
   public override async collect(): Promise<void> {
-    const [row] = await db.select({ count: count() }).from(globalUsers);
+    const [row] = await db.select({ count: count() }).from(globalUsersSchema);
     this.set(row?.count ?? 0);
   }
 }

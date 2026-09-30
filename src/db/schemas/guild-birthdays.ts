@@ -1,14 +1,14 @@
 import { sql } from "drizzle-orm";
 import { date, index, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
-import { globalUsers } from "./global-users";
+import { globalUsersSchema } from "./global-users";
 
-export const guildBirthdays = pgTable(
+export const guildBirthdaysSchema = pgTable(
   "guild_birthdays",
   {
     guildId: text("guild_id").notNull(),
     userId: text("user_id")
       .notNull()
-      .references(() => globalUsers.id, { onDelete: "cascade" }),
+      .references(() => globalUsersSchema.id, { onDelete: "cascade" }),
     birthDate: date("birth_date", { mode: "date" }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -23,4 +23,4 @@ export const guildBirthdays = pgTable(
   ]
 );
 
-export type GuildBirthdaySchema = typeof guildBirthdays.$inferSelect;
+export type GuildBirthdaySchema = typeof guildBirthdaysSchema.$inferSelect;

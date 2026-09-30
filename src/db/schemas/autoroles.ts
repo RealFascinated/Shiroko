@@ -1,11 +1,6 @@
 import { pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
-/**
- * Roles automatically granted to a member on joining. One row per
- * (guild, role) pair; the role id is plain text, matching how the codebase
- * stores Discord role ids (no FK, since roles live in the Discord API).
- */
-export const autoroles = pgTable(
+export const autorolesSchema = pgTable(
   "autoroles",
   {
     guildId: text("guild_id").notNull(),
@@ -15,4 +10,4 @@ export const autoroles = pgTable(
   table => [primaryKey({ columns: [table.guildId, table.roleId] })]
 );
 
-export type AutoroleSchema = typeof autoroles.$inferSelect;
+export type AutoroleSchema = typeof autorolesSchema.$inferSelect;

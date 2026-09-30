@@ -2,7 +2,7 @@ import { Cache } from "@/cache/cache";
 import { Caches } from "@/cache/index";
 import { guildKey } from "@/cache/key";
 import { db } from "@/db/index";
-import { autoroles } from "@/db/schemas/autoroles";
+import { autorolesSchema } from "@/db/schemas/autoroles";
 import type { Guild, GuildMember, Role } from "discord.js";
 import { and, eq } from "drizzle-orm";
 
@@ -40,10 +40,10 @@ export default class AutorolesService {
    */
   public async add(guildId: string, roleId: string): Promise<boolean> {
     const result = await db
-      .insert(autoroles)
+      .insert(autorolesSchema)
       .values({ guildId, roleId })
-      .onConflictDoNothing({ target: [autoroles.guildId, autoroles.roleId] })
-      .returning({ roleId: autoroles.roleId });
+      .onConflictDoNothing({ target: [autorolesSchema.guildId, autorolesSchema.roleId] })
+      .returning({ roleId: autorolesSchema.roleId });
     if (result.length > 0) {
       AutorolesService.CACHE.invalidate(guildKey(guildId));
     }
@@ -56,9 +56,9 @@ export default class AutorolesService {
    */
   public async remove(guildId: string, roleId: string): Promise<boolean> {
     const result = await db
-      .delete(autoroles)
-      .where(and(eq(autoroles.guildId, guildId), eq(autoroles.roleId, roleId)))
-      .returning({ roleId: autoroles.roleId });
+      .delete(autorolesSchema)
+      .where(and(eq(autorolesSchema.guildId, guildId), eq(autorolesSchema.roleId, roleId)))
+      .returning({ roleId: autorolesSchema.roleId });
     if (result.length > 0) {
       AutorolesService.CACHE.invalidate(guildKey(guildId));
     }
@@ -73,9 +73,9 @@ export default class AutorolesService {
   public async list(guild: Guild): Promise<Role[]> {
     const roleIds = await AutorolesService.CACHE.load(guildKey(guild.id), async () => {
       const rows = await db
-        .select({ roleId: autoroles.roleId })
-        .from(autoroles)
-        .where(eq(autoroles.guildId, guild.id));
+        .select({ roleId: autorolesSchema.roleId })
+        .from(autorolesSchema)
+        .where(eq(autorolesSchema.guildId, guild.id));
       return rows.map(r => r.roleId);
     });
     return roleIds.map(id => guild.roles.cache.get(id)).filter((r): r is Role => r !== undefined);

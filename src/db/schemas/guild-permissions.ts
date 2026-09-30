@@ -1,6 +1,6 @@
 import { pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
-export const permissionRoles = pgTable(
+export const permissionRolesSchema = pgTable(
   "permission_roles",
   {
     guildId: text("guild_id").notNull(),
@@ -12,4 +12,4 @@ export const permissionRoles = pgTable(
   table => [primaryKey({ columns: [table.guildId, table.roleId] })]
 );
 
-export type PermissionRoleSchema = typeof permissionRoles.$inferSelect;
+export type PermissionRoleSchema = typeof permissionRolesSchema.$inferSelect;

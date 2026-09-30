@@ -1,5 +1,5 @@
 import { db } from "@/db/index";
-import { interactions } from "@/db/schemas/interactions";
+import { interactionsSchema } from "@/db/schemas/interactions";
 import { sql } from "drizzle-orm";
 
 export type InteractionType =
@@ -31,13 +31,13 @@ export default class SocialService {
     type: InteractionType
   ): Promise<number> {
     const [row] = await db
-      .insert(interactions)
+      .insert(interactionsSchema)
       .values({ actorId, targetId, type, count: 1 })
       .onConflictDoUpdate({
-        target: [interactions.actorId, interactions.targetId, interactions.type],
-        set: { count: sql`${interactions.count} + 1`, updatedAt: new Date() },
+        target: [interactionsSchema.actorId, interactionsSchema.targetId, interactionsSchema.type],
+        set: { count: sql`${interactionsSchema.count} + 1`, updatedAt: new Date() },
       })
-      .returning({ count: interactions.count });
+      .returning({ count: interactionsSchema.count });
 
     return row!.count;
   }

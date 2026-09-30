@@ -1,6 +1,6 @@
 import { db } from "@/db/index";
-import { levelRewards } from "@/db/schemas/level-rewards";
-import { userLevels } from "@/db/schemas/user-levels";
+import { levelRewardsSchema } from "@/db/schemas/level-rewards";
+import { userLevelsSchema } from "@/db/schemas/user-levels";
 import { EventBus } from "@/event/event-bus";
 import LevelUpEvent from "@/event/events/level-up.event";
 import LeaderboardManager from "@/leaderboard/index";
@@ -111,8 +111,8 @@ export default class LevelsService {
   public async getLevel(guildId: string, userId: string): Promise<UserLevelSnapshot> {
     const [row] = await db
       .select()
-      .from(userLevels)
-      .where(and(eq(userLevels.guildId, guildId), eq(userLevels.userId, userId)));
+      .from(userLevelsSchema)
+      .where(and(eq(userLevelsSchema.guildId, guildId), eq(userLevelsSchema.userId, userId)));
     const xp = row?.xp ?? 0;
     return {
       xp,
@@ -150,15 +150,15 @@ export default class LevelsService {
   public async nextReward(guildId: string, atLevel: number): Promise<RewardRow | null> {
     const [row] = await db
       .select()
-      .from(levelRewards)
+      .from(levelRewardsSchema)
       .where(
         and(
-          eq(levelRewards.guildId, guildId),
-          eq(levelRewards.type, "Role"),
-          sql`${levelRewards.level} > ${atLevel}`
+          eq(levelRewardsSchema.guildId, guildId),
+          eq(levelRewardsSchema.type, "Role"),
+          sql`${levelRewardsSchema.level} > ${atLevel}`
         )
       )
-      .orderBy(levelRewards.level)
+      .orderBy(levelRewardsSchema.level)
       .limit(1);
     return row ?? null;
   }
@@ -169,10 +169,10 @@ export default class LevelsService {
    */
   public async setRewardRole(guild: Guild, level: number, roleId: string): Promise<void> {
     await db
-      .insert(levelRewards)
+      .insert(levelRewardsSchema)
       .values({ guildId: guild.id, level, type: "Role", roleId })
       .onConflictDoUpdate({
-        target: [levelRewards.guildId, levelRewards.level],
+        target: [levelRewardsSchema.guildId, levelRewardsSchema.level],
         set: { type: "Role", roleId },
       });
   }
@@ -182,8 +182,8 @@ export default class LevelsService {
    */
   public async removeReward(guildId: string, level: number): Promise<void> {
     await db
-      .delete(levelRewards)
-      .where(and(eq(levelRewards.guildId, guildId), eq(levelRewards.level, level)));
+      .delete(levelRewardsSchema)
+      .where(and(eq(levelRewardsSchema.guildId, guildId), eq(levelRewardsSchema.level, level)));
   }
 
   /**
@@ -193,9 +193,9 @@ export default class LevelsService {
   public async rewards(guildId: string): Promise<RewardRow[]> {
     const rows = await db
       .select()
-      .from(levelRewards)
-      .where(eq(levelRewards.guildId, guildId))
-      .orderBy(levelRewards.level);
+      .from(levelRewardsSchema)
+      .where(eq(levelRewardsSchema.guildId, guildId))
+      .orderBy(levelRewardsSchema.level);
     return rows;
   }
 
@@ -206,12 +206,12 @@ export default class LevelsService {
   public async rewardsBetween(guildId: string, fromLevel: number, toLevel: number): Promise<RewardRow[]> {
     const rows = await db
       .select()
-      .from(levelRewards)
+      .from(levelRewardsSchema)
       .where(
         and(
-          eq(levelRewards.guildId, guildId),
-          sql`${levelRewards.level} >= ${fromLevel}`,
-          sql`${levelRewards.level} <= ${toLevel}`
+          eq(levelRewardsSchema.guildId, guildId),
+          sql`${levelRewardsSchema.level} >= ${fromLevel}`,
+          sql`${levelRewardsSchema.level} <= ${toLevel}`
         )
       );
     return rows;
@@ -236,13 +236,13 @@ export default class LevelsService {
     // Atomic upsert: the DB owns the xp total under concurrency; level
     // derives from the returned total.
     const [row] = await db
-      .insert(userLevels)
+      .insert(userLevelsSchema)
       .values({ guildId: guild.id, userId, xp: amount })
       .onConflictDoUpdate({
-        target: [userLevels.guildId, userLevels.userId],
-        set: { xp: sql`${userLevels.xp} + ${amount}`, updatedAt: now },
+        target: [userLevelsSchema.guildId, userLevelsSchema.userId],
+        set: { xp: sql`${userLevelsSchema.xp} + ${amount}`, updatedAt: now },
       })
-      .returning({ xp: userLevels.xp });
+      .returning({ xp: userLevelsSchema.xp });
 
     if (!row) {
       return null;

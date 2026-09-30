@@ -4,7 +4,7 @@ import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { guildKey } from "../cache/key";
 import { db } from "../db/index";
-import { permissionRoles } from "../db/schemas/guild-permissions";
+import { permissionRolesSchema } from "../db/schemas/guild-permissions";
 import { EventBus } from "../event/event-bus";
 import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
@@ -110,7 +110,7 @@ export default class Permissions {
   ): Promise<bigint> {
     await Permissions.assertNoCycle(guildId, roleId, parentRoleId);
     await db
-      .insert(permissionRoles)
+      .insert(permissionRolesSchema)
       .values({
         guildId,
         roleId,
@@ -118,7 +118,7 @@ export default class Permissions {
         parentRoleId,
       })
       .onConflictDoUpdate({
-        target: [permissionRoles.guildId, permissionRoles.roleId],
+        target: [permissionRolesSchema.guildId, permissionRolesSchema.roleId],
         set: { flags: String(ownFlags), parentRoleId },
       });
     Permissions.invalidateGuild(guildId);
@@ -146,8 +146,8 @@ export default class Permissions {
    */
   public static async clearRole(guildId: string, roleId: string): Promise<void> {
     await db
-      .delete(permissionRoles)
-      .where(and(eq(permissionRoles.guildId, guildId), eq(permissionRoles.roleId, roleId)));
+      .delete(permissionRolesSchema)
+      .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId)));
     Permissions.invalidateGuild(guildId);
   }
 
@@ -159,9 +159,9 @@ export default class Permissions {
   public static async onRoleDeleted(guildId: string, roleId: string): Promise<void> {
     await Permissions.clearRole(guildId, roleId);
     await db
-      .update(permissionRoles)
+      .update(permissionRolesSchema)
       .set({ parentRoleId: null, updatedAt: new Date() })
-      .where(and(eq(permissionRoles.guildId, guildId), eq(permissionRoles.parentRoleId, roleId)));
+      .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.parentRoleId, roleId)));
     Permissions.invalidateGuild(guildId);
   }
 
@@ -223,8 +223,8 @@ export default class Permissions {
       count: async () => {
         const [row] = await db
           .select({ total: sql<number>`count(*)`.mapWith(Number) })
-          .from(permissionRoles)
-          .where(eq(permissionRoles.guildId, guildId));
+          .from(permissionRolesSchema)
+          .where(eq(permissionRolesSchema.guildId, guildId));
         return row?.total ?? 0;
       },
       rows: async (limit, offset) => {
@@ -290,7 +290,7 @@ export default class Permissions {
    */
   public static async loadGuild(guildId: string): Promise<Map<string, RoleConfig>> {
     return Permissions.CACHE.load(guildKey(guildId), async () => {
-      const rows = await db.select().from(permissionRoles).where(eq(permissionRoles.guildId, guildId));
+      const rows = await db.select().from(permissionRolesSchema).where(eq(permissionRolesSchema.guildId, guildId));
       return new Map(rows.map(r => [r.roleId, { own: BigInt(r.flags), parent: r.parentRoleId }]));
     });
   }

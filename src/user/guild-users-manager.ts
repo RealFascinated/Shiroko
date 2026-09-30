@@ -1,7 +1,7 @@
 import type { Guild, User } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/index";
-import { guildUsers } from "../db/schemas/guild-users";
+import { guildUsersSchema } from "../db/schemas/guild-users";
 import { nowMinus } from "../lib/time";
 import GuildUser from "./guild-user";
 
@@ -14,18 +14,18 @@ export default class GuildUsersManager {
   public static async getUser(guild: Guild, user: User): Promise<GuildUser> {
     const [existing] = await db
       .select()
-      .from(guildUsers)
-      .where(and(eq(guildUsers.guildId, guild.id), eq(guildUsers.userId, user.id)));
+      .from(guildUsersSchema)
+      .where(and(eq(guildUsersSchema.guildId, guild.id), eq(guildUsersSchema.userId, user.id)));
 
     if (existing) {
       return new GuildUser(user, existing);
     }
 
     const [inserted] = await db
-      .insert(guildUsers)
+      .insert(guildUsersSchema)
       .values({ guildId: guild.id, userId: user.id })
       .onConflictDoNothing({
-        target: [guildUsers.guildId, guildUsers.userId],
+        target: [guildUsersSchema.guildId, guildUsersSchema.userId],
       })
       .returning();
 
@@ -36,8 +36,8 @@ export default class GuildUsersManager {
 
     const [row] = await db
       .select()
-      .from(guildUsers)
-      .where(and(eq(guildUsers.guildId, guild.id), eq(guildUsers.userId, user.id)));
+      .from(guildUsersSchema)
+      .where(and(eq(guildUsersSchema.guildId, guild.id), eq(guildUsersSchema.userId, user.id)));
     return new GuildUser(user, row!);
   }
 
@@ -56,12 +56,12 @@ export default class GuildUsersManager {
     cooldownSeconds: number
   ): Promise<boolean> {
     const [row] = await db
-      .insert(guildUsers)
+      .insert(guildUsersSchema)
       .values({ guildId: guild.id, userId: user.id, lastMessageAt: at })
       .onConflictDoUpdate({
-        target: [guildUsers.guildId, guildUsers.userId],
+        target: [guildUsersSchema.guildId, guildUsersSchema.userId],
         set: { lastMessageAt: at },
-        where: sql`${guildUsers.lastMessageAt} is null or ${guildUsers.lastMessageAt} <= ${nowMinus(cooldownSeconds, at)}`,
+        where: sql`${guildUsersSchema.lastMessageAt} is null or ${guildUsersSchema.lastMessageAt} <= ${nowMinus(cooldownSeconds, at)}`,
       })
       .returning();
     return row !== undefined;

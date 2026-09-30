@@ -3,7 +3,7 @@ import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { guildKey } from "../cache/key";
 import { db, now } from "../db/index";
-import { guildSettings, type JsonValue } from "../db/schemas/guild-settings";
+import { guildSettingsSchema, type JsonValue } from "../db/schemas/guild-settings";
 
 /**
  * Key-value settings store backing the generic `/settings` system. One row
@@ -28,9 +28,9 @@ export default class GuildSettings {
   public static async get(guildId: string, key: string): Promise<JsonValue | null> {
     const stored = await GuildSettings.CACHE.load(guildKey(guildId), async () => {
       const rows = await db
-        .select({ key: guildSettings.key, value: guildSettings.value })
-        .from(guildSettings)
-        .where(eq(guildSettings.guildId, guildId));
+        .select({ key: guildSettingsSchema.key, value: guildSettingsSchema.value })
+        .from(guildSettingsSchema)
+        .where(eq(guildSettingsSchema.guildId, guildId));
       return new Map(rows.map(row => [row.key, row.value]));
     });
     return stored.get(key) ?? null;
@@ -42,14 +42,14 @@ export default class GuildSettings {
   public static async set(guildId: string, key: string, value: JsonValue | null): Promise<void> {
     if (value === null) {
       await db
-        .delete(guildSettings)
-        .where(and(eq(guildSettings.guildId, guildId), eq(guildSettings.key, key)));
+        .delete(guildSettingsSchema)
+        .where(and(eq(guildSettingsSchema.guildId, guildId), eq(guildSettingsSchema.key, key)));
     } else {
       await db
-        .insert(guildSettings)
+        .insert(guildSettingsSchema)
         .values({ guildId, key, value })
         .onConflictDoUpdate({
-          target: [guildSettings.guildId, guildSettings.key],
+          target: [guildSettingsSchema.guildId, guildSettingsSchema.key],
           set: { value, updatedAt: now },
         });
     }

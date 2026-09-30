@@ -1,6 +1,6 @@
 import { integer, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
-export const levelRewards = pgTable(
+export const levelRewardsSchema = pgTable(
   "level_rewards",
   {
     guildId: text("guild_id").notNull(),
@@ -12,4 +12,4 @@ export const levelRewards = pgTable(
   table => [primaryKey({ columns: [table.guildId, table.level] })]
 );
 
-export type LevelRewardSchema = typeof levelRewards.$inferSelect;
+export type LevelRewardSchema = typeof levelRewardsSchema.$inferSelect;

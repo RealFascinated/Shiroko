@@ -1,5 +1,5 @@
 import { db } from "@/db/index";
-import { guildBirthdays } from "@/db/schemas/guild-birthdays";
+import { guildBirthdaysSchema } from "@/db/schemas/guild-birthdays";
 import { loadPage, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
 import { and, eq, sql, type SQL } from "drizzle-orm";
@@ -49,12 +49,12 @@ function nextOccurrence(today: string): SQL {
     cross join lateral (
       select make_date(
         extract(year from ${today}::date)::int + step,
-        extract(month from ${guildBirthdays.birthDate})::int,
+        extract(month from ${guildBirthdaysSchema.birthDate})::int,
         1
-      ) + (extract(day from ${guildBirthdays.birthDate})::int - 1) as occurrence
+      ) + (extract(day from ${guildBirthdaysSchema.birthDate})::int - 1) as occurrence
     ) as candidate
-    where extract(month from candidate.occurrence) = extract(month from ${guildBirthdays.birthDate})
-      and extract(day from candidate.occurrence) = extract(day from ${guildBirthdays.birthDate})
+    where extract(month from candidate.occurrence) = extract(month from ${guildBirthdaysSchema.birthDate})
+      and extract(day from candidate.occurrence) = extract(day from ${guildBirthdaysSchema.birthDate})
       and candidate.occurrence >= ${today}::date
   )`;
 }
@@ -75,10 +75,10 @@ export default class BirthdayService {
    */
   public async setBirthday(guildId: string, userId: string, birthDate: Date): Promise<void> {
     await db
-      .insert(guildBirthdays)
+      .insert(guildBirthdaysSchema)
       .values({ guildId, userId, birthDate })
       .onConflictDoUpdate({
-        target: [guildBirthdays.guildId, guildBirthdays.userId],
+        target: [guildBirthdaysSchema.guildId, guildBirthdaysSchema.userId],
         set: { birthDate, updatedAt: sql`now()` },
       });
   }
@@ -88,9 +88,9 @@ export default class BirthdayService {
    */
   public async removeBirthday(guildId: string, userId: string): Promise<boolean> {
     const rows = await db
-      .delete(guildBirthdays)
-      .where(and(eq(guildBirthdays.guildId, guildId), eq(guildBirthdays.userId, userId)))
-      .returning({ userId: guildBirthdays.userId });
+      .delete(guildBirthdaysSchema)
+      .where(and(eq(guildBirthdaysSchema.guildId, guildId), eq(guildBirthdaysSchema.userId, userId)))
+      .returning({ userId: guildBirthdaysSchema.userId });
     return rows.length > 0;
   }
 
@@ -100,12 +100,12 @@ export default class BirthdayService {
   public async getBirthday(guildId: string, userId: string): Promise<BirthdayRow | null> {
     const [row] = await db
       .select({
-        month: sql<number>`extract(month from ${guildBirthdays.birthDate})::int`.mapWith(Number),
-        day: sql<number>`extract(day from ${guildBirthdays.birthDate})::int`.mapWith(Number),
-        year: sql<number>`extract(year from ${guildBirthdays.birthDate})::int`.mapWith(Number),
+        month: sql<number>`extract(month from ${guildBirthdaysSchema.birthDate})::int`.mapWith(Number),
+        day: sql<number>`extract(day from ${guildBirthdaysSchema.birthDate})::int`.mapWith(Number),
+        year: sql<number>`extract(year from ${guildBirthdaysSchema.birthDate})::int`.mapWith(Number),
       })
-      .from(guildBirthdays)
-      .where(and(eq(guildBirthdays.guildId, guildId), eq(guildBirthdays.userId, userId)));
+      .from(guildBirthdaysSchema)
+      .where(and(eq(guildBirthdaysSchema.guildId, guildId), eq(guildBirthdaysSchema.userId, userId)));
     if (!row) {
       return null;
     }
@@ -138,8 +138,8 @@ export default class BirthdayService {
     const today = now.toISOString().slice(0, 10);
     const occurrence = nextOccurrence(today);
     const inScope = and(
-      eq(guildBirthdays.guildId, guildId),
-      sql`${guildBirthdays.userId} = any(${sql.param([...memberIds])})`
+      eq(guildBirthdaysSchema.guildId, guildId),
+      sql`${guildBirthdaysSchema.userId} = any(${sql.param([...memberIds])})`
     );
     return loadPage({
       page,
@@ -147,24 +147,24 @@ export default class BirthdayService {
       count: async () => {
         const [row] = await db
           .select({ total: sql<number>`count(*)`.mapWith(Number) })
-          .from(guildBirthdays)
+          .from(guildBirthdaysSchema)
           .where(inScope);
         return row?.total ?? 0;
       },
       rows: (limit, offset) =>
         db
           .select({
-            userId: guildBirthdays.userId,
-            month: sql<number>`extract(month from ${guildBirthdays.birthDate})::int`.mapWith(Number),
-            day: sql<number>`extract(day from ${guildBirthdays.birthDate})::int`.mapWith(Number),
+            userId: guildBirthdaysSchema.userId,
+            month: sql<number>`extract(month from ${guildBirthdaysSchema.birthDate})::int`.mapWith(Number),
+            day: sql<number>`extract(day from ${guildBirthdaysSchema.birthDate})::int`.mapWith(Number),
             inDays: sql<number>`${occurrence} - ${today}::date`.mapWith(Number),
-            age: sql<number>`extract(year from ${occurrence})::int - extract(year from ${guildBirthdays.birthDate})::int`.mapWith(
+            age: sql<number>`extract(year from ${occurrence})::int - extract(year from ${guildBirthdaysSchema.birthDate})::int`.mapWith(
               Number
             ),
           })
-          .from(guildBirthdays)
+          .from(guildBirthdaysSchema)
           .where(inScope)
-          .orderBy(occurrence, guildBirthdays.userId)
+          .orderBy(occurrence, guildBirthdaysSchema.userId)
           .limit(limit)
           .offset(offset),
     });
@@ -184,15 +184,15 @@ export default class BirthdayService {
   ): Promise<Map<string, Celebrant[]>> {
     const rows = await db
       .select({
-        guildId: guildBirthdays.guildId,
-        userId: guildBirthdays.userId,
-        birthDate: guildBirthdays.birthDate,
+        guildId: guildBirthdaysSchema.guildId,
+        userId: guildBirthdaysSchema.userId,
+        birthDate: guildBirthdaysSchema.birthDate,
       })
-      .from(guildBirthdays)
+      .from(guildBirthdaysSchema)
       .where(
         and(
-          eq(sql`extract(month from ${guildBirthdays.birthDate})`, month),
-          eq(sql`extract(day from ${guildBirthdays.birthDate})`, day)
+          eq(sql`extract(month from ${guildBirthdaysSchema.birthDate})`, month),
+          eq(sql`extract(day from ${guildBirthdaysSchema.birthDate})`, day)
         )
       );
 

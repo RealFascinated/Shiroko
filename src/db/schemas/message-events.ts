@@ -1,13 +1,13 @@
 import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { globalUsers } from "./global-users";
+import { globalUsersSchema } from "./global-users";
 
-export const messageEvents = pgTable(
+export const messageEventsSchema = pgTable(
   "message_events",
   {
     id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
-      .references(() => globalUsers.id, { onDelete: "cascade" }),
+      .references(() => globalUsersSchema.id, { onDelete: "cascade" }),
     guildId: text("guild_id").notNull(),
     channelId: text("channel_id").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -19,4 +19,4 @@ export const messageEvents = pgTable(
   ]
 );
 
-export type MessageEventSchema = typeof messageEvents.$inferSelect;
+export type MessageEventSchema = typeof messageEventsSchema.$inferSelect;

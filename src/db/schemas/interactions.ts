@@ -1,15 +1,15 @@
 import { integer, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
-import { globalUsers } from "./global-users";
+import { globalUsersSchema } from "./global-users";
 
-export const interactions = pgTable(
+export const interactionsSchema = pgTable(
   "interactions",
   {
     actorId: text("actor_id")
       .notNull()
-      .references(() => globalUsers.id, { onDelete: "cascade" }),
+      .references(() => globalUsersSchema.id, { onDelete: "cascade" }),
     targetId: text("target_id")
       .notNull()
-      .references(() => globalUsers.id, { onDelete: "cascade" }),
+      .references(() => globalUsersSchema.id, { onDelete: "cascade" }),
     type: text("type").notNull(),
     count: integer("count").notNull().default(1),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -17,4 +17,4 @@ export const interactions = pgTable(
   table => [primaryKey({ columns: [table.actorId, table.targetId, table.type] })]
 );
 
-export type InteractionSchema = typeof interactions.$inferSelect;
+export type InteractionSchema = typeof interactionsSchema.$inferSelect;

@@ -1,38 +1,38 @@
 import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { globalUsers } from "./schemas/global-users";
-import { guildBirthdays } from "./schemas/guild-birthdays";
-import { guildFeatures } from "./schemas/guild-features";
-import { guildInvites } from "./schemas/guild-invites";
-import { permissionRoles } from "./schemas/guild-permissions";
-import { guildSettings } from "./schemas/guild-settings";
-import { guildUsers } from "./schemas/guild-users";
-import { interactions } from "./schemas/interactions";
-import { inviteJoins } from "./schemas/invite-joins";
-import { levelRewards } from "./schemas/level-rewards";
-import { messageEvents } from "./schemas/message-events";
-import { userLevels } from "./schemas/user-levels";
-import { voiceSessions } from "./schemas/voice-sessions";
+import { globalUsersSchema } from "./schemas/global-users";
+import { guildBirthdaysSchema } from "./schemas/guild-birthdays";
+import { guildFeaturesSchema } from "./schemas/guild-features";
+import { guildInvitesSchema } from "./schemas/guild-invites";
+import { permissionRolesSchema } from "./schemas/guild-permissions";
+import { guildSettingsSchema } from "./schemas/guild-settings";
+import { guildUsersSchema } from "./schemas/guild-users";
+import { interactionsSchema } from "./schemas/interactions";
+import { inviteJoinsSchema } from "./schemas/invite-joins";
+import { levelRewardsSchema } from "./schemas/level-rewards";
+import { messageEventsSchema } from "./schemas/message-events";
+import { userLevelsSchema } from "./schemas/user-levels";
+import { voiceSessionsSchema } from "./schemas/voice-sessions";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
 export const schema = {
-  globalUsers,
-  guildBirthdays,
-  guildUsers,
-  guildFeatures,
-  permissionRoles,
-  guildSettings,
-  guildInvites,
-  inviteJoins,
-  userLevels,
-  levelRewards,
-  interactions,
-  messageEvents,
-  voiceSessions,
+  globalUsers: globalUsersSchema,
+  guildBirthdays: guildBirthdaysSchema,
+  guildUsers: guildUsersSchema,
+  guildFeatures: guildFeaturesSchema,
+  permissionRoles: permissionRolesSchema,
+  guildSettings: guildSettingsSchema,
+  guildInvites: guildInvitesSchema,
+  inviteJoins: inviteJoinsSchema,
+  userLevels: userLevelsSchema,
+  levelRewards: levelRewardsSchema,
+  interactions: interactionsSchema,
+  messageEvents: messageEventsSchema,
+  voiceSessions: voiceSessionsSchema,
 };
 
 export const db = drizzle(pool, { schema });

@@ -1,7 +1,7 @@
 import { db } from "@/db/index";
-import { globalUsers } from "@/db/schemas/global-users";
-import { messageEvents } from "@/db/schemas/message-events";
-import { voiceSessions } from "@/db/schemas/voice-sessions";
+import { globalUsersSchema } from "@/db/schemas/global-users";
+import { messageEventsSchema } from "@/db/schemas/message-events";
+import { voiceSessionsSchema } from "@/db/schemas/voice-sessions";
 import { EventBus } from "@/event/event-bus";
 import VoiceSessionEndedEvent from "@/event/events/voice-session-ended.event";
 import VoiceSessionStartedEvent from "@/event/events/voice-session-started.event";
@@ -156,7 +156,7 @@ export default class StatsService {
   public async recordMessage(record: MessageRecord): Promise<void> {
     await this.ensureUser(record.userId);
     await db
-      .insert(messageEvents)
+      .insert(messageEventsSchema)
       .values({
         id: record.id,
         userId: record.userId,
@@ -164,7 +164,7 @@ export default class StatsService {
         channelId: record.channelId,
         createdAt: record.createdAt,
       })
-      .onConflictDoNothing({ target: messageEvents.id });
+      .onConflictDoNothing({ target: messageEventsSchema.id });
   }
 
   /**
@@ -195,7 +195,7 @@ export default class StatsService {
    * Close every session left open by a previous process. Returns the count.
    */
   public async closeStaleSessions(now: Date = new Date()): Promise<number> {
-    const stale = await db.select().from(voiceSessions).where(isNull(voiceSessions.leftAt));
+    const stale = await db.select().from(voiceSessionsSchema).where(isNull(voiceSessionsSchema.leftAt));
     for (const row of stale) {
       await this.finishSession(row.id, row.joinedAt, now);
     }
@@ -232,21 +232,21 @@ export default class StatsService {
     const windows = statsWindows(now);
     const [row] = await db
       .select({
-        today: sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.today})`.mapWith(
+        today: sql<number>`count(*) filter (where ${messageEventsSchema.createdAt} >= ${windows.today})`.mapWith(
           Number
         ),
         last7days:
-          sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.last7Start})`.mapWith(
+          sql<number>`count(*) filter (where ${messageEventsSchema.createdAt} >= ${windows.last7Start})`.mapWith(
             Number
           ),
         last30days:
-          sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.last30Start})`.mapWith(
+          sql<number>`count(*) filter (where ${messageEventsSchema.createdAt} >= ${windows.last30Start})`.mapWith(
             Number
           ),
         total: sql<number>`count(*)`.mapWith(Number),
       })
-      .from(messageEvents)
-      .where(and(eq(messageEvents.userId, userId), eq(messageEvents.guildId, guildId)));
+      .from(messageEventsSchema)
+      .where(and(eq(messageEventsSchema.userId, userId), eq(messageEventsSchema.guildId, guildId)));
     return {
       today: row?.today ?? 0,
       last7days: row?.last7days ?? 0,
@@ -269,32 +269,32 @@ export default class StatsService {
     const [row] = await db
       .select({
         todaySessions:
-          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.today})`.mapWith(Number),
+          sql<number>`count(*) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.today})`.mapWith(Number),
         todaySeconds:
-          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.today}), 0)`.mapWith(
+          sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.today}), 0)`.mapWith(
             Number
           ),
         last7Sessions:
-          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.last7Start})`.mapWith(
+          sql<number>`count(*) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.last7Start})`.mapWith(
             Number
           ),
         last7Seconds:
-          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.last7Start}), 0)`.mapWith(
+          sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.last7Start}), 0)`.mapWith(
             Number
           ),
         last30Sessions:
-          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.last30Start})`.mapWith(
+          sql<number>`count(*) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.last30Start})`.mapWith(
             Number
           ),
         last30Seconds:
-          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.last30Start}), 0)`.mapWith(
+          sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.last30Start}), 0)`.mapWith(
             Number
           ),
         totalSessions: sql<number>`count(*)`.mapWith(Number),
-        totalSeconds: sql<number>`coalesce(sum(${voiceSessions.durationSeconds}), 0)`.mapWith(Number),
+        totalSeconds: sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}), 0)`.mapWith(Number),
       })
-      .from(voiceSessions)
-      .where(and(eq(voiceSessions.userId, userId), eq(voiceSessions.guildId, guildId)));
+      .from(voiceSessionsSchema)
+      .where(and(eq(voiceSessionsSchema.userId, userId), eq(voiceSessionsSchema.guildId, guildId)));
     const live = this.liveVoice(guildId, userId, now);
     return {
       today: this.voiceWindow(row, "today", windows.today, live),
@@ -418,21 +418,21 @@ export default class StatsService {
     const windows = statsWindows(now);
     const [row] = await db
       .select({
-        today: sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.today})`.mapWith(
+        today: sql<number>`count(*) filter (where ${messageEventsSchema.createdAt} >= ${windows.today})`.mapWith(
           Number
         ),
         last7days:
-          sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.last7Start})`.mapWith(
+          sql<number>`count(*) filter (where ${messageEventsSchema.createdAt} >= ${windows.last7Start})`.mapWith(
             Number
           ),
         last30days:
-          sql<number>`count(*) filter (where ${messageEvents.createdAt} >= ${windows.last30Start})`.mapWith(
+          sql<number>`count(*) filter (where ${messageEventsSchema.createdAt} >= ${windows.last30Start})`.mapWith(
             Number
           ),
         total: sql<number>`count(*)`.mapWith(Number),
       })
-      .from(messageEvents)
-      .where(eq(messageEvents.guildId, guildId));
+      .from(messageEventsSchema)
+      .where(eq(messageEventsSchema.guildId, guildId));
     return {
       today: row?.today ?? 0,
       last7days: row?.last7days ?? 0,
@@ -451,32 +451,32 @@ export default class StatsService {
     const [row] = await db
       .select({
         todaySessions:
-          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.today})`.mapWith(Number),
+          sql<number>`count(*) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.today})`.mapWith(Number),
         todaySeconds:
-          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.today}), 0)`.mapWith(
+          sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.today}), 0)`.mapWith(
             Number
           ),
         last7Sessions:
-          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.last7Start})`.mapWith(
+          sql<number>`count(*) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.last7Start})`.mapWith(
             Number
           ),
         last7Seconds:
-          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.last7Start}), 0)`.mapWith(
+          sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.last7Start}), 0)`.mapWith(
             Number
           ),
         last30Sessions:
-          sql<number>`count(*) filter (where ${voiceSessions.joinedAt} >= ${windows.last30Start})`.mapWith(
+          sql<number>`count(*) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.last30Start})`.mapWith(
             Number
           ),
         last30Seconds:
-          sql<number>`coalesce(sum(${voiceSessions.durationSeconds}) filter (where ${voiceSessions.joinedAt} >= ${windows.last30Start}), 0)`.mapWith(
+          sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}) filter (where ${voiceSessionsSchema.joinedAt} >= ${windows.last30Start}), 0)`.mapWith(
             Number
           ),
         totalSessions: sql<number>`count(*)`.mapWith(Number),
-        totalSeconds: sql<number>`coalesce(sum(${voiceSessions.durationSeconds}), 0)`.mapWith(Number),
+        totalSeconds: sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}), 0)`.mapWith(Number),
       })
-      .from(voiceSessions)
-      .where(eq(voiceSessions.guildId, guildId));
+      .from(voiceSessionsSchema)
+      .where(eq(voiceSessionsSchema.guildId, guildId));
     const live = this.liveGuildVoice(guildId, now);
     return {
       today: this.guildVoiceWindow(row, "today", windows.today, live),
@@ -520,11 +520,11 @@ export default class StatsService {
    */
   public async getGuildMessageSeries(guildId: string, days = 7, now: Date = new Date()): Promise<DaySeries> {
     const windows = statsWindows(now, days);
-    const day = sql<string>`to_char(${messageEvents.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+    const day = sql<string>`to_char(${messageEventsSchema.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
     const rows = await db
       .select({ day, count: sql<number>`count(*)`.mapWith(Number) })
-      .from(messageEvents)
-      .where(and(eq(messageEvents.guildId, guildId), gte(messageEvents.createdAt, windows.seriesStart)))
+      .from(messageEventsSchema)
+      .where(and(eq(messageEventsSchema.guildId, guildId), gte(messageEventsSchema.createdAt, windows.seriesStart)))
       .groupBy(day);
     return toDaySeries(windows.seriesStart, days, new Map(rows.map(row => [row.day, row.count])));
   }
@@ -535,14 +535,14 @@ export default class StatsService {
    */
   public async getGuildVoiceSeries(guildId: string, days = 7, now: Date = new Date()): Promise<DaySeries> {
     const windows = statsWindows(now, days);
-    const day = sql<string>`to_char(${voiceSessions.joinedAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+    const day = sql<string>`to_char(${voiceSessionsSchema.joinedAt} at time zone 'UTC', 'YYYY-MM-DD')`;
     const rows = await db
       .select({
         day,
-        seconds: sql<number>`coalesce(sum(${voiceSessions.durationSeconds}), 0)`.mapWith(Number),
+        seconds: sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}), 0)`.mapWith(Number),
       })
-      .from(voiceSessions)
-      .where(and(eq(voiceSessions.guildId, guildId), gte(voiceSessions.joinedAt, windows.seriesStart)))
+      .from(voiceSessionsSchema)
+      .where(and(eq(voiceSessionsSchema.guildId, guildId), gte(voiceSessionsSchema.joinedAt, windows.seriesStart)))
       .groupBy(day);
     const series = toDaySeries(windows.seriesStart, days, new Map(rows.map(row => [row.day, row.seconds])));
     for (const session of this.liveGuildVoice(guildId, now).sessions) {
@@ -561,15 +561,15 @@ export default class StatsService {
    * Message counts keyed by UTC day (`YYYY-MM-DD`) since `start`.
    */
   private async messageBuckets(userId: string, guildId: string, start: Date): Promise<Map<string, number>> {
-    const day = sql<string>`to_char(${messageEvents.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+    const day = sql<string>`to_char(${messageEventsSchema.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
     const rows = await db
       .select({ day, count: sql<number>`count(*)`.mapWith(Number) })
-      .from(messageEvents)
+      .from(messageEventsSchema)
       .where(
         and(
-          eq(messageEvents.userId, userId),
-          eq(messageEvents.guildId, guildId),
-          gte(messageEvents.createdAt, start)
+          eq(messageEventsSchema.userId, userId),
+          eq(messageEventsSchema.guildId, guildId),
+          gte(messageEventsSchema.createdAt, start)
         )
       )
       .groupBy(day);
@@ -580,18 +580,18 @@ export default class StatsService {
    * Voice seconds keyed by UTC join day (`YYYY-MM-DD`) since `start`.
    */
   private async voiceBuckets(userId: string, guildId: string, start: Date): Promise<Map<string, number>> {
-    const day = sql<string>`to_char(${voiceSessions.joinedAt} at time zone 'UTC', 'YYYY-MM-DD')`;
+    const day = sql<string>`to_char(${voiceSessionsSchema.joinedAt} at time zone 'UTC', 'YYYY-MM-DD')`;
     const rows = await db
       .select({
         day,
-        seconds: sql<number>`coalesce(sum(${voiceSessions.durationSeconds}), 0)`.mapWith(Number),
+        seconds: sql<number>`coalesce(sum(${voiceSessionsSchema.durationSeconds}), 0)`.mapWith(Number),
       })
-      .from(voiceSessions)
+      .from(voiceSessionsSchema)
       .where(
         and(
-          eq(voiceSessions.userId, userId),
-          eq(voiceSessions.guildId, guildId),
-          gte(voiceSessions.joinedAt, start)
+          eq(voiceSessionsSchema.userId, userId),
+          eq(voiceSessionsSchema.guildId, guildId),
+          gte(voiceSessionsSchema.joinedAt, start)
         )
       )
       .groupBy(day);
@@ -663,7 +663,7 @@ export default class StatsService {
    * foreign keys on the hot path.
    */
   private async ensureUser(userId: string): Promise<void> {
-    await db.insert(globalUsers).values({ id: userId }).onConflictDoNothing({ target: globalUsers.id });
+    await db.insert(globalUsersSchema).values({ id: userId }).onConflictDoNothing({ target: globalUsersSchema.id });
   }
 
   /**
@@ -676,9 +676,9 @@ export default class StatsService {
     }
     await this.ensureUser(userId);
     const [row] = await db
-      .insert(voiceSessions)
+      .insert(voiceSessionsSchema)
       .values({ userId, guildId, channelId, joinedAt: now })
-      .returning({ id: voiceSessions.id });
+      .returning({ id: voiceSessionsSchema.id });
     this.openSessions.set(this.sessionKey(guildId, userId), { sessionId: row!.id, joinedAt: now });
     await EventBus.post(new VoiceSessionStartedEvent({ userId, guild, channelId, joinedAt: now }));
   }
@@ -698,15 +698,15 @@ export default class StatsService {
     } else {
       const [row] = await db
         .select()
-        .from(voiceSessions)
+        .from(voiceSessionsSchema)
         .where(
           and(
-            eq(voiceSessions.userId, userId),
-            eq(voiceSessions.guildId, guildId),
-            isNull(voiceSessions.leftAt)
+            eq(voiceSessionsSchema.userId, userId),
+            eq(voiceSessionsSchema.guildId, guildId),
+            isNull(voiceSessionsSchema.leftAt)
           )
         )
-        .orderBy(desc(voiceSessions.joinedAt))
+        .orderBy(desc(voiceSessionsSchema.joinedAt))
         .limit(1);
       if (!row) {
         return;
@@ -724,12 +724,12 @@ export default class StatsService {
    */
   private async finishSession(sessionId: string, joinedAt: Date, now: Date): Promise<void> {
     await db
-      .update(voiceSessions)
+      .update(voiceSessionsSchema)
       .set({
         leftAt: now,
         durationSeconds: Math.max(0, Math.floor((now.getTime() - joinedAt.getTime()) / 1000)),
       })
-      .where(eq(voiceSessions.id, sessionId));
+      .where(eq(voiceSessionsSchema.id, sessionId));
   }
 }
 

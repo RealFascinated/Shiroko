@@ -1,5 +1,5 @@
 import { db } from "@/db/index";
-import { globalUsers } from "@/db/schemas/global-users";
+import { globalUsersSchema } from "@/db/schemas/global-users";
 import { baseEmbed } from "@/lib/embed";
 import { formatDuration } from "@/lib/time";
 import {
@@ -28,7 +28,7 @@ export default class BotStatsCommand extends Command {
     const bot = await ctx.client.user!.fetch();
     const avatarUrl = bot.displayAvatarURL({ size: 4096, extension: "webp" });
     const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${ctx.client.application!.id}&scope=bot%20applications.commands&permissions=8`;
-    const [userCount] = await db.select({ value: sql<number>`count(*)` }).from(globalUsers);
+    const [userCount] = await db.select({ value: sql<number>`count(*)` }).from(globalUsersSchema);
     const { heap_size_limit: heapMax } = getHeapStatistics();
 
     const sections: string[][] = [

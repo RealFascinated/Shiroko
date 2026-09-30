@@ -1,13 +1,13 @@
 import { index, integer, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
-import { globalUsers } from "./global-users";
+import { globalUsersSchema } from "./global-users";
 
-export const userLevels = pgTable(
+export const userLevelsSchema = pgTable(
   "user_levels",
   {
     guildId: text("guild_id").notNull(),
     userId: text("user_id")
       .notNull()
-      .references(() => globalUsers.id, { onDelete: "cascade" }),
+      .references(() => globalUsersSchema.id, { onDelete: "cascade" }),
     xp: integer("xp").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -17,4 +17,4 @@ export const userLevels = pgTable(
   ]
 );
 
-export type UserLevelSchema = typeof userLevels.$inferSelect;
+export type UserLevelSchema = typeof userLevelsSchema.$inferSelect;

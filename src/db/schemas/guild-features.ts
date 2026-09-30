@@ -1,6 +1,6 @@
 import { boolean, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
-export const guildFeatures = pgTable(
+export const guildFeaturesSchema = pgTable(
   "guild_features",
   {
     guildId: text("guild_id").notNull(),
@@ -11,4 +11,4 @@ export const guildFeatures = pgTable(
   table => [primaryKey({ columns: [table.guildId, table.featureId] })]
 );
 
-export type GuildFeatureSchema = typeof guildFeatures.$inferSelect;
+export type GuildFeatureSchema = typeof guildFeaturesSchema.$inferSelect;

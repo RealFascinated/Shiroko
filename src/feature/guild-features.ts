@@ -4,7 +4,7 @@ import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { guildKey } from "../cache/key";
 import { db } from "../db/index";
-import { guildFeatures } from "../db/schemas/guild-features";
+import { guildFeaturesSchema } from "../db/schemas/guild-features";
 import Feature from "./feature";
 import type { FeatureIds } from "./feature-ids";
 
@@ -21,8 +21,8 @@ export default class GuildFeatures {
     return GuildFeatures.CACHE.load(guildKey(guild.id, featureId), async () => {
       const [row] = await db
         .select()
-        .from(guildFeatures)
-        .where(and(eq(guildFeatures.guildId, guild.id), eq(guildFeatures.featureId, featureId)));
+        .from(guildFeaturesSchema)
+        .where(and(eq(guildFeaturesSchema.guildId, guild.id), eq(guildFeaturesSchema.featureId, featureId)));
       if (row !== undefined) {
         return row.enabled;
       }
@@ -36,10 +36,10 @@ export default class GuildFeatures {
     enabled: boolean
   ): Promise<boolean> {
     const [row] = await db
-      .insert(guildFeatures)
+      .insert(guildFeaturesSchema)
       .values({ guildId: guild.id, featureId, enabled })
       .onConflictDoUpdate({
-        target: [guildFeatures.guildId, guildFeatures.featureId],
+        target: [guildFeaturesSchema.guildId, guildFeaturesSchema.featureId],
         set: { enabled },
       })
       .returning();

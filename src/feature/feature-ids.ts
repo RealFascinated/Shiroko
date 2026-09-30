@@ -11,4 +11,5 @@ export enum FeatureIds {
   Levels = "levels",
   Stats = "stats",
   Welcomer = "welcomer",
+  Logs = "logs",
 }

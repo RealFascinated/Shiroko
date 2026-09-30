@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-export const inviteJoins = pgTable(
+export const inviteJoinsSchema = pgTable(
   "invite_joins",
   {
     id: uuid("id")
@@ -19,4 +19,4 @@ export const inviteJoins = pgTable(
   ]
 );
 
-export type InviteJoinSchema = typeof inviteJoins.$inferSelect;
+export type InviteJoinSchema = typeof inviteJoinsSchema.$inferSelect;
