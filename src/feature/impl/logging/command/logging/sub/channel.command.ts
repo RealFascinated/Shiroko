@@ -4,10 +4,6 @@ import { loggingService } from "@/feature/impl/logging/logging.service";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { ChannelType } from "discord.js";
 
-/**
- * Set the channel the logging feature sends logs to. The channel must be a
- * text channel, since the feature posts embeds.
- */
 export default class ChannelCommand extends Command {
   constructor() {
     super("channel", "Set the channel logs are sent to");

@@ -9,17 +9,7 @@ import type { Guild } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import type { LogType } from "./log-type";
 
-/**
- * The logging feature's state: the shared channel and the per-log-type
- * toggles. Backs both the `/logging` command and the feature's event
- * pipeline, so the command reads and the pipeline reads see the same
- * authoritative cache.
- */
 export default class LoggingService {
-  /**
-   * Per-guild enabled state keyed by log type. Authoritative: `setEnabled`
-   * invalidates, and guild leave purges it through the cache registry.
-   */
   private readonly enabledCache = Caches.register(
     new Cache<boolean>({
       name: "logging",
@@ -28,7 +18,6 @@ export default class LoggingService {
     })
   );
 
-  /** The channel logs are sent to, or `null` when unset. */
   public async getChannelId(guild: Guild): Promise<string | null> {
     const raw = await GuildSettings.get(guild.id, "logs.channelId");
     return typeof raw === "string" ? raw : null;
@@ -38,10 +27,6 @@ export default class LoggingService {
     await GuildSettings.set(guild.id, "logs.channelId", channelId);
   }
 
-  /**
-   * Whether a log type is enabled for a guild. Absence of a row means the
-   * log type is off.
-   */
   public async isEnabled(guild: Guild, logType: LogType): Promise<boolean> {
     return this.enabledCache.load(guildKey(guild.id, logType), async () => {
       const rows = await db
@@ -52,10 +37,6 @@ export default class LoggingService {
     });
   }
 
-  /**
-   * Enable or disable one log type for a guild, invalidating its cached
-   * state so the next event sees the new value.
-   */
   public async setEnabled(guild: Guild, logType: LogType, enabled: boolean): Promise<void> {
     await db
       .insert(logsSchema)

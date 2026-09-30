@@ -8,9 +8,6 @@ const LOG_TYPE_CHOICES: Record<string, string> = Object.fromEntries(
   Object.entries(logTypes).map(([logType, meta]) => [logType, meta.label])
 );
 
-/**
- * Enable or disable one log type for the guild.
- */
 export default class ToggleCommand extends Command {
   constructor() {
     super("toggle", "Enable or disable a log type");

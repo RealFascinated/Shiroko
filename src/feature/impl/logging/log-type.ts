@@ -1,9 +1,3 @@
-/**
- * Every log type the logging feature can emit, keyed by the string stored
- * in the `logging` table. A row enables one type for one guild; absence
- * means off. This is the single source of truth for the `/logging toggle`
- * choices and their labels.
- */
 export const logTypes = {
   member_join: { label: "Member Join" },
   member_leave: { label: "Member Leave" },
