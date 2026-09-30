@@ -117,18 +117,24 @@ function channelDetails(channel: NonThreadGuildBasedChannel): Array<[string, str
  * would miss neutral-to-deny and deny-to-neutral moves entirely, and would
  * mislabel the other transitions.
  */
-function formatOverwriteTransition(before: PermissionOverwrites, after: PermissionOverwrites): string | null {
+function formatOverwriteTransitions(
+  before: PermissionOverwrites,
+  after: PermissionOverwrites
+): Array<[string, string, string]> {
   const beforeStates = overwriteStates(before);
   const afterStates = overwriteStates(after);
-  const moves: string[] = [];
-  for (const name of new Set([...beforeStates.keys(), ...afterStates.keys()])) {
+  const rows: Array<[string, string, string]> = [];
+  const names = [...new Set([...beforeStates.keys(), ...afterStates.keys()])].sort((a, b) =>
+    permissionLabel(a).localeCompare(permissionLabel(b))
+  );
+  for (const name of names) {
     const from = beforeStates.get(name) ?? "neutral";
     const to = afterStates.get(name) ?? "neutral";
     if (from !== to) {
-      moves.push(`${permissionLabel(name)}: ${from} → ${to}`);
+      rows.push([permissionLabel(name), from, to]);
     }
   }
-  return moves.length > 0 ? moves.join("; ") : null;
+  return rows;
 }
 
 /**
@@ -287,7 +293,7 @@ export default class LoggingFeature extends Feature {
       const embed = this.baseLogEmbed([
         `**${event.guildData.name}** was updated.`,
         "",
-        ...changes.map(([label, before, after]) => `**➜** ${label}: ${before} → ${after}`),
+        ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
       ]);
       await channel.send({ embeds: [embed] });
     });
@@ -317,7 +323,9 @@ export default class LoggingFeature extends Feature {
             `**${channelLabel(event.newChannel)}** was updated.`,
             "",
             `**➜** ID: ${event.newChannel.id}`,
-            ...changes.map(([label, before, after]) => `**➜** ${label}: ${before} → ${after}`),
+            ...changes.map(([label, before, after]) =>
+              before.length > 0 ? `${label}: ${before} → ${after}` : label
+            ),
           ]),
         ],
       });
@@ -363,7 +371,7 @@ export default class LoggingFeature extends Feature {
             `Role **${event.newRole.name}** was updated.`,
             "",
             `**➜** ID: ${event.newRole.id}`,
-            ...changes.map(([label, before, after]) => `**➜** ${label}: ${before} → ${after}`),
+            ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
           ]),
         ],
       });
@@ -407,7 +415,7 @@ export default class LoggingFeature extends Feature {
             `Emoji ${event.newEmoji} was updated.`,
             "",
             `**➜** ID: ${event.newEmoji.id}`,
-            ...changes.map(([label, before, after]) => `**➜** ${label}: ${before} → ${after}`),
+            ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
           ]).setThumbnail(event.newEmoji.imageURL({ size: 4096 })),
         ],
       });
@@ -452,7 +460,7 @@ export default class LoggingFeature extends Feature {
             `Sticker **${event.newSticker.name}** was updated.`,
             "",
             `**➜** ID: ${event.newSticker.id}`,
-            ...changes.map(([label, before, after]) => `**➜** ${label}: ${before} → ${after}`),
+            ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
           ]).setImage(event.newSticker.url),
         ],
       });
@@ -563,13 +571,13 @@ export default class LoggingFeature extends Feature {
   private describeStickerChanges(oldSticker: Sticker, newSticker: Sticker): Array<[string, string, string]> {
     const changes: Array<[string, string, string]> = [];
     if (oldSticker.name !== newSticker.name) {
-      changes.push(["Name", oldSticker.name, newSticker.name]);
+      changes.push(["**➜** Name", oldSticker.name, newSticker.name]);
     }
     if (oldSticker.description !== newSticker.description) {
-      changes.push(["Description", oldSticker.description ?? "None", newSticker.description ?? "None"]);
+      changes.push(["**➜** Description", oldSticker.description ?? "None", newSticker.description ?? "None"]);
     }
     if (oldSticker.tags !== newSticker.tags) {
-      changes.push(["Tags", oldSticker.tags ?? "None", newSticker.tags ?? "None"]);
+      changes.push(["**➜** Tags", oldSticker.tags ?? "None", newSticker.tags ?? "None"]);
     }
     return changes;
   }
@@ -581,15 +589,15 @@ export default class LoggingFeature extends Feature {
   private describeEmojiChanges(oldEmoji: GuildEmoji, newEmoji: GuildEmoji): Array<[string, string, string]> {
     const changes: Array<[string, string, string]> = [];
     if (oldEmoji.name !== newEmoji.name) {
-      changes.push(["Name", oldEmoji.name ?? "None", newEmoji.name ?? "None"]);
+      changes.push(["**➜** Name", oldEmoji.name ?? "None", newEmoji.name ?? "None"]);
     }
     if (oldEmoji.animated !== newEmoji.animated) {
-      changes.push(["Animated", yesNo(oldEmoji.animated), yesNo(newEmoji.animated)]);
+      changes.push(["**➜** Animated", yesNo(oldEmoji.animated), yesNo(newEmoji.animated)]);
     }
     const oldRoles = formatRoleIds([...oldEmoji.roles.cache.keys()]);
     const newRoles = formatRoleIds([...newEmoji.roles.cache.keys()]);
     if (oldRoles !== newRoles) {
-      changes.push(["Role Restriction", oldRoles, newRoles]);
+      changes.push(["**➜** Role Restriction", oldRoles, newRoles]);
     }
     return changes;
   }
@@ -659,22 +667,24 @@ export default class LoggingFeature extends Feature {
     const changes: Array<[string, string, string]> = [];
     const oldOverwrites = oldChannel.permissionOverwrites.cache;
     const newOverwrites = newChannel.permissionOverwrites.cache;
-    const ids = new Set([...oldOverwrites.keys(), ...newOverwrites.keys()]);
+    const ids = [...new Set([...oldOverwrites.keys(), ...newOverwrites.keys()])].sort((a, b) =>
+      formatOverwriteTarget(newChannel.guild, a).localeCompare(formatOverwriteTarget(newChannel.guild, b))
+    );
     for (const id of ids) {
       const before = oldOverwrites.get(id);
       const after = newOverwrites.get(id);
-      const label = `Overwrite ${formatOverwriteTarget(newChannel.guild, id)}`;
+      const target = formatOverwriteTarget(newChannel.guild, id);
       if (!before) {
-        changes.push([label, "None", "added"]);
+        changes.push([`**➜** Overwrite ${target}`, "removed", "None"]);
         continue;
       }
       if (!after) {
-        changes.push([label, "removed", "None"]);
+        changes.push([`**➜** Overwrite ${target}`, "None", "added"]);
         continue;
       }
-      const transition = formatOverwriteTransition(before, after);
-      if (transition !== null) {
-        changes.push([label, "changed", transition]);
+      changes.push([`**➜** Overwrite ${target}`, "", ""]);
+      for (const transition of formatOverwriteTransitions(before, after)) {
+        changes.push([`  **➜** **${transition[0]}**`, transition[1], transition[2]]);
       }
     }
     return changes;
@@ -687,16 +697,16 @@ export default class LoggingFeature extends Feature {
   private describeRoleChanges(oldRole: Role, newRole: Role): Array<[string, string, string]> {
     const changes: Array<[string, string, string]> = [];
     if (oldRole.name !== newRole.name) {
-      changes.push(["Name", oldRole.name, newRole.name]);
+      changes.push(["**➜** Name", oldRole.name, newRole.name]);
     }
     if (oldRole.hexColor !== newRole.hexColor) {
-      changes.push(["Color", oldRole.hexColor, newRole.hexColor]);
+      changes.push(["**➜** Color", oldRole.hexColor, newRole.hexColor]);
     }
     if (oldRole.hoist !== newRole.hoist) {
-      changes.push(["Hoisted", yesNo(oldRole.hoist), yesNo(newRole.hoist)]);
+      changes.push(["**➜** Hoisted", yesNo(oldRole.hoist), yesNo(newRole.hoist)]);
     }
     if (oldRole.mentionable !== newRole.mentionable) {
-      changes.push(["Mentionable", yesNo(oldRole.mentionable), yesNo(newRole.mentionable)]);
+      changes.push(["**➜** Mentionable", yesNo(oldRole.mentionable), yesNo(newRole.mentionable)]);
     }
     if (oldRole.permissions.bitfield !== newRole.permissions.bitfield) {
       // `missing` returns the bit names present in its argument but absent
@@ -706,10 +716,10 @@ export default class LoggingFeature extends Feature {
       const granted = oldRole.permissions.missing(newRole.permissions.bitfield, false);
       const revoked = newRole.permissions.missing(oldRole.permissions.bitfield, false);
       if (granted.length > 0) {
-        changes.push(["Permissions Granted", "None", formatPermissionNames(granted)]);
+        changes.push(["**➜** Permissions Granted", "None", formatPermissionNames(granted)]);
       }
       if (revoked.length > 0) {
-        changes.push(["Permissions Revoked", formatPermissionNames(revoked), "None"]);
+        changes.push(["**➜** Permissions Revoked", formatPermissionNames(revoked), "None"]);
       }
     }
     return changes;
@@ -723,32 +733,32 @@ export default class LoggingFeature extends Feature {
   private describeGuildChanges(oldGuild: Guild, newGuild: Guild): Array<[string, string, string]> {
     const changes: Array<[string, string, string]> = [];
     if (oldGuild.name !== newGuild.name) {
-      changes.push(["Name", oldGuild.name, newGuild.name]);
+      changes.push(["**➜** Name", oldGuild.name, newGuild.name]);
     }
     if (oldGuild.icon !== newGuild.icon) {
       changes.push([
-        "Icon",
+        "**➜** Icon",
         oldGuild.iconURL({ extension: "webp" }) ?? "None",
         newGuild.iconURL({ extension: "webp" }) ?? "None",
       ]);
     }
     if (oldGuild.banner !== newGuild.banner) {
       changes.push([
-        "Banner",
+        "**➜** Banner",
         oldGuild.bannerURL({ extension: "webp" }) ?? "None",
         newGuild.bannerURL({ extension: "webp" }) ?? "None",
       ]);
     }
     if (oldGuild.splash !== newGuild.splash) {
       changes.push([
-        "Invite Splash",
+        "**➜** Invite Splash",
         oldGuild.splashURL({ extension: "webp" }) ?? "None",
         newGuild.splashURL({ extension: "webp" }) ?? "None",
       ]);
     }
     if (oldGuild.verificationLevel !== newGuild.verificationLevel) {
       changes.push([
-        "Verification Level",
+        "**➜** Verification Level",
         VERIFICATION_LEVEL_NAMES[oldGuild.verificationLevel] ?? String(oldGuild.verificationLevel),
         VERIFICATION_LEVEL_NAMES[newGuild.verificationLevel] ?? String(newGuild.verificationLevel),
       ]);
