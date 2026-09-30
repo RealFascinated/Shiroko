@@ -1,5 +1,8 @@
 import type Event from "@/event/event";
 import { EventBus } from "@/event/event-bus";
+import ChannelCreatedEvent from "@/event/events/channel-created.event";
+import ChannelDeletedEvent from "@/event/events/channel-deleted.event";
+import ChannelUpdatedEvent from "@/event/events/channel-updated.event";
 import EmojiCreatedEvent from "@/event/events/emoji-created.event";
 import EmojiDeletedEvent from "@/event/events/emoji-deleted.event";
 import EmojiUpdatedEvent from "@/event/events/emoji-updated.event";
@@ -31,6 +34,8 @@ import {
   StickerFormatType,
   type Guild,
   type GuildEmoji,
+  type NonThreadGuildBasedChannel,
+  type PermissionOverwrites,
   type Role,
   type Sticker,
   type TextChannel,
@@ -61,12 +66,97 @@ function formatRoleIds(roleIds: string[]): string {
   return roleIds.length > 0 ? roleIds.map(id => `<@&${id}>`).join(", ") : "None";
 }
 
+/** User-facing names for Discord's channel types. */
+const CHANNEL_TYPE_NAMES: Record<number, string> = {
+  [ChannelType.GuildText]: "Text",
+  [ChannelType.GuildVoice]: "Voice",
+  [ChannelType.GuildCategory]: "Category",
+  [ChannelType.GuildAnnouncement]: "Announcement",
+  [ChannelType.GuildStageVoice]: "Stage",
+  [ChannelType.GuildForum]: "Forum",
+  [ChannelType.GuildMedia]: "Media",
+};
+
+/** How a channel is named in a log: the name, with categories marked. */
+function channelLabel(channel: NonThreadGuildBasedChannel): string {
+  return channel.type === ChannelType.GuildCategory ? `Category \`${channel.name}\`` : `\`#${channel.name}\``;
+}
+
+/**
+ * Name the target of a channel permission overwrite, falling back to the
+ * raw id when the role or member is no longer in the cache.
+ */
+function formatOverwriteTarget(guild: Guild, id: string): string {
+  return guild.roles.cache.get(id)?.toString() ?? guild.members.cache.get(id)?.toString() ?? `\`${id}\``;
+}
+
+/**
+ * Details worth logging on channel create: the parent, the text-only fields
+ * when present (topic and slow mode), and the overwrite count. Guards on
+ * each concrete type, since only text channels carry a topic.
+ */
+function channelDetails(channel: NonThreadGuildBasedChannel): Array<[string, string]> {
+  const details: Array<[string, string]> = [];
+  if ("parent" in channel && channel.parent) {
+    details.push(["Category", `\`${channel.parent.name}\``]);
+  }
+  if ("topic" in channel && channel.topic) {
+    details.push(["Topic", channel.topic]);
+  }
+  if ("rateLimitPerUser" in channel && channel.rateLimitPerUser) {
+    details.push(["Slow Mode", `${channel.rateLimitPerUser}s`]);
+  }
+  details.push(["Permission Overwrites", `${channel.permissionOverwrites.cache.size}`]);
+  return details;
+}
+
+/**
+ * Render a permission overwrite's tri-state transition. Every permission is
+ * neutral (in neither field), allowed, or denied, so a change is a set of
+ * entries that moved between those states. Diffing only the allow field
+ * would miss neutral-to-deny and deny-to-neutral moves entirely, and would
+ * mislabel the other transitions.
+ */
+function formatOverwriteTransition(before: PermissionOverwrites, after: PermissionOverwrites): string | null {
+  const beforeStates = overwriteStates(before);
+  const afterStates = overwriteStates(after);
+  const moves: string[] = [];
+  for (const name of new Set([...beforeStates.keys(), ...afterStates.keys()])) {
+    const from = beforeStates.get(name) ?? "neutral";
+    const to = afterStates.get(name) ?? "neutral";
+    if (from !== to) {
+      moves.push(`${permissionLabel(name)}: ${from} → ${to}`);
+    }
+  }
+  return moves.length > 0 ? moves.join("; ") : null;
+}
+
+/**
+ * Map every permission named in an overwrite's allow or deny to its state,
+ * `allowed` or `denied`. Absence from the map means neutral.
+ */
+function overwriteStates(overwrite: PermissionOverwrites): Map<string, string> {
+  const states = new Map<string, string>();
+  for (const name of overwrite.allow.toArray()) {
+    states.set(name, "allowed");
+  }
+  for (const name of overwrite.deny.toArray()) {
+    states.set(name, "denied");
+  }
+  return states;
+}
+
+/** Split the camelCase Discord uses in a permission name: `ManageGuild` -> `Manage Guild`. */
+function permissionLabel(name: string): string {
+  return name.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
 /**
  * Render permission bit names as friendly labels, splitting the camelCase
  * Discord uses (`ManageGuild` becomes `Manage Guild`).
  */
 function formatPermissionNames(names: string[]): string {
-  return names.map(name => name.replace(/([a-z])([A-Z])/g, "$1 $2")).join(", ");
+  return names.map(permissionLabel).join(", ");
 }
 
 export default class LoggingFeature extends Feature {
@@ -200,6 +290,50 @@ export default class LoggingFeature extends Feature {
         ...changes.map(([label, before, after]) => `**➜** ${label}: ${before} → ${after}`),
       ]);
       await channel.send({ embeds: [embed] });
+    });
+
+    this.handleEvent(ChannelCreatedEvent, "channel_create", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${channelLabel(event.channel)}** was created.`,
+            "",
+            `**➜** Type: ${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}`,
+            `**➜** ID: ${event.channel.id}`,
+            ...channelDetails(event.channel).map(([label, value]) => `**➜** ${label}: ${value}`),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ChannelUpdatedEvent, "channel_update", async (event, channel) => {
+      const changes = this.describeChannelChanges(event.oldChannel, event.newChannel);
+      if (changes.length === 0) {
+        return;
+      }
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${channelLabel(event.newChannel)}** was updated.`,
+            "",
+            `**➜** ID: ${event.newChannel.id}`,
+            ...changes.map(([label, before, after]) => `**➜** ${label}: ${before} → ${after}`),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ChannelDeletedEvent, "channel_delete", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.channel.name}** was deleted.`,
+            "",
+            `**➜** Type: ${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}`,
+            `**➜** ID: ${event.channel.id}`,
+          ]),
+        ],
+      });
     });
 
     this.handleEvent(RoleCreatedEvent, "role_create", async (event, channel) => {
@@ -456,6 +590,92 @@ export default class LoggingFeature extends Feature {
     const newRoles = formatRoleIds([...newEmoji.roles.cache.keys()]);
     if (oldRoles !== newRoles) {
       changes.push(["Role Restriction", oldRoles, newRoles]);
+    }
+    return changes;
+  }
+
+  /**
+   * The fields of a channel update that changed, as `[label, before, after]`
+   * rows. Fields are read through `in` guards because they only exist on
+   * some channel types.
+   *
+   * This reports what the channel payload itself changed, not anyone's
+   * resulting access: a role edit, a category overwrite edit propagating to
+   * children, or a position change that reorders the hierarchy each alter
+   * effective permissions without producing a diff here.
+   */
+  private describeChannelChanges(
+    oldChannel: NonThreadGuildBasedChannel,
+    newChannel: NonThreadGuildBasedChannel
+  ): Array<[string, string, string]> {
+    const changes: Array<[string, string, string]> = [];
+    if (oldChannel.name !== newChannel.name) {
+      changes.push(["Name", `\`${oldChannel.name}\``, `\`${newChannel.name}\``]);
+    }
+    if (oldChannel.type !== newChannel.type) {
+      changes.push([
+        "Type",
+        CHANNEL_TYPE_NAMES[oldChannel.type] ?? String(oldChannel.type),
+        CHANNEL_TYPE_NAMES[newChannel.type] ?? String(newChannel.type),
+      ]);
+    }
+    const oldParent = "parent" in oldChannel ? oldChannel.parent : null;
+    const newParent = "parent" in newChannel ? newChannel.parent : null;
+    if (oldParent?.id !== newParent?.id) {
+      changes.push([
+        "Category",
+        oldParent ? `\`${oldParent.name}\`` : "None",
+        newParent ? `\`${newParent.name}\`` : "None",
+      ]);
+    }
+    if ("topic" in oldChannel && "topic" in newChannel && oldChannel.topic !== newChannel.topic) {
+      changes.push(["Topic", oldChannel.topic ?? "None", newChannel.topic ?? "None"]);
+    }
+    if ("rateLimitPerUser" in oldChannel && "rateLimitPerUser" in newChannel) {
+      const oldSlowMode = oldChannel.rateLimitPerUser ?? 0;
+      const newSlowMode = newChannel.rateLimitPerUser ?? 0;
+      if (oldSlowMode !== newSlowMode) {
+        changes.push(["Slow Mode", `${oldSlowMode}s`, `${newSlowMode}s`]);
+      }
+    }
+    if ("nsfw" in oldChannel && "nsfw" in newChannel && oldChannel.nsfw !== newChannel.nsfw) {
+      changes.push(["NSFW", yesNo(oldChannel.nsfw), yesNo(newChannel.nsfw)]);
+    }
+    changes.push(...this.describeOverwriteChanges(oldChannel, newChannel));
+    return changes;
+  }
+
+  /**
+   * Per-overwrite changes, as `[label, before, after]` rows keyed by the
+   * overwrite target. Compares the allow and deny bitfields, so a
+   * permission tweak is reported rather than just "an overwrite changed".
+   * Overwrites whose target role or member is no longer cached report the
+   * raw id.
+   */
+  private describeOverwriteChanges(
+    oldChannel: NonThreadGuildBasedChannel,
+    newChannel: NonThreadGuildBasedChannel
+  ): Array<[string, string, string]> {
+    const changes: Array<[string, string, string]> = [];
+    const oldOverwrites = oldChannel.permissionOverwrites.cache;
+    const newOverwrites = newChannel.permissionOverwrites.cache;
+    const ids = new Set([...oldOverwrites.keys(), ...newOverwrites.keys()]);
+    for (const id of ids) {
+      const before = oldOverwrites.get(id);
+      const after = newOverwrites.get(id);
+      const label = `Overwrite ${formatOverwriteTarget(newChannel.guild, id)}`;
+      if (!before) {
+        changes.push([label, "None", "added"]);
+        continue;
+      }
+      if (!after) {
+        changes.push([label, "removed", "None"]);
+        continue;
+      }
+      const transition = formatOverwriteTransition(before, after);
+      if (transition !== null) {
+        changes.push([label, "changed", transition]);
+      }
     }
     return changes;
   }

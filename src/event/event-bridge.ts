@@ -1,6 +1,9 @@
-import { Events, type Client, type Guild } from "discord.js";
+import { Events, type Client, type DMChannel, type Guild, type NonThreadGuildBasedChannel } from "discord.js";
 import { EventBus } from "./event-bus";
 import BotReadyEvent from "./events/bot-ready.event";
+import ChannelCreatedEvent from "./events/channel-created.event";
+import ChannelDeletedEvent from "./events/channel-deleted.event";
+import ChannelUpdatedEvent from "./events/channel-updated.event";
 import ComponentReceivedEvent from "./events/component-received.event";
 import ContextMenuReceivedEvent from "./events/context-menu-received.event";
 import EmojiCreatedEvent from "./events/emoji-created.event";
@@ -89,6 +92,40 @@ export default class EventBridge {
 
     client.on(Events.GuildUpdate, (oldGuild, newGuild) => {
       void EventBus.post(new GuildUpdatedEvent(oldGuild, newGuild));
+    });
+
+    client.on(Events.ChannelCreate, channel => {
+      if (channel.isThread()) {
+        return;
+      }
+      void EventBus.post(new ChannelCreatedEvent(channel));
+    });
+
+    client.on(Events.ChannelUpdate, (oldChannel, newChannel) => {
+      const oldGuildChannel = asGuildChannel(oldChannel);
+      const newGuildChannel = asGuildChannel(newChannel);
+      if (!oldGuildChannel || !newGuildChannel) {
+        return;
+      }
+      if (oldGuildChannel.isThread() || newGuildChannel.isThread()) {
+        return;
+      }
+      // A channel that wasn't cached arrives as a partial update with no
+      // previous state, so there is nothing to diff.
+      if (oldGuildChannel.partial || newGuildChannel.partial) {
+        return;
+      }
+      void EventBus.post(new ChannelUpdatedEvent(oldGuildChannel, newGuildChannel));
+    });
+
+    client.on(Events.ChannelDelete, channel => {
+      const guildChannel = asGuildChannel(channel);
+      // A deletion for an uncached channel is partial, so name/type may be
+      // missing entirely.
+      if (!guildChannel || guildChannel.partial || guildChannel.isThread()) {
+        return;
+      }
+      void EventBus.post(new ChannelDeletedEvent(guildChannel));
     });
 
     client.on(Events.InviteCreate, invite => {
@@ -233,4 +270,13 @@ export default class EventBridge {
       }
     }
   }
+}
+
+/**
+ * Narrow a gateway channel to a guild channel, or `null` when it is a DM
+ * (which has no guild and no place in guild-scoped events). Threads are
+ * still guild channels at this point; callers filter them separately.
+ */
+function asGuildChannel(channel: DMChannel | NonThreadGuildBasedChannel): NonThreadGuildBasedChannel | null {
+  return channel.isDMBased() ? null : channel;
 }
