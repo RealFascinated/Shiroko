@@ -115,14 +115,15 @@ export const welcomerPanel = new WelcomerPanel();
 /**
  * A message body rendered for a field line. A multi-line body becomes a
  * fenced code block, which needs the fence at the start of its own line;
- * a single-line body is wrapped in inline code instead.
+ * a single-line body is wrapped in inline code, and an empty body reads
+ * as unset rather than as empty code.
  */
 function formatParagraph(value: unknown): string {
   const text = String(value ?? "");
   if (text.includes("\n")) {
     return "\n```\n" + text + "\n```";
   }
-  return "`" + text + "`";
+  return text.length > 0 ? "`" + text + "`" : "*(none)*";
 }
 
 /**
@@ -139,7 +140,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       input: "text",
       label: "Title",
       hint: "Leave empty for no title.",
-      format: value => (typeof value === "string" && value.length > 0 ? value : "*(none)*"),
+      format: formatParagraph,
     });
     controls.push({
       kind: "dialog",
