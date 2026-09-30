@@ -34,6 +34,7 @@ import { ProcessRamUsedMetric } from "./metrics/impl/process-ram-used";
 import { SeenUsersMetric } from "./metrics/impl/seen-users";
 import { UptimeMetric } from "./metrics/impl/uptime-seconds";
 import { MetricManager } from "./metrics/index";
+import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
 import SettingsManager from "./settings/index";
 
@@ -119,6 +120,7 @@ new PresenceListener();
 new PermissionsListeners();
 new CacheListeners();
 new SettingsManager();
+new PanelManager();
 new SlashCommandListener();
 new ContextMenuCommandListener();
 

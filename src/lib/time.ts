@@ -92,6 +92,17 @@ export function nowMinus(seconds: number, from: Date = new Date()): Date {
   return new Date(from.getTime() - seconds * 1000);
 }
 
+/** Discord timestamp styles. `R` is relative ("2 days ago"). */
+export type DiscordTimestampStyle = "t" | "T" | "d" | "D" | "f" | "F" | "R";
+
+/**
+ * Render a `Date` as a Discord timestamp (`<t:1700000000:D>`), which each
+ * reader's client localises. `style` defaults to `R` (relative).
+ */
+export function discordTimestamp(date: Date, style: DiscordTimestampStyle = "R"): string {
+  return `<t:${Math.floor(date.getTime() / 1000)}:${style}>`;
+}
+
 const DURATION_UNIT_MULTIPLIERS: Record<string, number> = {
   ms: 1,
   s: TimeUnit.toMillis(TimeUnit.Second, 1),

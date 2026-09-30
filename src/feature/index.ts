@@ -5,6 +5,7 @@ import InvitesFeature from "./impl/invites/index";
 import LevelsFeature from "./impl/levels/index";
 import SocialFeature from "./impl/social/index";
 import StatsFeature from "./impl/stats/index";
+import WelcomerFeature from "./impl/welcomer/index";
 
 export default class FeatureManager {
   private static FEATURES: Feature[] = [];
@@ -16,6 +17,7 @@ export default class FeatureManager {
     FeatureManager.registerFeature(new LevelsFeature());
     FeatureManager.registerFeature(new BirthdayFeature());
     FeatureManager.registerFeature(new AutorolesFeature());
+    FeatureManager.registerFeature(new WelcomerFeature());
   }
 
   public static registerFeature(feature: Feature): void {

@@ -130,6 +130,20 @@ export default class SettingsModule<C> {
   }
 
   /**
+   * Every setting for a guild, each falling back to its default. The reads
+   * are concurrent.
+   */
+  public async allValues(guildId: string): Promise<C> {
+    const entries = await Promise.all(
+      this.runtimeDescriptors.map(async descriptor => {
+        const key = descriptor.key as keyof C;
+        return [key, await this.get(guildId, key)] as const;
+      })
+    );
+    return Object.fromEntries(entries) as C;
+  }
+
+  /**
    * Persist a setting; the value must match the descriptor's shape.
    */
   public async set<K extends keyof C>(guildId: string, key: K, value: C[K]): Promise<void> {

@@ -25,6 +25,7 @@ export const PermissionFlags = Object.freeze({
   PERMISSIONS_COMMAND: 1n << 2n,
   SETTINGS_COMMAND: 1n << 4n,
   AUTOROLE_COMMAND: 1n << 5n,
+  WELCOMER_COMMAND: 1n << 6n,
 } as const satisfies Record<string, bigint>);
 
 /**
@@ -36,6 +37,7 @@ export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: st
   { flag: PermissionFlags.PERMISSIONS_COMMAND, label: "Permissions Command" },
   { flag: PermissionFlags.SETTINGS_COMMAND, label: "Settings Command" },
   { flag: PermissionFlags.AUTOROLE_COMMAND, label: "Autoroles Command" },
+  { flag: PermissionFlags.WELCOMER_COMMAND, label: "Welcomer Command" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];
