@@ -78,9 +78,9 @@ const CHANNEL_TYPE_NAMES: Record<number, string> = {
   [ChannelType.GuildMedia]: "Media",
 };
 
-/** How a channel is named in a log: the name, with categories marked. */
+/** How a channel is named in a log: its mention, or its name once deleted. */
 function channelLabel(channel: NonThreadGuildBasedChannel): string {
-  return channel.type === ChannelType.GuildCategory ? `Category \`${channel.name}\`` : `\`#${channel.name}\``;
+  return channel.type === ChannelType.GuildCategory ? `Category \`${channel.name}\`` : `<#${channel.id}>`;
 }
 
 /**
@@ -201,7 +201,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member \`${event.member.user.tag}\` joined the server.`,
+            `Member ${event.member} joined the server.`,
             "",
             `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
@@ -215,7 +215,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member \`${event.member.user.tag}\` left the server.`,
+            `Member ${event.member} left the server.`,
             "",
             `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
@@ -228,7 +228,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member \`${event.newUser.tag}\` changed their avatar.`,
+            `Member ${event.newUser} changed their avatar.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
@@ -242,8 +242,8 @@ export default class LoggingFeature extends Feature {
         embeds: [
           this.baseLogEmbed([
             banner
-              ? `**${event.newUser.tag}** changed their banner.`
-              : `**${event.newUser.tag}** removed their banner.`,
+              ? `Member ${event.newUser} changed their banner.`
+              : `Member ${event.newUser} removed their banner.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
@@ -255,7 +255,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member \`${event.newUser.tag}\` changed their username.`,
+            `Member ${event.newUser} changed their username.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Before: \`${event.oldUser.username}\``,
@@ -269,7 +269,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member \`${event.newUser.tag}\` changed their display name.`,
+            `Member ${event.newUser} changed their display name.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Before: \`${event.oldUser.displayName}\``,
@@ -286,7 +286,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member \`${event.newMember.user.tag}\` was given roles.`,
+            `Member ${event.newMember} was given roles.`,
             "",
             `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.added.map(role => role.toString()).join(", ")}`,
@@ -302,7 +302,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member \`${event.newMember.user.tag}\` had roles removed.`,
+            `Member ${event.newMember} had roles removed.`,
             "",
             `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
@@ -315,7 +315,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member \`${event.newMember.user.tag}\` changed their nickname.`,
+            `Member ${event.newMember} changed their nickname.`,
             "",
             `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Before: \`${event.oldMember.nickname ?? "None"}\``,
@@ -331,7 +331,7 @@ export default class LoggingFeature extends Feature {
         return;
       }
       const embed = this.baseLogEmbed([
-        `Server \`${event.guildData.name}\` was updated.`,
+        `Server **${event.guildData.name}** was updated.`,
         "",
         ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
       ]);
@@ -342,7 +342,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Channel \`${channelLabel(event.channel)}\` was created.`,
+            `${channelLabel(event.channel)} was created.`,
             "",
             `**➜** Type: \`${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}\``,
             `**➜** ID: \`${event.channel.id}\``,
@@ -361,7 +361,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Channel \`${channelLabel(event.newChannel)}\` was updated.`,
+            `${channelLabel(event.newChannel)} was updated.`,
             "",
             `**➜** ID: \`${event.newChannel.id}\``,
             ...changes,
@@ -387,9 +387,8 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Role \`${event.role.name}\` was created.`,
+            `${event.role} was created.`,
             "",
-            `**➜** Mention: ${event.role.toString()}`,
             `**➜** ID: \`${event.role.id}\``,
             `**➜** Color: \`${event.role.hexColor}\``,
             `**➜** Hoisted: \`${yesNo(event.role.hoist)}\``,
@@ -407,7 +406,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Role \`${event.newRole.name}\` was updated.`,
+            `${event.newRole} was updated.`,
             "",
             `**➜** ID: \`${event.newRole.id}\``,
             ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
@@ -420,7 +419,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Role \`${event.role.name}\` was deleted.`,
+            `${event.role} was deleted.`,
             "",
             `**➜** ID: \`${event.role.id}\``,
             `**➜** Color: \`${event.role.hexColor}\``,
@@ -433,7 +432,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Emoji \`${event.emoji.name}\` was created.`,
+            `Emoji ${event.emoji} was created.`,
             "",
             `**➜** Name: \`${event.emoji.name}\``,
             `**➜** ID: \`${event.emoji.id}\``,
@@ -451,7 +450,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Emoji \`${event.newEmoji.name}\` was updated.`,
+            `Emoji ${event.newEmoji} was updated.`,
             "",
             `**➜** ID: \`${event.newEmoji.id}\``,
             ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
@@ -464,7 +463,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Emoji \`${event.emoji.name}\` was deleted.`,
+            `Emoji ${event.emoji} was deleted.`,
             "",
             `**➜** ID: \`${event.emoji.id}\``,
             `**➜** Animated: \`${yesNo(event.emoji.animated)}\``,
@@ -477,7 +476,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Sticker \`${event.sticker.name}\` was created.`,
+            `Sticker **${event.sticker.name}** was created.`,
             "",
             `**➜** ID: \`${event.sticker.id}\``,
             `**➜** Description: \`${event.sticker.description ?? "None"}\``,
@@ -496,7 +495,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Sticker \`${event.newSticker.name}\` was updated.`,
+            `Sticker **${event.newSticker.name}** was updated.`,
             "",
             `**➜** ID: \`${event.newSticker.id}\``,
             ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
@@ -509,7 +508,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Sticker \`${event.sticker.name}\` was deleted.`,
+            `Sticker **${event.sticker.name}** was deleted.`,
             "",
             `**➜** ID: \`${event.sticker.id}\``,
             `**➜** Format: \`${STICKER_FORMAT_NAMES[event.sticker.format] ?? "Unknown"}\``,
@@ -526,7 +525,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `\`${ban.user.tag}\` was banned.`,
+            `${ban.user} was banned.`,
             "",
             `**➜** ID: \`${ban.user.id}\``,
             `**➜** Username: \`${ban.user.username}\``,
@@ -544,7 +543,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `\`${ban.user.tag}\` was unbanned.`,
+            `${ban.user} was unbanned.`,
             "",
             `**➜** ID: \`${ban.user.id}\``,
             `**➜** Username: \`${ban.user.username}\``,
@@ -558,7 +557,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `\`${event.guild!.name}\` had an invite created.`,
+            `**${event.guild!.name}** had an invite created.`,
             "",
             `**➜** Code: \`${invite.code}\``,
             `**➜** Channel: \`${invite.channel ? `<#${invite.channel.id}>` : "unknown"}\``,
@@ -574,7 +573,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `\`${event.guild!.name}\` had an invite deleted.`,
+            `**${event.guild!.name}** had an invite deleted.`,
             "",
             `**➜** Code: \`${event.invite.code}\``,
           ]),
