@@ -200,7 +200,6 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
     kind: "view",
     key: "placeholders",
     label: "Placeholders",
-    description: "The tokens this message can contain.",
   });
   return controls;
 }
