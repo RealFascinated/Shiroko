@@ -36,9 +36,6 @@ const HEIGHT = 460;
 const ACCENT = "#9b59b6";
 const ACCENT_DIM = "rgba(155, 89, 182, 0.35)";
 
-/**
- * Render a stats card for `data` as a PNG buffer.
- */
 export async function renderStatsCard(data: StatsCardData): Promise<Buffer> {
   const canvas = new Canvas(WIDTH, HEIGHT).background("#1a1626");
   await paintHeader(canvas, data);
@@ -48,9 +45,6 @@ export async function renderStatsCard(data: StatsCardData): Promise<Buffer> {
   return canvas.png();
 }
 
-/**
- * Draw the avatar, display name, and card title.
- */
 async function paintHeader(canvas: Canvas, data: StatsCardData): Promise<void> {
   const size = 96;
   const x = 48;
@@ -105,9 +99,6 @@ function paintWindowRow(canvas: Canvas, data: StatsCardData): void {
   });
 }
 
-/**
- * Draw the 7-day bar chart with weekday labels.
- */
 function paintChart(canvas: Canvas, series: DaySeries): void {
   const x = 48;
   const width = WIDTH - 96;
@@ -131,9 +122,6 @@ function paintChart(canvas: Canvas, series: DaySeries): void {
   });
 }
 
-/**
- * Draw the muted data-source line.
- */
 function paintFooter(canvas: Canvas, guildName: string): void {
   canvas.text(
     `${canvas.fitText(guildName, 300, 13)} · graph - last 7 days`,
@@ -144,9 +132,6 @@ function paintFooter(canvas: Canvas, guildName: string): void {
   );
 }
 
-/**
- * Title for the card header per kind and scope.
- */
 function cardTitle(kind: StatsCardKind, scope: StatsCardScope): string {
   if (scope === "server") {
     if (kind === "messages") {
@@ -220,9 +205,6 @@ function tileValues(data: StatsCardData): Array<{ value: string; sub?: string }>
   ];
 }
 
-/**
- * Format a message count with thousands separators.
- */
 function formatCount(value: number): string {
   return Math.round(value).toLocaleString("en-US");
 }

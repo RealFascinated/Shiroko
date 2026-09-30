@@ -30,6 +30,18 @@ export default class PlaceholderExecutor<C extends PlaceholderContext = Placehol
   }
 
   /**
+   * The executor's catalog: one line per token with its description, in
+   * registration order. Lines show the `{key}` form, the exact text a
+   * template would contain. Panels surface this in a read-only section so
+   * a user can see what a message may contain.
+   */
+  public catalog(): string {
+    return this.placeholders
+      .map(placeholder => `- \`{${placeholder.key}}\`: ${placeholder.description}`)
+      .join("\n");
+  }
+
+  /**
    * Whether a key is registered here.
    */
   public has(key: string): boolean {

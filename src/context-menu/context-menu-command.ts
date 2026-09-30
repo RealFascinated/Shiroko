@@ -33,28 +33,16 @@ export default abstract class ContextMenuCommand {
     this.displayName = displayName;
   }
 
-  /**
-   * Whether this command is available to users outside of guilds (user install).
-   */
   public get userInstallable(): boolean {
     return false;
   }
 
-  /**
-   * Register a sub-command that this command exposes in Discord.
-   */
   public registerSubCommand(command: ContextMenuCommand): void {
     this.subCommands.set(command.id, command);
   }
 
-  /**
-   * The command type: User or Message context menu.
-   */
   protected abstract get commandType(): ApplicationCommandType.User | ApplicationCommandType.Message;
 
-  /**
-   * Build the final command data object with integration types and contexts applied.
-   */
   public build(): UserApplicationCommandData | MessageApplicationCommandData {
     const base: UserApplicationCommandData | MessageApplicationCommandData = {
       name: this.id,
@@ -76,9 +64,6 @@ export default abstract class ContextMenuCommand {
     return base;
   }
 
-  /**
-   * Execute this command when a context menu interaction is received.
-   */
   public async execute(context: ContextMenuExecuteContext): Promise<void> {
     const { ctx } = context;
     const subCommandName = ctx.commandName;

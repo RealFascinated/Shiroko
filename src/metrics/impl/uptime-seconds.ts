@@ -1,6 +1,5 @@
 import { GaugeMetric } from "../gauge";
 
-/** Process uptime in seconds. */
 export class UptimeMetric extends GaugeMetric {
   public override readonly collectIntervalMs = 5_000;
 

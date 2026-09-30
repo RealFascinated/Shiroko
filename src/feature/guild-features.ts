@@ -30,9 +30,6 @@ export default class GuildFeatures {
     });
   }
 
-  /**
-   * Persist an explicit per-guild toggle for `featureId`.
-   */
   public static async setFeatureEnabled(
     guild: Guild,
     featureId: FeatureIds,

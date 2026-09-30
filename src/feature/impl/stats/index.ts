@@ -15,7 +15,7 @@ import { statsService } from "./stats.service";
  */
 export default class StatsFeature extends Feature {
   constructor() {
-    super(FeatureIds.Stats);
+    super(FeatureIds.Stats, { name: "Stats", emoji: "📊" });
 
     this.registerCommand(new StatsCommand());
   }

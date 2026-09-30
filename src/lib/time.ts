@@ -18,9 +18,6 @@ export type TimeUnitValue = {
   value: number;
 };
 
-/**
- * Namespace for TimeUnit methods.
- */
 export namespace TimeUnit {
   const MULTIPLIERS: Record<TimeUnit, number> = {
     [TimeUnit.Millisecond]: 1,
@@ -33,16 +30,10 @@ export namespace TimeUnit {
     [TimeUnit.Year]: 365 * 24 * 60 * 60 * 1000,
   };
 
-  /**
-   * Convert `value` of `unit` to milliseconds.
-   */
   export function toMillis(unit: TimeUnit, value: number): number {
     return value * MULTIPLIERS[unit];
   }
 
-  /**
-   * Convert `value` of `unit` to seconds.
-   */
   export function toSeconds(unit: TimeUnit, value: number): number {
     return toMillis(unit, value) / 1000;
   }

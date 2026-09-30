@@ -2,7 +2,7 @@ import type GlobalUser from "@/user/global-user";
 import { describe, expect, test } from "bun:test";
 import { EmbedBuilder, type Guild } from "discord.js";
 import Panel, { type PanelContext, type PanelView } from "./panel";
-import { displayValue, renderPanel, renderPanelEmbeds } from "./render";
+import { displayValue, renderPanel, renderPanelEmbeds, renderPanelViewSection } from "./render";
 
 /** A two-view panel over a nested config, exercising every control kind. */
 interface DemoConfig {
@@ -27,7 +27,7 @@ class DemoPanel extends Panel<DemoConfig> {
         label: "First",
         segment: "first",
         controls: () => [
-          { kind: "dialog", key: "first.name", input: "text", label: "Name" },
+          { kind: "dialog", key: "first.name", input: "text", label: "Name", description: "A display name" },
           { kind: "toggle", key: "first.on", label: "Enabled", state: v => (v ? "On" : "Off") },
           {
             kind: "choice",
@@ -38,12 +38,18 @@ class DemoPanel extends Panel<DemoConfig> {
               { value: "4", label: "Four" },
             ],
           },
+          { kind: "view", key: "help", label: "Help" },
         ],
         sections: () => [
           {
             id: "preview",
             kind: "text" as const,
             render: (config, ctx) => Promise.resolve(`preview of ${ctx.user.id} ${config.first.name}`),
+          },
+          {
+            id: "help",
+            kind: "text" as const,
+            render: () => Promise.resolve("## Help\nreference content"),
           },
         ],
       },
@@ -220,5 +226,31 @@ describe("renderPanel", () => {
     const rendered = await renderPanel(new ModePanel(false), context, "m");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
     expect(json).not.toContain('"custom_id":"panel:mode:m"');
+  });
+
+  test("renders a view control as a button and hides its section", async () => {
+    const rendered = await renderPanel(new DemoPanel(), context, "first");
+    const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
+    expect(json).toContain("panel:demo:first:view:help");
+    expect(json).toContain('"label":"Help"');
+    // The section the button opens must not also render under the controls.
+    expect(json).not.toContain("reference content");
+    expect(json).not.toContain("**Help:**");
+  });
+
+  test("renders a control's description under its value line", async () => {
+    const rendered = await renderPanel(new DemoPanel(), context, "first");
+    const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
+    expect(json).toContain("A display name");
+  });
+
+  test("renderPanelViewSection returns the text section a view control opens", async () => {
+    const body = await renderPanelViewSection(new DemoPanel(), context, "first", "help");
+    expect(body).toContain("reference content");
+  });
+
+  test("renderPanelViewSection returns null for a missing or embed section", async () => {
+    expect(await renderPanelViewSection(new DemoPanel(), context, "first", "nope")).toBeNull();
+    expect(await renderPanelViewSection(new EmbedPanel(), context, "m", "preview")).toBeNull();
   });
 });

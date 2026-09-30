@@ -36,7 +36,7 @@ import { UptimeMetric } from "./metrics/impl/uptime-seconds";
 import { MetricManager } from "./metrics/index";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
-import SettingsManager from "./settings/index";
+import { settingsPanel } from "./settings/settings-panel";
 
 const beforeMigrate = Date.now();
 await migrate(db, { migrationsFolder: "./drizzle" });
@@ -119,8 +119,8 @@ new LifecycleListeners();
 new PresenceListener();
 new PermissionsListeners();
 new CacheListeners();
-new SettingsManager();
 new PanelManager();
+PanelManager.register(settingsPanel);
 new SlashCommandListener();
 new ContextMenuCommandListener();
 

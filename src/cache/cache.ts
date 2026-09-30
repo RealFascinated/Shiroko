@@ -96,7 +96,6 @@ export class Cache<V> {
     this.store.set(key.key, { value, scopes: key.scopes });
   }
 
-  /** Drop one entry. */
   public invalidate(key: CacheKey): void {
     this.bumpScopes(key.scopes);
     this.store.delete(key.key);

@@ -8,6 +8,7 @@ import {
   LabelBuilder,
   MessageFlags,
   ModalBuilder,
+  RoleSelectMenuBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
   StringSelectMenuBuilder,
@@ -27,8 +28,12 @@ import {
   type PanelControl,
   type PanelView,
   type ToggleControl,
+  type ViewControl,
 } from "./panel";
 import { getPath } from "./path";
+
+/** The hard ceiling on roles in a role-list: Discord's 25 select options. */
+const ROLE_LIST_MAX = 25;
 
 /** The modal input's field id, read back on submit. */
 export const DIALOG_VALUE = "value";
@@ -47,9 +52,14 @@ export interface RenderedPanel {
 
 /**
  * A control's current value as display text: its formatter when it has
- * one, otherwise the raw value, with a blank placeholder when unset.
+ * one, otherwise the raw value, with a blank placeholder when unset. A
+ * `view` control has no value, so it is not accepted here.
  */
-export function displayValue<C>(control: PanelControl<C>, config: C, context: PanelContext): string {
+export function displayValue<C>(
+  control: Exclude<PanelControl<C>, ViewControl<C>>,
+  config: C,
+  context: PanelContext
+): string {
   const raw = getPath(config, control.key);
   if (control.kind === "dialog") {
     if (control.format) {
@@ -115,6 +125,10 @@ function controlComponents<C extends object>(
       selects.push(choiceRow(panel, view, control, config, context));
       continue;
     }
+    if (control.kind === "view") {
+      buttons.push(viewButton(panel, view, control));
+      continue;
+    }
     buttons.push(
       control.kind === "toggle"
         ? toggleButton(panel, view, control, config, context)
@@ -158,6 +172,17 @@ function toggleButton<C extends object>(
     .setCustomId(panelCustomId(panel.segment, view.segment, "toggle", control.key))
     .setLabel(`${control.label}: ${control.state(on, config, context)}`.slice(0, 80))
     .setStyle(on ? ButtonStyle.Success : ButtonStyle.Secondary);
+}
+
+function viewButton<C extends object>(
+  panel: Panel<C>,
+  view: PanelView<C>,
+  control: ViewControl<C>
+): ButtonBuilder {
+  return new ButtonBuilder()
+    .setCustomId(panelCustomId(panel.segment, view.segment, "view", control.key))
+    .setLabel(control.label.slice(0, 80))
+    .setStyle(ButtonStyle.Secondary);
 }
 
 function choiceRow<C extends object>(
@@ -210,7 +235,14 @@ function fieldLines<C extends object>(
     lines.push(line);
   }
   for (const control of view.controls(config, context)) {
-    lines.push(`**${control.label}:** ${displayValue(control, config, context)}`);
+    // A view control's button already names what it opens, so it gets no
+    // value line; its description still renders.
+    if (control.kind !== "view") {
+      lines.push(`**${control.label}:** ${displayValue(control, config, context)}`);
+    }
+    if (control.description) {
+      lines.push(`-# ${control.description}`);
+    }
   }
   const footer = panel.footer?.(config, context);
   if (footer) {
@@ -252,8 +284,19 @@ export async function renderPanel<C extends object>(
     container.addActionRowComponents(row);
   }
 
+  // Sections that a view control carries are opened on button press, not
+  // rendered under the controls.
+  const hiddenSections = new Set(
+    view
+      .controls(config, context)
+      .filter(control => control.kind === "view")
+      .map(control => control.key)
+  );
   const sections: ContainerBuilder[] = [];
   for (const section of view.sections?.(config, context) ?? []) {
+    if (hiddenSections.has(section.id)) {
+      continue;
+    }
     if (section.kind === "embed") {
       continue;
     }
@@ -297,6 +340,32 @@ export async function renderPanelEmbeds<C extends object>(
 }
 
 /**
+ * The contents a view control opens: the first text section the view
+ * carries under that id, or null when it has none. The router shows the
+ * result as its own message on button press.
+ */
+export async function renderPanelViewSection<C extends object>(
+  panel: Panel<C>,
+  context: PanelContext,
+  viewSegment: string,
+  key: string
+): Promise<string | null> {
+  const config = await panel.getConfig(context.guild);
+  const view = panel.viewFor(config, viewSegment);
+  for (const section of view.sections?.(config, context) ?? []) {
+    if (section.id !== key || section.kind !== "text") {
+      continue;
+    }
+    const body = await section.render(config, context);
+    if (typeof body === "string" && body.length > 0) {
+      return body;
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
  * The dialog for a control, pre-filled with the current value so an edit
  * is one keystroke and clearing it unsets the field.
  */
@@ -319,6 +388,24 @@ export async function panelDialog<C extends object>(
         .setLabel(control.label.slice(0, 45))
         .setDescription((control.hint ?? "Clear the selection to unset.").slice(0, 100))
         .setChannelSelectMenuComponent(channelPicker(context.guild, current))
+    );
+    return modal;
+  }
+  if (control.input === "role") {
+    modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel(control.label.slice(0, 45))
+        .setDescription((control.hint ?? "Clear the selection to unset.").slice(0, 100))
+        .setRoleSelectMenuComponent(rolePicker(context.guild, current))
+    );
+    return modal;
+  }
+  if (control.input === "role-list") {
+    modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel(control.label.slice(0, 45))
+        .setDescription((control.hint ?? "Remove every role to clear the list.").slice(0, 100))
+        .setRoleSelectMenuComponent(roleListPicker(context.guild, current, control.maxRoles ?? ROLE_LIST_MAX))
     );
     return modal;
   }
@@ -357,19 +444,56 @@ function channelPicker(guild: Guild, current: unknown): ChannelSelectMenuBuilder
   return picker;
 }
 
+/** A single role picker: the current role preselected when it still exists. */
+function rolePicker(guild: Guild, current: unknown): RoleSelectMenuBuilder {
+  const picker = new RoleSelectMenuBuilder()
+    .setCustomId(DIALOG_VALUE)
+    .setPlaceholder("Choose a role")
+    .setMinValues(0)
+    .setMaxValues(1)
+    .setRequired(false);
+  if (typeof current === "string" && guild.roles.cache.has(current)) {
+    picker.setDefaultRoles(current);
+  }
+  return picker;
+}
+
+/**
+ * A multi-role picker: up to `max` roles, the current ones preselected
+ * (deleted ones dropped, since the API rejects unresolvable defaults), and
+ * an empty selection allowed to clear the list.
+ */
+function roleListPicker(guild: Guild, current: unknown, max: number): RoleSelectMenuBuilder {
+  const picker = new RoleSelectMenuBuilder()
+    .setCustomId(DIALOG_VALUE)
+    .setPlaceholder(`Choose up to ${max} roles`)
+    .setMinValues(0)
+    .setMaxValues(Math.max(1, Math.min(max, ROLE_LIST_MAX)))
+    .setRequired(false);
+  const selected = (Array.isArray(current) ? current : []).filter(
+    (id): id is string => typeof id === "string" && guild.roles.cache.has(id)
+  );
+  if (selected.length > 0) {
+    picker.setDefaultRoles(...selected.slice(0, Math.max(1, Math.min(max, ROLE_LIST_MAX))));
+  }
+  return picker;
+}
+
 /**
  * Read a dialog's submitted value. The raw field map is used deliberately:
  * an optional picker that was cleared is absent from the payload entirely,
- * and the typed getters throw rather than report an empty selection.
+ * and the typed getters throw rather than report an empty selection. A
+ * picker (channel/role/role-list) comes back as its array of selected ids;
+ * a text input as its string.
  */
-export function readDialogValue(interaction: ModalSubmitInteraction): string | null {
+export function readDialogValue(interaction: ModalSubmitInteraction): string | string[] | null {
   const field = interaction.fields.fields.get(DIALOG_VALUE) as
     { value?: string; values?: readonly string[] } | undefined;
   if (!field) {
     return null;
   }
   if (field.values) {
-    return field.values[0] ?? null;
+    return [...field.values];
   }
   return field.value ?? null;
 }

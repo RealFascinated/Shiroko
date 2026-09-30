@@ -1,14 +1,14 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { renderPanel } from "@/panel/render";
 import { PermissionFlags } from "@/permission/permissions";
 import SettingsManager from "../index";
-import { renderPanel } from "../panel";
+import { settingsPanel } from "../settings-panel";
 
 /**
- * Open the interactive settings panel: a help section for the selected
- * category, a category dropdown, and the action rows to edit that
- * category's settings. Choosing a category from the dropdown swaps the
- * action rows below.
+ * Open the aggregated settings panel: the engine renders every enabled
+ * settings module as a view, the view switcher acting as the category
+ * dropdown and each view's controls editing that module's settings.
  */
 export default class SettingsCommand extends Command {
   constructor() {
@@ -19,7 +19,7 @@ export default class SettingsCommand extends Command {
     return PermissionFlags.SETTINGS_COMMAND;
   }
 
-  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, user, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
     const modules = await SettingsManager.enabledModules(guild);
     if (modules.length === 0) {
@@ -31,12 +31,9 @@ export default class SettingsCommand extends Command {
       );
     }
 
-    const panel = await renderPanel(
-      commandName,
-      guild,
-      modules.map(m => m.id),
-      modules[0]!
-    );
-    return ctx.reply(panel);
+    const context = { guild, user };
+    const segment = modules[0]!.id;
+    const reply = await ctx.reply(await renderPanel(settingsPanel, context, segment));
+    return reply;
   }
 }

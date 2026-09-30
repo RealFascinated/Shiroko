@@ -92,9 +92,6 @@ const MONTH_NAMES = [
   "December",
 ];
 
-/**
- * Month name for a 1-based month number, for display.
- */
 export function monthName(month: number): string {
   return MONTH_NAMES[month - 1] ?? String(month);
 }

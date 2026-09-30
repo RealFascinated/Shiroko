@@ -5,39 +5,44 @@ import { FeatureIds } from "./feature-ids";
 
 type FeatureOptions = {
   defaultEnabled?: boolean;
+  name?: string;
+  emoji?: string;
 };
 
 /**
- * A bot feature: an id used for per-guild toggles, optional default,
- * and the commands it owns. Event behavior lives in `@EventHandler`
- * listeners (see `src/event/`), not here.
+ * A bot feature: an id used for per-guild toggles, its user-facing name and
+ * emoji, an optional default, and the commands it owns. Event behavior lives
+ * in `@EventHandler` listeners (see `src/event/`), not here.
  */
 export default class Feature extends EventListener {
   private static REGISTRY = new Map<FeatureIds, Feature>();
 
   public readonly id: FeatureIds;
-  public readonly options: FeatureOptions;
+  public readonly options: Required<FeatureOptions>;
+  public readonly name: string;
+  public readonly emoji: string;
 
   public commands: Command[] = [];
 
-  constructor(
-    id: FeatureIds,
-    options: FeatureOptions = {
-      defaultEnabled: true,
-    }
-  ) {
+  constructor(id: FeatureIds, options: FeatureOptions = {}) {
     super();
     EventBus.subscribe(this);
     this.id = id;
-    this.options = options;
+    this.options = { defaultEnabled: true, name: id, emoji: "⚙️", ...options };
+    this.name = this.options.name;
+    this.emoji = this.options.emoji;
     Feature.REGISTRY.set(id, this);
   }
 
-  /**
-   * Look up a registered feature by id.
-   */
   public static get(featureId: FeatureIds): Feature | undefined {
     return Feature.REGISTRY.get(featureId);
+  }
+
+  /**
+   * Every registered feature, in registration order.
+   */
+  public static all(): Feature[] {
+    return [...Feature.REGISTRY.values()];
   }
 
   /**

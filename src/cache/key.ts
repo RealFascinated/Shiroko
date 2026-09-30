@@ -16,22 +16,18 @@ export interface CacheKey {
   readonly scopes: readonly ScopeTag[];
 }
 
-/** A guild-scoped key. */
 export function guildKey(guildId: string, ...parts: readonly (string | number)[]): CacheKey {
   return { key: `guild:${guildId}|${parts.join("|")}`, scopes: [`guild:${guildId}`] };
 }
 
-/** A user-scoped key, independent of any guild. */
 export function userKey(userId: string, ...parts: readonly (string | number)[]): CacheKey {
   return { key: `user:${userId}|${parts.join("|")}`, scopes: [`user:${userId}`] };
 }
 
-/** Tag for one guild; see {@link guildKey}. */
 export function guildScope(guildId: string): ScopeTag {
   return `guild:${guildId}`;
 }
 
-/** Tag for one user; see {@link userKey}. */
 export function userScope(userId: string): ScopeTag {
   return `user:${userId}`;
 }

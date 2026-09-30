@@ -67,7 +67,9 @@ class RecordingPanel extends Panel<DemoConfig> {
             label: "Text",
             validate: input => (this.rejectText && input === "bad" ? "Nope." : null),
           },
+          { kind: "view", key: "help", label: "Help" },
         ],
+        sections: () => [{ id: "help", kind: "text" as const, render: () => Promise.resolve("## Help") }],
       },
     ];
   }
@@ -114,8 +116,51 @@ class TransformPanel extends Panel<{ colour: number }> {
   }
 }
 
-/** An interaction stub exposing only what the router reads. */
-function stubInteraction(overrides: Record<string, unknown>): Interaction {
+/**
+ * A panel whose dialog resets the setting to `null` on empty input, the
+ * way the settings hub's numbers and durations do.
+ */
+class ResetPanel extends Panel<{ count: number | null }> {
+  public readonly segment = "rst";
+  public readonly title = "RST";
+  public stored: number | null = 10;
+
+  public async getConfig(): Promise<{ count: number | null }> {
+    return { count: this.stored };
+  }
+
+  public async updateConfig(
+    _guild: Guild,
+    _view: PanelView<{ count: number | null }>,
+    _key: string,
+    value: unknown
+  ): Promise<void> {
+    this.stored = value as number | null;
+  }
+
+  public views(): readonly PanelView<{ count: number | null }>[] {
+    return [
+      {
+        id: "v",
+        label: "V",
+        segment: "v",
+        controls: () => [
+          {
+            kind: "dialog",
+            key: "count",
+            input: "text",
+            label: "Count",
+            transform: input => (input.trim() === "" ? null : Number(input)),
+          },
+        ],
+      },
+    ];
+  }
+}
+
+/** An interaction stub exposing only what the router reads. */ function stubInteraction(
+  overrides: Record<string, unknown>
+): Interaction {
   return {
     inGuild: () => true,
     guild,
@@ -250,6 +295,22 @@ describe("panel router dispatch", () => {
     expect(panel.stored).toBe(0x9b59b6);
   });
 
+  test("a cleared dialog stores the transform's null, not the empty string", async () => {
+    const panel = new ResetPanel();
+    const interaction = stubInteraction({
+      customId: panelCustomId(panel.segment, "v", "dialog", "count"),
+      isModalSubmit: () => true,
+      deferred: false,
+      replied: false,
+      fields: { fields: new Map([["value", { value: "" }]]) },
+      message: null,
+    });
+    await handlePanelInteraction(interaction, segment =>
+      segment === panel.segment ? (panel as never) : undefined
+    );
+    expect(panel.stored).toBeNull();
+  });
+
   test("a rejected dialog leaves the config untouched and replies", async () => {
     const panel = new RecordingPanel();
     panel.rejectNextText();
@@ -284,5 +345,63 @@ describe("panel router dispatch", () => {
     const panel = new RecordingPanel();
     await route(panel, button(panel, "nested.on"));
     expect(resolvedUsers).toEqual(["7"]);
+  });
+
+  test("a view button replies with its section contents and writes nothing", async () => {
+    const panel = new RecordingPanel();
+    let replied: { components?: unknown[]; flags?: number } | null = null;
+    const interaction = stubInteraction({
+      customId: panelCustomId(panel.segment, "v", "view", "help"),
+      isButton: () => true,
+      reply: (payload: { components?: unknown[]; flags?: number }) => {
+        replied = payload;
+      },
+    });
+    expect(await route(panel, interaction)).toBe(true);
+    expect(panel.writes).toHaveLength(0);
+    expect(replied).not.toBeNull();
+    expect(JSON.stringify(replied!.components)).toContain("## Help");
+    // A V2 container needs the flag; ephemeral keeps it to the presser.
+    expect(replied!.flags).toBe((1 << 15) | (1 << 6));
+  });
+
+  test("a validateValue rejection on a choice leaves the config untouched", async () => {
+    class GuardedPanel extends RecordingPanel {
+      public override views(): readonly PanelView<DemoConfig>[] {
+        return [
+          {
+            id: "only",
+            label: "Only",
+            segment: "v",
+            controls: () => [
+              {
+                kind: "choice",
+                key: "nested.mode",
+                label: "Mode",
+                options: () => [
+                  { value: "embed", label: "Embed" },
+                  { value: "simple", label: "Simple" },
+                ],
+                validateValue: value => (value === "simple" ? "Not allowed." : null),
+              },
+            ],
+          },
+        ];
+      }
+    }
+    const panel = new GuardedPanel();
+    let replied = false;
+    const interaction = stubInteraction({
+      customId: panelCustomId(panel.segment, "v", "choice", "nested.mode"),
+      isStringSelectMenu: () => true,
+      values: ["simple"],
+      reply: () => {
+        replied = true;
+      },
+    });
+    await route(panel, interaction);
+    expect(panel.writes).toHaveLength(0);
+    expect(panel.config.nested.mode).toBe("embed");
+    expect(replied).toBe(true);
   });
 });

@@ -91,9 +91,6 @@ export class EventBus {
     return handlers;
   }
 
-  /**
-   * Dispatch `event` to every handler subscribed for its class.
-   */
   public static async post(event: Event): Promise<void> {
     const entries = EventBus.HANDLERS.get(event.constructor as new (...args: any[]) => Event) ?? [];
     const sorted = [...entries].sort((a, b) => b.priority - a.priority);

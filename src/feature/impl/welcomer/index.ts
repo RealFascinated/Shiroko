@@ -8,15 +8,9 @@ import WelcomerCommand from "./command/welcomer.command";
 import { welcomerPanel } from "./welcomer-panel";
 import { welcomerService } from "./welcomer.service";
 
-/**
- * The welcomer feature: `/welcomer` and the join announcement. Its panel is
- * registered with the generic panel engine, which owns the component
- * routing; the feature only declares the panel and consumes the membership
- * event.
- */
 export default class WelcomerFeature extends Feature {
   constructor() {
-    super(FeatureIds.Welcomer, { defaultEnabled: false });
+    super(FeatureIds.Welcomer, { defaultEnabled: false, name: "Welcomer", emoji: "👋" });
 
     PanelManager.register(welcomerPanel);
     this.registerCommand(new WelcomerCommand());

@@ -1,6 +1,8 @@
 import GlobalUsersManager from "@/user/global-users-manager";
 import {
+  ContainerBuilder,
   MessageFlags,
+  TextDisplayBuilder,
   type ButtonInteraction,
   type Interaction,
   type ModalSubmitInteraction,
@@ -15,7 +17,13 @@ import {
   type PanelView,
 } from "./panel";
 import { getPath } from "./path";
-import { panelDialog, readDialogValue, renderPanel, renderPanelEmbeds } from "./render";
+import {
+  panelDialog,
+  readDialogValue,
+  renderPanel,
+  renderPanelEmbeds,
+  renderPanelViewSection,
+} from "./render";
 
 /** A component press the engine can act on. */
 type PanelInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
@@ -91,6 +99,22 @@ async function dispatch(
     return;
   }
 
+  // A view button carries no setting; it opens its section as its own
+  // message so long reference content does not sit under the controls.
+  if (control.kind === "view") {
+    const body = await renderPanelViewSection(panel, context, view.segment, control.key);
+    // A V2 container needs the flag; ephemeral keeps the reference content
+    // to the presser rather than spamming the channel.
+    await interaction.reply({
+      components: [
+        new ContainerBuilder().addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(body ?? "Nothing to show here.")
+        ),
+      ],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
+    return;
+  }
   if (interaction.isModalSubmit()) {
     await submitDialog(panel, context, view, control as DialogControl<any>, interaction, config);
     return;
@@ -98,6 +122,11 @@ async function dispatch(
   if (interaction.isStringSelectMenu()) {
     const selected = interaction.values[0];
     if (selected === undefined) {
+      return;
+    }
+    const problem = control.validateValue?.(selected, config, context);
+    if (problem) {
+      await deny(interaction, problem);
       return;
     }
     await panel.updateConfig(context.guild, view, control.key, selected);
@@ -109,6 +138,11 @@ async function dispatch(
     return;
   }
   const next = getPath(config, control.key) !== true;
+  const problem = control.validateValue?.(next, config, context);
+  if (problem) {
+    await deny(interaction, problem);
+    return;
+  }
   await panel.updateConfig(context.guild, view, control.key, next);
   await repaint(panel, context, view.segment, interaction);
 }
@@ -122,14 +156,30 @@ async function submitDialog(
   config: unknown
 ): Promise<void> {
   const input = readDialogValue(interaction);
-  const raw = input ?? "";
-  const problem = control.validate?.(raw, config, context);
+
+  let value: unknown;
+  if (control.input === "text" || control.input === "paragraph") {
+    const raw = (input as string | null) ?? "";
+    const problem = control.validate?.(raw, config, context);
+    if (problem) {
+      await deny(interaction, problem);
+      return;
+    }
+    // A transform is authoritative when present: it may legitimately return
+    // `null` to mean "unset", so `??` must not fall back to the raw input.
+    value = control.transform ? control.transform(raw, config, context) : raw;
+  } else {
+    // A picker submits resolved ids: an empty (cleared) selection is absent
+    // from the payload entirely. A single picker stores one id or null when
+    // cleared; the role-list picker stores the whole array.
+    const ids = input === null ? [] : (input as string[]);
+    value = control.input === "role-list" ? ids : (ids[0] ?? null);
+  }
+  const problem = control.validateValue?.(value, config, context);
   if (problem) {
     await deny(interaction, problem);
     return;
   }
-  // A channel dialog's value is already an id, or null when cleared.
-  const value = control.input === "channel" ? input : (control.transform?.(raw, config, context) ?? raw);
   await panel.updateConfig(context.guild, view, control.key, value);
   if (!interaction.message) {
     return;

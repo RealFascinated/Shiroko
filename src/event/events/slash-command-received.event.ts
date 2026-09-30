@@ -1,9 +1,6 @@
 import type { Interaction } from "discord.js";
 import Event from "../event";
 
-/**
- * A chat-input (slash) command interaction was received.
- */
 export default class SlashCommandReceivedEvent extends Event {
   public readonly interaction: Interaction;
 

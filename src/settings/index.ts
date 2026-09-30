@@ -1,31 +1,20 @@
 import { type Guild } from "discord.js";
-import { EventBus } from "../event/event-bus";
-import { EventHandler } from "../event/event-handler";
-import { EventListener } from "../event/event-listener";
-import ComponentReceivedEvent from "../event/events/component-received.event";
 import GuildFeatures from "../feature/guild-features";
-import ComponentRegistry from "./component/component-registry";
 import type SettingsModule from "./settings-module";
 
 /**
- * The settings subsystem entry: a registry of settings modules (static)
- * plus the listener that routes message-component and modal-submit
- * interactions to the settings panel's component registry. Instantiate
- * once in `src/index.ts`; features register their module in their feature
- * constructor via {@link SettingsManager.register}, mirroring
- * `registerCommand`.
+ * The settings subsystem entry: a static registry of settings modules.
+ * Features register their module in their feature constructor via
+ * {@link SettingsManager.register}, mirroring `registerCommand`. The
+ * `/settings` command opens the hub panel, which is routed through the
+ * generic panel engine, so this class no longer handles component
+ * interactions itself.
  */
-export default class SettingsManager extends EventListener {
+export default class SettingsManager {
   private static MODULES = new Map<string, SettingsModule<any>>();
 
-  constructor() {
-    super();
-    EventBus.subscribe(this);
-  }
-
   /**
-   * Register a settings module. `/settings` and the component registry
-   * look modules up by id.
+   * Register a settings module. `/settings` looks modules up by id.
    */
   public static register(module: SettingsModule<any>): void {
     SettingsManager.MODULES.set(module.id, module);
@@ -42,9 +31,8 @@ export default class SettingsManager extends EventListener {
 
   /**
    * Every module whose feature is enabled in the guild (feature-less
-   * modules are always enabled). Shared by `/settings` and the component
-   * registry so the panel's category dropdown only ever lists live
-   * modules.
+   * modules are always enabled). `/settings` shows only these as views, so
+   * a category disappears the moment its feature is disabled.
    */
   public static async enabledModules(guild: Guild): Promise<SettingsModule<any>[]> {
     const enabled: SettingsModule<any>[] = [];
@@ -55,10 +43,5 @@ export default class SettingsManager extends EventListener {
       }
     }
     return enabled;
-  }
-
-  @EventHandler(ComponentReceivedEvent)
-  public async onComponentReceived(event: ComponentReceivedEvent): Promise<void> {
-    await ComponentRegistry.handle(event.interaction);
   }
 }

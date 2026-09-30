@@ -9,7 +9,6 @@ import Permissions, {
 } from "@/permission/permissions";
 import { type ChatInputCommandInteraction, type InteractionResponse } from "discord.js";
 
-/** How many permissions to list per page. */
 const PERMISSIONS_PER_PAGE = 10;
 
 /**

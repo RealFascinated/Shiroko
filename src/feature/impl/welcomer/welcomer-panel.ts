@@ -2,6 +2,7 @@ import { formatColor, parseColor } from "@/lib/color";
 import { fetchGuildMember } from "@/lib/guild";
 import Panel, { type PanelAccess, type PanelContext, type PanelControl, type PanelView } from "@/panel/panel";
 import Permissions, { PermissionFlags } from "@/permission/permissions";
+import { placeholders } from "@/placeholder";
 import type { EmbedBuilder, Guild } from "discord.js";
 import { welcomerSettings, type WelcomerSettingsData } from "./welcomer-settings";
 import { welcomerService } from "./welcomer.service";
@@ -20,7 +21,6 @@ import { welcomerService } from "./welcomer.service";
 export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
   public readonly segment = "welcomer";
   public readonly title = "Welcomer";
-  public override readonly subtitle = "The message sent when members join.";
 
   /**
    * The `/welcomer` command gate only applies at open time; the router
@@ -62,22 +62,33 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
         label: "Welcome",
         segment: "welcome",
         controls: config => controlsFor(config),
-        sections: config =>
-          config.mode === "embed"
+        sections: config => [
+          ...(config.mode === "embed"
             ? [
                 {
                   id: "preview",
                   kind: "embed" as const,
-                  render: (current, context) => this.previewEmbed(current, context),
+                  render: (current: WelcomerSettingsData, context: PanelContext): Promise<EmbedBuilder> =>
+                    this.previewEmbed(current, context),
                 },
               ]
             : [
                 {
                   id: "preview",
                   kind: "text" as const,
-                  render: (current, context) => this.previewText(current, context),
+                  render: (current: WelcomerSettingsData, context: PanelContext): Promise<string> =>
+                    this.previewText(current, context),
                 },
-              ],
+              ]),
+          {
+            id: "placeholders",
+            kind: "text" as const,
+            render: async (): Promise<string> =>
+              ["## Placeholders", "-# The tokens this message can contain.", "", placeholders.catalog()].join(
+                "\n"
+              ),
+          },
+        ],
       },
     ];
   }
@@ -168,6 +179,12 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
     key: "ping",
     label: "Ping member",
     state: value => (value ? "On" : "Off"),
+  });
+  controls.push({
+    kind: "view",
+    key: "placeholders",
+    label: "Placeholders",
+    description: "The tokens this message can contain.",
   });
   return controls;
 }

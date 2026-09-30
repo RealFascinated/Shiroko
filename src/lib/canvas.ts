@@ -27,9 +27,6 @@ function ensureFonts(): void {
   fontsRegistered = true;
 }
 
-/**
- * Font weight accepted by canvas font strings.
- */
 export type CanvasFontWeight = 400 | 500 | 700;
 
 /**
@@ -47,18 +44,12 @@ export default class Canvas {
     this.ctx = this.canvas.getContext("2d");
   }
 
-  /**
-   * Fill the whole canvas with `color`.
-   */
   public background(color: string): this {
     this.ctx.fillStyle = color;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     return this;
   }
 
-  /**
-   * Draw `text` at `(x, y)` in the bundled font.
-   */
   public text(
     text: string,
     x: number,
@@ -73,9 +64,6 @@ export default class Canvas {
     return this;
   }
 
-  /**
-   * Draw `text` centered on `centerX`, returning its rendered width.
-   */
   public centeredText(
     text: string,
     centerX: number,
@@ -91,9 +79,6 @@ export default class Canvas {
     return width;
   }
 
-  /**
-   * Shorten `text` with an ellipsis until it fits `maxWidth`.
-   */
   public fitText(text: string, maxWidth: number, size: number, weight: CanvasFontWeight = 400): string {
     this.ctx.font = `${weight} ${size}px "${CANVAS_FONT}"`;
     if (this.ctx.measureText(text).width <= maxWidth) {
@@ -106,9 +91,6 @@ export default class Canvas {
     return `${shortened}…`;
   }
 
-  /**
-   * Fill a rounded rectangle.
-   */
   public roundedRect(
     x: number,
     y: number,
@@ -130,9 +112,6 @@ export default class Canvas {
     return this;
   }
 
-  /**
-   * Draw `image` clipped to a circle centered at `(x, y)`.
-   */
   public circleImage(image: Image, x: number, y: number, radius: number): this {
     this.ctx.save();
     this.ctx.beginPath();
@@ -143,9 +122,6 @@ export default class Canvas {
     return this;
   }
 
-  /**
-   * Stroke a circle outline centered at `(x, y)`.
-   */
   public circleOutline(x: number, y: number, radius: number, color: string, width: number): this {
     this.ctx.strokeStyle = color;
     this.ctx.lineWidth = width;
@@ -155,16 +131,10 @@ export default class Canvas {
     return this;
   }
 
-  /**
-   * Encode the canvas as a PNG buffer.
-   */
   public async png(): Promise<Buffer> {
     return this.canvas.encode("png");
   }
 
-  /**
-   * Fetch a URL as a canvas image, or `null` when unavailable.
-   */
   public static async loadImage(url: string): Promise<Image | null> {
     try {
       return (await loadImage(url)) as unknown as Image;

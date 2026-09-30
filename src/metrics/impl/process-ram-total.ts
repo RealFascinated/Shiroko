@@ -1,7 +1,6 @@
 import { getHeapStatistics } from "node:v8";
 import { GaugeMetric } from "../gauge";
 
-/** Max heap size of the bot process in bytes. */
 export class ProcessRamTotalMetric extends GaugeMetric {
   public override readonly collectIntervalMs = 5_000;
 

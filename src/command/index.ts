@@ -37,16 +37,10 @@ export default class CommandManager {
     CommandManager.registerCommand(new SettingsCommand());
   }
 
-  /**
-   * Look up a registered command by its top-level name.
-   */
   public static getCommand(commandName: string): Command | undefined {
     return CommandManager.COMMANDS.get(commandName);
   }
 
-  /**
-   * Build every local slash command for registration.
-   */
   public build(): SlashCommandBuilder[] {
     return Array.from(CommandManager.COMMANDS.values()).map(command => command.build());
   }

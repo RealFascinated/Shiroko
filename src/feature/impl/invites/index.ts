@@ -18,7 +18,7 @@ import { invitesService } from "./invites.service";
  */
 export default class InvitesFeature extends Feature {
   constructor() {
-    super(FeatureIds.Invites);
+    super(FeatureIds.Invites, { name: "Invites", emoji: "📨" });
 
     this.registerCommand(new InvitesCommand());
   }

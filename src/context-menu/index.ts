@@ -21,16 +21,10 @@ export default class ContextMenuCommandManager {
     console.log(`Context menu commands registered: ${ContextMenuCommandManager.commands.size}`);
   }
 
-  /**
-   * Look up a context menu command by its id.
-   */
   public static getCommand(commandName: string): ContextMenuCommand | undefined {
     return ContextMenuCommandManager.commands.get(commandName);
   }
 
-  /**
-   * Build every local context menu command for registration.
-   */
   public build(): Array<UserApplicationCommandData | MessageApplicationCommandData> {
     return Array.from(ContextMenuCommandManager.commands.values()).map(command => command.build());
   }

@@ -14,18 +14,22 @@ export interface PanelContext {
 /** Renders one configured value as display text. */
 export type PanelFormatter<C, V = unknown> = (value: V, config: C, context: PanelContext) => string;
 
-/**
- * A boolean toggle: a button that flips it in place.
- */
 export interface ToggleControl<C> {
   kind: "toggle";
   key: string;
   label: string;
+  /** A short explanation shown under the field line. */
+  description?: string;
   /** The state suffix on the button, e.g. `(v) => (v ? "On" : "Off")`. */
   state(value: boolean, config: C, context: PanelContext): string;
+  /**
+   * Validate the finalized value before it is stored; return an error
+   * message, or `null` when valid. Runs after any transform, so it sees
+   * the value as it will be persisted.
+   */
+  validateValue?(value: unknown, config: C, context: PanelContext): string | null;
 }
 
-/** One option of a choice control. */
 export interface ChoiceOption {
   value: string;
   label: string;
@@ -41,19 +45,31 @@ export interface ChoiceControl<C> {
   kind: "choice";
   key: string;
   label: string;
+  /** A short explanation shown under the field line. */
+  description?: string;
   options(config: C, context: PanelContext): readonly ChoiceOption[];
+  /**
+   * Validate the finalized value before it is stored; return an error
+   * message, or `null` when valid. Runs after any transform, so it sees
+   * the value as it will be persisted.
+   */
+  validateValue?(value: unknown, config: C, context: PanelContext): string | null;
 }
 
-/**
- * A button that opens a modal and writes the dialog's value back.
- */
 export interface DialogControl<C> {
   kind: "dialog";
   key: string;
-  /** Single-line text, paragraph text, or a channel picker. */
-  input: "text" | "paragraph" | "channel";
+  /**
+   * Single-line text, paragraph text, a channel picker, a role picker, or
+   * a multi-role picker. The native pickers read back resolved ids.
+   */
+  input: "text" | "paragraph" | "channel" | "role" | "role-list";
+  /** Maximum roles for a `role-list` picker; defaults to Discord's select cap. */
+  maxRoles?: number;
   /** Label above the input, and the field line's label. */
   label: string;
+  /** A short explanation shown under the field line. */
+  description?: string;
   hint?: string;
   /** The modal's title, when it should differ from the label. */
   modalTitle?: string;
@@ -64,6 +80,12 @@ export interface DialogControl<C> {
   /** Validate the input; return an error message, or `null` when valid. */
   validate?(input: string, config: C, context: PanelContext): string | null;
   /**
+   * Validate the finalized value before it is stored; return an error
+   * message, or `null` when valid. Runs after any transform, so it sees
+   * the value as it will be persisted.
+   */
+  validateValue?(value: unknown, config: C, context: PanelContext): string | null;
+  /**
    * Convert the validated input into the stored value, for fields whose
    * storage type is not text (a hex colour becoming an int, say). The
    * input is stored as-is when omitted.
@@ -71,7 +93,21 @@ export interface DialogControl<C> {
   transform?(input: string, config: C, context: PanelContext): unknown;
 }
 
-export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogControl<C>;
+/**
+ * A read-only button with no setting behind it. On press it opens the
+ * view's section named by `key` as its own message, so long reference
+ * content (a token list, say) is shown on demand rather than under the
+ * controls.
+ */
+export interface ViewControl<C> {
+  kind: "view";
+  key: string;
+  label: string;
+  /** A short explanation shown under the field line. */
+  description?: string;
+}
+
+export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogControl<C> | ViewControl<C>;
 
 /**
  * A read-only block rendered below a view's controls.
@@ -87,7 +123,6 @@ export interface PanelSection<C> {
   render(config: C, context: PanelContext): Promise<PanelSectionContent | null>;
 }
 
-/** What a section rendered: markdown, or an embed. */
 export type PanelSectionContent = string | EmbedBuilder;
 
 /**
@@ -123,12 +158,10 @@ export const PANEL_PREFIX = "panel";
 
 /** The decoded parts of a panel custom id. */
 export interface PanelCustomId {
-  /** The owning panel's segment. */
   segment: string;
-  /** The view the component was rendered under. */
   viewSegment: string;
-  kind: "root" | "toggle" | "choice" | "dialog";
-  /** The dotted config path the component edits; views carry none. */
+  kind: "root" | "toggle" | "choice" | "dialog" | "view";
+  /** The dotted config path the component edits; views and view buttons carry none. */
   path: string | null;
 }
 
@@ -160,7 +193,11 @@ export function parsePanelCustomId(customId: string): PanelCustomId | null {
   if (parts.length === 3) {
     return { segment, viewSegment, kind: "root", path: null };
   }
-  if (extra.length > 0 || !path || (kind !== "toggle" && kind !== "choice" && kind !== "dialog")) {
+  if (
+    extra.length > 0 ||
+    !path ||
+    (kind !== "toggle" && kind !== "choice" && kind !== "dialog" && kind !== "view")
+  ) {
     return null;
   }
   return { segment, viewSegment, kind, path };
@@ -180,9 +217,7 @@ export function parsePanelCustomId(customId: string): PanelCustomId | null {
 export default abstract class Panel<C extends object> {
   /** Custom-id namespace, unique across every registered panel. */
   public abstract readonly segment: string;
-  /** Heading shown at the top of the panel. */
   public abstract readonly title: string;
-  /** One-line explanation shown under the heading. */
   public readonly subtitle: string | undefined = undefined;
 
   /**
@@ -209,13 +244,10 @@ export default abstract class Panel<C extends object> {
    */
   public readonly access: PanelAccess<C> | undefined = undefined;
 
-  /** The container's accent colour, when the panel has one. */
   public accent?(config: C, view: PanelView<C>, context: PanelContext): number | undefined;
 
-  /** Lines rendered above the fields, e.g. a heading line. */
   public intro?(config: C, context: PanelContext): readonly string[];
 
-  /** A line rendered under the fields, e.g. where the config takes effect. */
   public footer?(config: C, context: PanelContext): string | undefined;
 
   /**

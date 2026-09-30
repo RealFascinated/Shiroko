@@ -11,7 +11,7 @@ import BirthdayCommand from "./command/birthday/birthday.command";
  */
 export default class BirthdayFeature extends Feature {
   constructor() {
-    super(FeatureIds.Birthday);
+    super(FeatureIds.Birthday, { name: "Birthdays", emoji: "🎂" });
 
     SettingsManager.register(birthdaySettings);
     this.registerCommand(new BirthdayCommand());

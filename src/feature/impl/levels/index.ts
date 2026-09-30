@@ -17,7 +17,7 @@ import { levelsService } from "./levels.service";
  */
 export default class LevelsFeature extends Feature {
   constructor() {
-    super(FeatureIds.Levels);
+    super(FeatureIds.Levels, { name: "Levelling", emoji: "📈" });
 
     SettingsManager.register(levelsSettings);
     this.registerCommand(new LevelsCommand());

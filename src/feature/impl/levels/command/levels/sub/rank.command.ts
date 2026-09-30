@@ -3,9 +3,6 @@ import { userOption } from "@/command/option";
 import { levelsService } from "@/feature/impl/levels/levels.service";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
-/**
- * Podium colors for the top three ranks on the server.
- */
 const PODIUM_COLORS = {
   1: 0xffd700,
   2: 0xc0c0c0,

@@ -1,6 +1,5 @@
 import { GaugeMetric } from "../gauge";
 
-/** Resident set size of the bot process in bytes. */
 export class ProcessRamUsedMetric extends GaugeMetric {
   public override readonly collectIntervalMs = 5_000;
 

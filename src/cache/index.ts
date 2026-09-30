@@ -28,12 +28,10 @@ export class Caches {
     return purged;
   }
 
-  /** Purge every entry belonging to a guild, across every cache. */
   public static purgeGuild(guildId: string): number {
     return Caches.purgeScope(guildScope(guildId));
   }
 
-  /** Purge every entry belonging to a user, across every cache. */
   public static purgeUser(userId: string): number {
     return Caches.purgeScope(userScope(userId));
   }

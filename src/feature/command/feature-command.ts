@@ -3,11 +3,12 @@ import { booleanOption, stringOption, type CommandOptionBuilder } from "@/comman
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { PermissionFlags } from "@/permission/permissions";
 import { PermissionFlagsBits } from "discord.js";
+import Feature from "../feature";
 import { FeatureIds } from "../feature-ids";
 import GuildFeatures from "../guild-features";
 
 const FEATURE_CHOICES: Record<string, string> = Object.fromEntries(
-  Object.values(FeatureIds).map(id => [id, id])
+  Feature.all().map(feature => [feature.id, feature.name])
 );
 
 export default class FeatureCommand extends Command {
@@ -40,11 +41,14 @@ export default class FeatureCommand extends Command {
     }
     const enabled = ctx.options.getBoolean("enabled", true)!;
     await GuildFeatures.setFeatureEnabled(guild, featureId, enabled);
+    const feature = Feature.get(featureId);
+    const name = feature?.name ?? featureId;
+    const line = enabled ? `**${name}** is now **enabled**.` : `**${name}** is now **disabled**.`;
     return ctx.reply({
       embeds: [
         baseEmbed(commandName)
-          .setTitle("⚙️ Feature Updated")
-          .setDescription(`**${featureId}** is now **${enabled ? "enabled" : "disabled"}**.`),
+          .setTitle(`${feature?.emoji ?? "⚙️"} Feature Toggled`)
+          .setDescription(line),
       ],
     });
   }

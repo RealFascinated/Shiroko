@@ -12,7 +12,7 @@ import AutorolesCommand from "./command/autoroles/autoroles.command";
  */
 export default class AutorolesFeature extends Feature {
   constructor() {
-    super(FeatureIds.Autoroles, { defaultEnabled: false });
+    super(FeatureIds.Autoroles, { defaultEnabled: false, name: "Autoroles", emoji: "🎭" });
 
     this.registerCommand(new AutorolesCommand());
   }
