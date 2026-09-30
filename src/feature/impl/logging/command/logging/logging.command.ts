@@ -1,6 +1,7 @@
 import Command from "@/command/command";
 import { PermissionFlags } from "@/permission/permissions";
 import ChannelCommand from "./sub/channel.command";
+import InfoCommand from "./sub/info.command";
 import ToggleCommand from "./sub/toggle.command";
 
 export default class LoggingCommand extends Command {
@@ -9,6 +10,7 @@ export default class LoggingCommand extends Command {
 
     this.registerSubCommand(new ChannelCommand());
     this.registerSubCommand(new ToggleCommand());
+    this.registerSubCommand(new InfoCommand());
   }
 
   public override get requiredFlags(): bigint {

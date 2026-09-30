@@ -7,7 +7,7 @@ import { TimeUnit } from "@/lib/time";
 import GuildSettings from "@/settings/guild-settings";
 import type { Guild } from "discord.js";
 import { and, eq } from "drizzle-orm";
-import type { LogType } from "./log-type";
+import { logTypes, type LogType } from "./log-type";
 
 export default class LoggingService {
   private readonly enabledCache = Caches.register(
@@ -46,6 +46,26 @@ export default class LoggingService {
         set: { enabled },
       });
     this.enabledCache.invalidate(guildKey(guild.id, logType));
+  }
+
+  /**
+   * A guild's logging configuration: the target channel and every log
+   * type's enabled state, read from the same authoritative cache the
+   * event pipeline uses.
+   */
+  public async info(
+    guild: Guild
+  ): Promise<{ channelId: string | null; states: Array<{ logType: LogType; enabled: boolean }> }> {
+    const [channelId, states] = await Promise.all([
+      this.getChannelId(guild),
+      Promise.all(
+        (Object.keys(logTypes) as LogType[]).map(async logType => ({
+          logType,
+          enabled: await this.isEnabled(guild, logType),
+        }))
+      ),
+    ]);
+    return { channelId, states };
   }
 }
 
