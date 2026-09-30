@@ -33,7 +33,7 @@ export default class LoggingService {
         .select({ enabled: logsSchema.enabled })
         .from(logsSchema)
         .where(and(eq(logsSchema.guildId, guild.id), eq(logsSchema.logType, logType)));
-      return rows[0]?.enabled ?? false;
+      return rows[0]?.enabled ?? true; // enabled by default
     });
   }
 
