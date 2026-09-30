@@ -1,15 +1,18 @@
 import type { Role } from "discord.js";
 import Event from "../event";
 
-export default class RoleDeletedEvent extends Event {
+/**
+ * A role was created in a guild. Carries the new `Role` and its guild.
+ */
+export default class RoleCreatedEvent extends Event {
   public readonly roleId: string;
-  public readonly guildData: Role["guild"];
   public readonly role: Role;
+  public readonly guildData: Role["guild"];
 
   constructor(role: Role) {
     super({ guild: role.guild });
     this.roleId = role.id;
-    this.guildData = role.guild;
     this.role = role;
+    this.guildData = role.guild;
   }
 }

@@ -3,17 +3,27 @@ import { EventBus } from "./event-bus";
 import BotReadyEvent from "./events/bot-ready.event";
 import ComponentReceivedEvent from "./events/component-received.event";
 import ContextMenuReceivedEvent from "./events/context-menu-received.event";
+import EmojiCreatedEvent from "./events/emoji-created.event";
+import EmojiDeletedEvent from "./events/emoji-deleted.event";
+import EmojiUpdatedEvent from "./events/emoji-updated.event";
 import GuildJoinedEvent from "./events/guild-joined.event";
 import GuildLeftEvent from "./events/guild-left.event";
+import GuildUpdatedEvent from "./events/guild-updated.event";
 import InviteCreatedEvent from "./events/invite-created.event";
 import InviteDeletedEvent from "./events/invite-deleted.event";
+import MemberBannedEvent from "./events/member-banned.event";
 import MemberGuildJoinEvent from "./events/member-guild-join.event";
 import MemberGuildLeaveEvent from "./events/member-guild-leave.event";
+import MemberNicknameUpdatedEvent from "./events/member-nickname-updated.event";
 import MemberRolesUpdatedEvent from "./events/member-roles-updated.event";
 import MessageCreatedEvent from "./events/message-created.event";
+import RoleCreatedEvent from "./events/role-created.event";
 import RoleDeletedEvent from "./events/role-deleted.event";
 import RoleUpdatedEvent from "./events/role-updated.event";
 import SlashCommandReceivedEvent from "./events/slash-command-received.event";
+import StickerCreatedEvent from "./events/sticker-created.event";
+import StickerDeletedEvent from "./events/sticker-deleted.event";
+import StickerUpdatedEvent from "./events/sticker-updated.event";
 import UserAvatarUpdatedEvent from "./events/user-avatar-updated.event";
 import UserDisplayNameUpdatedEvent from "./events/user-display-name-updated.event";
 import UserPresenceChangedEvent from "./events/user-presence-changed.event";
@@ -77,6 +87,10 @@ export default class EventBridge {
       void EventBus.post(new GuildLeftEvent(guild));
     });
 
+    client.on(Events.GuildUpdate, (oldGuild, newGuild) => {
+      void EventBus.post(new GuildUpdatedEvent(oldGuild, newGuild));
+    });
+
     client.on(Events.InviteCreate, invite => {
       const guild = invite.guild ? (client.guilds.cache.get(invite.guild.id) ?? null) : null;
       void EventBus.post(new InviteCreatedEvent(invite, guild));
@@ -94,6 +108,14 @@ export default class EventBridge {
       void EventBus.post(new MemberGuildJoinEvent(member));
     });
 
+    client.on(Events.GuildBanAdd, ban => {
+      void EventBus.post(new MemberBannedEvent(ban, true));
+    });
+
+    client.on(Events.GuildBanRemove, ban => {
+      void EventBus.post(new MemberBannedEvent(ban, false));
+    });
+
     client.on(Events.GuildMemberRemove, member => {
       if (member.user.bot) {
         return;
@@ -101,12 +123,40 @@ export default class EventBridge {
       void EventBus.post(new MemberGuildLeaveEvent(member));
     });
 
-    client.on(Events.GuildRoleUpdate, role => {
-      void EventBus.post(new RoleUpdatedEvent(role.id, role.guild));
+    client.on(Events.GuildEmojiCreate, emoji => {
+      void EventBus.post(new EmojiCreatedEvent(emoji));
+    });
+
+    client.on(Events.GuildEmojiUpdate, (oldEmoji, newEmoji) => {
+      void EventBus.post(new EmojiUpdatedEvent(oldEmoji, newEmoji));
+    });
+
+    client.on(Events.GuildEmojiDelete, emoji => {
+      void EventBus.post(new EmojiDeletedEvent(emoji));
+    });
+
+    client.on(Events.GuildStickerCreate, sticker => {
+      void EventBus.post(new StickerCreatedEvent(sticker));
+    });
+
+    client.on(Events.GuildStickerUpdate, (oldSticker, newSticker) => {
+      void EventBus.post(new StickerUpdatedEvent(oldSticker, newSticker));
+    });
+
+    client.on(Events.GuildStickerDelete, sticker => {
+      void EventBus.post(new StickerDeletedEvent(sticker));
+    });
+
+    client.on(Events.GuildRoleCreate, role => {
+      void EventBus.post(new RoleCreatedEvent(role));
+    });
+
+    client.on(Events.GuildRoleUpdate, (oldRole, newRole) => {
+      void EventBus.post(new RoleUpdatedEvent(oldRole, newRole));
     });
 
     client.on(Events.GuildRoleDelete, role => {
-      void EventBus.post(new RoleDeletedEvent(role.id, role.guild));
+      void EventBus.post(new RoleDeletedEvent(role));
     });
 
     client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
@@ -121,6 +171,9 @@ export default class EventBridge {
       }
       if (oldMember.avatar !== newMember.avatar && !newMember.user.bot) {
         void EventBus.post(new UserAvatarUpdatedEvent(newMember.guild, oldMember.user, newMember.user));
+      }
+      if (oldMember.nickname !== newMember.nickname) {
+        void EventBus.post(new MemberNicknameUpdatedEvent(oldMember, newMember));
       }
     });
 

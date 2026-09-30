@@ -51,6 +51,8 @@ export const discordClient = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildInvites,
+    GatewayIntentBits.GuildModeration,
+    GatewayIntentBits.GuildExpressions,
   ],
 });
 

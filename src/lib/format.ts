@@ -27,3 +27,11 @@ export function pluralise(count: number, word: string): string {
 export function titleCase(word: string): string {
   return word ? word[0]!.toUpperCase() + word.slice(1) : word;
 }
+
+/**
+ * Render a boolean as its user-facing label.
+ * Examples: `yesNo(true)` -> "Yes", `yesNo(false)` -> "No".
+ */
+export function yesNo(value: boolean): string {
+  return value ? "Yes" : "No";
+}
