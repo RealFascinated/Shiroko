@@ -78,11 +78,13 @@ export default class EventBridge {
     });
 
     client.on(Events.InviteCreate, invite => {
-      void EventBus.post(new InviteCreatedEvent(invite));
+      const guild = invite.guild ? (client.guilds.cache.get(invite.guild.id) ?? null) : null;
+      void EventBus.post(new InviteCreatedEvent(invite, guild));
     });
 
     client.on(Events.InviteDelete, invite => {
-      void EventBus.post(new InviteDeletedEvent(invite));
+      const guild = invite.guild ? (client.guilds.cache.get(invite.guild.id) ?? null) : null;
+      void EventBus.post(new InviteDeletedEvent(invite, guild));
     });
 
     client.on(Events.GuildMemberAdd, member => {

@@ -1,5 +1,7 @@
 import type Event from "@/event/event";
 import { EventBus } from "@/event/event-bus";
+import InviteCreatedEvent from "@/event/events/invite-created.event";
+import InviteDeletedEvent from "@/event/events/invite-deleted.event";
 import MemberGuildJoinEvent from "@/event/events/member-guild-join.event";
 import MemberGuildLeaveEvent from "@/event/events/member-guild-leave.event";
 import MemberRolesUpdatedEvent from "@/event/events/member-roles-updated.event";
@@ -116,6 +118,35 @@ export default class LoggingFeature extends Feature {
             `**➜** ID: ${event.newMember.id}`,
             `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(InviteCreatedEvent, "invite_create", async (event, channel) => {
+      const { invite } = event;
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.guild!.name}** had an invite created.`,
+            "",
+            `**➜** Code: \`${invite.code}\``,
+            `**➜** Channel: ${invite.channel ? `<#${invite.channel.id}>` : "unknown"}`,
+            `**➜** Inviter: ${invite.inviter ? `${invite.inviter.tag} (${invite.inviter.id})` : "unknown"}`,
+            `**➜** Uses: ${invite.uses ?? 0}`,
+            `**➜** Expires: ${invite.expiresAt ? `<t:${Math.floor(invite.expiresAt.getTime() / 1000)}>` : "never"}`,
+          ]).setThumbnail(invite.inviter?.displayAvatarURL({ size: 4096, extension: "webp" }) ?? null),
+        ],
+      });
+    });
+
+    this.handleEvent(InviteDeletedEvent, "invite_delete", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.guild!.name}** had an invite deleted.`,
+            "",
+            `**➜** Code: \`${event.invite.code}\``,
+          ]),
         ],
       });
     });
