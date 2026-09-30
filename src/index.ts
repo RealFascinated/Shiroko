@@ -37,6 +37,7 @@ import { MetricManager } from "./metrics/index";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
 import { settingsPanel } from "./settings/settings-panel";
+import LogsFeature from "./feature/impl/logs";
 
 const beforeMigrate = Date.now();
 await migrate(db, { migrationsFolder: "./drizzle" });
@@ -125,6 +126,7 @@ new SlashCommandListener();
 new ContextMenuCommandListener();
 
 new FeatureManager();
+new LogsFeature();
 new BirthdayScheduler();
 
 if (env.VM_PUSH_URL) {
