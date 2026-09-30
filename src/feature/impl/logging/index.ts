@@ -682,8 +682,15 @@ export default class LoggingFeature extends Feature {
         changes.push([`**➜** Overwrite ${target}`, "None", "added"]);
         continue;
       }
+      // Only an overwrite that actually moved earns a row: emitting the
+      // header unconditionally left an empty entry for every unchanged
+      // target, since the transitions list came out empty.
+      const transitions = formatOverwriteTransitions(before, after);
+      if (transitions.length === 0) {
+        continue;
+      }
       changes.push([`**➜** Overwrite ${target}`, "", ""]);
-      for (const transition of formatOverwriteTransitions(before, after)) {
+      for (const transition of transitions) {
         changes.push([`  **➜** **${transition[0]}**`, transition[1], transition[2]]);
       }
     }
