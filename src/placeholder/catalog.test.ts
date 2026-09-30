@@ -3,11 +3,12 @@ import { describe, expect, test } from "bun:test";
 import type { Guild, User } from "discord.js";
 import { placeholders, userPlaceholders } from "./index";
 
-function globalUser(): GlobalUser {
+function globalUser(tag = "shiroko"): GlobalUser {
   const user = {
     id: "7",
     displayName: "Shiro",
     username: "shiroko",
+    tag,
   } as unknown as User;
   return { id: "7", firstSeen: new Date(0), discordUser: user } as unknown as GlobalUser;
 }
@@ -71,6 +72,10 @@ describe("placeholder catalogs", () => {
 
   test("the user executor resolves user tokens without a guild", async () => {
     expect(await userPlaceholders.replace({ globalUser: globalUser() }, "{user_username}")).toBe("shiroko");
+  });
+
+  test("the username token falls back to the tag when the user has one", async () => {
+    expect(await userPlaceholders.replace({ globalUser: globalUser("shiroko#1234") }, "{user_username}")).toBe("shiroko#1234");
   });
 
   test("the user executor leaves guild tokens verbatim", async () => {

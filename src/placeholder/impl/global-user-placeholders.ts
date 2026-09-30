@@ -13,23 +13,18 @@ const globalUserPlaceholders: ReadonlyArray<Placeholder<PlaceholderContext>> = [
   }),
   definePlaceholder({
     key: "user_name",
-    description: "The user's display name, falling back to their username.",
+    description: "The user's display name.",
     resolve: context => context.globalUser.discordUser.displayName,
   }),
   definePlaceholder({
     key: "user_username",
-    description: "The user's username, without a discriminator.",
-    resolve: context => context.globalUser.discordUser.username,
+    description: "The user's username or tag.",
+    resolve: context => context.globalUser.discordUser.tag,
   }),
   definePlaceholder({
     key: "user_mention",
     description: "A mention that pings the user.",
     resolve: context => `<@${context.globalUser.id}>`,
-  }),
-  definePlaceholder({
-    key: "user_first_seen",
-    description: "The date the user was first seen by the bot.",
-    resolve: context => discordTimestamp(context.globalUser.firstSeen, "D"),
   }),
 ];
 

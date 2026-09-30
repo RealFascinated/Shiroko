@@ -249,7 +249,7 @@ synchronously today, and section 7 covers adding more.
 | ------------------- | ------------------------------------- |
 | `{user_id}`         | Snowflake                             |
 | `{user_name}`       | Global display name, else username    |
-| `{user_username}`   | Username, without discriminator       |
+| `{user_username}`   | Username, or `user#tag` if they have a tag |
 | `{user_mention}`    | `<@id>`                               |
 | `{user_first_seen}` | `<t:…:D>` from `globalUser.firstSeen` |
 
