@@ -125,13 +125,10 @@ function channelOverwriteLines(channel: NonThreadGuildBasedChannel): string[] {
   }
   const lines: string[] = [];
   for (const [id, overwrite] of targets) {
-    lines.push(`**➜** Overwrite ${formatOverwriteTarget(channel.guild, id)}`);
-    const states = [...overwriteStates(overwrite).entries()].sort(([a], [b]) =>
-      permissionLabel(a).localeCompare(permissionLabel(b))
+    lines.push(
+      `**➜** Added permissions for ${formatOverwriteTarget(channel.guild, id)}`,
+      ...overwriteBlock(overwrite)
     );
-    for (const [name, state] of states) {
-      lines.push(`  **➜** **${permissionLabel(name)}**: ${state}`);
-    }
   }
   return lines;
 }
