@@ -28,6 +28,7 @@ import StickerCreatedEvent from "./events/sticker-created.event";
 import StickerDeletedEvent from "./events/sticker-deleted.event";
 import StickerUpdatedEvent from "./events/sticker-updated.event";
 import UserAvatarUpdatedEvent from "./events/user-avatar-updated.event";
+import UserBannerUpdatedEvent from "./events/user-banner-updated.event";
 import UserDisplayNameUpdatedEvent from "./events/user-display-name-updated.event";
 import UserPresenceChangedEvent from "./events/user-presence-changed.event";
 import UserUsernameUpdatedEvent from "./events/user-username-updated.event";
@@ -219,9 +220,10 @@ export default class EventBridge {
         return;
       }
       const avatarChanged = oldUser.avatar !== newUser.avatar;
+      const bannerChanged = oldUser.banner !== newUser.banner;
       const usernameChanged = oldUser.username !== newUser.username;
       const displayNameChanged = oldUser.globalName !== newUser.globalName;
-      if (!avatarChanged && !usernameChanged && !displayNameChanged) {
+      if (!avatarChanged && !bannerChanged && !usernameChanged && !displayNameChanged) {
         return;
       }
       // Global user changes arrive without a guild, so fan them out to the
@@ -229,6 +231,9 @@ export default class EventBridge {
       this.fanOutToMutualGuilds(newUser.id, guild => {
         if (avatarChanged) {
           void EventBus.post(new UserAvatarUpdatedEvent(guild, oldUser, newUser));
+        }
+        if (bannerChanged) {
+          void EventBus.post(new UserBannerUpdatedEvent(guild, oldUser, newUser));
         }
         if (usernameChanged) {
           void EventBus.post(new UserUsernameUpdatedEvent(guild, oldUser, newUser));

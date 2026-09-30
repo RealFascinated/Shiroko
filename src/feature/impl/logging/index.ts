@@ -21,6 +21,7 @@ import StickerCreatedEvent from "@/event/events/sticker-created.event";
 import StickerDeletedEvent from "@/event/events/sticker-deleted.event";
 import StickerUpdatedEvent from "@/event/events/sticker-updated.event";
 import UserAvatarUpdatedEvent from "@/event/events/user-avatar-updated.event";
+import UserBannerUpdatedEvent from "@/event/events/user-banner-updated.event";
 import UserDisplayNameUpdatedEvent from "@/event/events/user-display-name-updated.event";
 import UserUsernameUpdatedEvent from "@/event/events/user-username-updated.event";
 import Feature from "@/feature/feature";
@@ -235,7 +236,21 @@ export default class LoggingFeature extends Feature {
         ],
       });
     });
-
+    this.handleEvent(UserBannerUpdatedEvent, "banner_update", async (event, channel) => {
+      const banner = event.newUser.bannerURL({ size: 4096, extension: "webp" }) ?? null;
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            banner
+              ? `**${event.newUser.tag}** changed their banner.`
+              : `**${event.newUser.tag}** removed their banner.`,
+            "",
+            `**➜** ID: \`${event.newUser.id}\``,
+            `**➜** Username: \`${event.newUser.username}\``,
+          ]).setImage(banner),
+        ],
+      });
+    });
     this.handleEvent(UserUsernameUpdatedEvent, "username_update", async (event, channel) => {
       await channel.send({
         embeds: [

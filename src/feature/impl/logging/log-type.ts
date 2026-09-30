@@ -2,6 +2,7 @@ export const logTypes = {
   member_join: { label: "Member Join" },
   member_leave: { label: "Member Leave" },
   avatar_update: { label: "Avatar Update" },
+  banner_update: { label: "Banner Update" },
   username_update: { label: "Username Update" },
   display_name_update: { label: "Display Name Update" },
   role_add: { label: "Role Added" },
