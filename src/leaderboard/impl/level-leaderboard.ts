@@ -31,7 +31,9 @@ export default class LevelLeaderboard extends UserLeaderboard<LeaderboardRow> {
 
   protected async countAhead(scope: string, value: number): Promise<number> {
     const [row] = await db
-      .select({ ahead: sql<number>`count(*) filter (where ${userLevelsSchema.xp} > ${value})`.mapWith(Number) })
+      .select({
+        ahead: sql<number>`count(*) filter (where ${userLevelsSchema.xp} > ${value})`.mapWith(Number),
+      })
       .from(userLevelsSchema)
       .where(eq(userLevelsSchema.guildId, scope));
     return row?.ahead ?? 0;

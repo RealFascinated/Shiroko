@@ -1,71 +1,132 @@
-import { Cache } from "@/cache/cache";
-import { Caches } from "@/cache/index";
-import { guildKey } from "@/cache/key";
-import { db } from "@/db";
-import { logsSchema } from "@/db/schemas/logs";
-import { EventHandler } from "@/event/event-handler";
+import type Event from "@/event/event";
+import { EventBus } from "@/event/event-bus";
 import MemberGuildJoinEvent from "@/event/events/member-guild-join.event";
+import MemberGuildLeaveEvent from "@/event/events/member-guild-leave.event";
+import MemberRolesUpdatedEvent from "@/event/events/member-roles-updated.event";
+import UserAvatarUpdatedEvent from "@/event/events/user-avatar-updated.event";
+import UserDisplayNameUpdatedEvent from "@/event/events/user-display-name-updated.event";
+import UserUsernameUpdatedEvent from "@/event/events/user-username-updated.event";
 import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
-import SettingsModule from "@/settings/settings-module";
-import { and, eq } from "drizzle-orm";
-import { ChannelType, type Guild, type TextChannel } from "discord.js";
-import { TimeUnit } from "@/lib/time";
 import { baseEmbed } from "@/lib/embed";
-import SettingsManager from "@/settings";
-
-type LogsSettingsData = {
-  channelId: string | null;
-};
-
-export const logsSettings = new SettingsModule<LogsSettingsData>({
-  id: "logs",
-  displayName: "Logs",
-  featureId: FeatureIds.Logging,
-  defaults: {
-    channelId: null,
-  },
-  descriptors: [
-    {
-      key: "channelId",
-      label: "Channel",
-      description: "The channel where the logs are sent",
-      type: "channel",
-      default: null,
-    },
-  ],
-});
-
-export enum LogType {
-  MemberJoin = "member_join"
-}
+import { ChannelType, EmbedBuilder, type Guild, type TextChannel } from "discord.js";
+import LoggingCommand from "./command/logging/logging.command";
+import type { LogType } from "./log-type";
+import { loggingService } from "./logging.service";
 
 export default class LoggingFeature extends Feature {
-  private readonly CACHE = Caches.register(
-    new Cache<boolean>({ name: "logging", mode: "authoritative", ttlMs: TimeUnit.toMillis(TimeUnit.Minute, 30) })
-  );
-
   constructor() {
     super(FeatureIds.Logging, { name: "Logging", emoji: "📔" });
-    SettingsManager.register(logsSettings);
-  }
 
-  /**
-   * Whether a log type is enabled for a guild. Absence of a row means the
-   * log type is off.
-   */
-  public async isEnabled(guild: Guild, logType: LogType): Promise<boolean> {
-    return this.CACHE.load(guildKey(guild.id, logType), async () => {
-      const rows = await db
-        .select({ enabled: logsSchema.enabled })
-        .from(logsSchema)
-        .where(and(eq(logsSchema.guildId, guild.id), eq(logsSchema.logType, logType)));
-      return rows[0]?.enabled ?? true;
+    this.registerCommand(new LoggingCommand());
+
+    this.handleEvent(MemberGuildJoinEvent, "member_join", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.member.user.tag}** joined the server.`,
+            "",
+            `**➜** ID: ${event.member.id}`,
+            `**➜** Username: ${event.member.user.username}`,
+            `**➜** Account Created: <t:${Math.floor(event.member.user.createdAt.getTime() / 1000)}>`,
+          ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(MemberGuildLeaveEvent, "member_leave", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.member.user.tag}** left the server.`,
+            "",
+            `**➜** ID: ${event.member.id}`,
+            `**➜** Username: ${event.member.user.username}`,
+          ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(UserAvatarUpdatedEvent, "avatar_update", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.newUser.tag}** changed their avatar.`,
+            "",
+            `**➜** ID: ${event.newUser.id}`,
+            `**➜** Username: ${event.newUser.username}`,
+          ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(UserUsernameUpdatedEvent, "username_update", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.newUser.tag}** changed their username.`,
+            "",
+            `**➜** ID: ${event.newUser.id}`,
+            `**➜** Before: ${event.oldUser.username}`,
+            `**➜** After: ${event.newUser.username}`,
+          ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(UserDisplayNameUpdatedEvent, "display_name_update", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.newUser.tag}** changed their display name.`,
+            "",
+            `**➜** ID: ${event.newUser.id}`,
+            `**➜** Before: ${event.oldUser.displayName}`,
+            `**➜** After: ${event.newUser.displayName}`,
+          ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(MemberRolesUpdatedEvent, "role_add", async (event, channel) => {
+      if (event.added.size === 0) {
+        return;
+      }
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.newMember.user.tag}** was given roles.`,
+            "",
+            `**➜** ID: ${event.newMember.id}`,
+            `**➜** Roles: ${event.added.map(role => role.toString()).join(", ")}`,
+          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(MemberRolesUpdatedEvent, "role_remove", async (event, channel) => {
+      if (event.removed.size === 0) {
+        return;
+      }
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `**${event.newMember.user.tag}** had roles removed.`,
+            "",
+            `**➜** ID: ${event.newMember.id}`,
+            `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
+          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
     });
   }
 
+  /**
+   * The guild's configured log channel, or `null` when unset or not a text
+   * channel.
+   */
   public async getLogsChannel(guild: Guild): Promise<TextChannel | null> {
-    const channelId = await logsSettings.get(guild.id, "channelId");
+    const channelId = await loggingService.getChannelId(guild);
     if (!channelId) {
       return null;
     }
@@ -76,25 +137,31 @@ export default class LoggingFeature extends Feature {
     return channel;
   }
 
-  public baseLogEmbed() {
-    return baseEmbed();
+  public baseLogEmbed(descriptionLines: string[] = []): EmbedBuilder {
+    return baseEmbed().setDescription(descriptionLines.join("\n")).setTimestamp(new Date());
   }
 
+  public handleEvent<T extends Event>(
+    eventClass: new (...args: any[]) => T,
+    logType: LogType,
+    callback: (event: T, channel: TextChannel) => Promise<void>
+  ): void {
+    EventBus.register(
+      this,
+      eventClass,
+      async event => {
+        if (!(await loggingService.isEnabled(event.guild!, logType))) {
+          return;
+        }
 
-  /**
-   * Send the welcome message to a member who just joined.
-   */
-  @EventHandler(MemberGuildJoinEvent, { featureId: FeatureIds.Welcomer })
-  public async onMemberGuildJoin(event: MemberGuildJoinEvent): Promise<void> {
-    if (!(await this.isEnabled(event.guild!, LogType.MemberJoin))) {
-      return;
-    }
+        const channel = await this.getLogsChannel(event.guild!);
+        if (!channel) {
+          return;
+        }
 
-    const channel = await this.getLogsChannel(event.guild!);
-    if (!channel) {
-      return;
-    }
-
-    await channel.send({ embeds: [this.baseLogEmbed().setDescription(`**${event.member.user.tag}** joined the server.`)] });
+        await callback(event, channel);
+      },
+      { featureId: FeatureIds.Logging }
+    );
   }
 }

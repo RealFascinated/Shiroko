@@ -75,7 +75,9 @@ describe("placeholder catalogs", () => {
   });
 
   test("the username token falls back to the tag when the user has one", async () => {
-    expect(await userPlaceholders.replace({ globalUser: globalUser("shiroko#1234") }, "{user_username}")).toBe("shiroko#1234");
+    expect(
+      await userPlaceholders.replace({ globalUser: globalUser("shiroko#1234") }, "{user_username}")
+    ).toBe("shiroko#1234");
   });
 
   test("the user executor leaves guild tokens verbatim", async () => {

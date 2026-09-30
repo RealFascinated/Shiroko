@@ -26,6 +26,7 @@ export const PermissionFlags = Object.freeze({
   SETTINGS_COMMAND: 1n << 4n,
   AUTOROLE_COMMAND: 1n << 5n,
   WELCOMER_COMMAND: 1n << 6n,
+  LOGGING_COMMAND: 1n << 7n,
 } as const satisfies Record<string, bigint>);
 
 /**
@@ -38,6 +39,7 @@ export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: st
   { flag: PermissionFlags.SETTINGS_COMMAND, label: "Settings Command" },
   { flag: PermissionFlags.AUTOROLE_COMMAND, label: "Autoroles Command" },
   { flag: PermissionFlags.WELCOMER_COMMAND, label: "Welcomer Command" },
+  { flag: PermissionFlags.LOGGING_COMMAND, label: "Logging Command" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];
@@ -290,7 +292,10 @@ export default class Permissions {
    */
   public static async loadGuild(guildId: string): Promise<Map<string, RoleConfig>> {
     return Permissions.CACHE.load(guildKey(guildId), async () => {
-      const rows = await db.select().from(permissionRolesSchema).where(eq(permissionRolesSchema.guildId, guildId));
+      const rows = await db
+        .select()
+        .from(permissionRolesSchema)
+        .where(eq(permissionRolesSchema.guildId, guildId));
       return new Map(rows.map(r => [r.roleId, { own: BigInt(r.flags), parent: r.parentRoleId }]));
     });
   }

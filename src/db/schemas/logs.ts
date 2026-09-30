@@ -1,4 +1,4 @@
-import type { LogType } from "@/feature/impl/logging";
+import type { LogType } from "@/feature/impl/logging/log-type";
 import { boolean, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 export const logsSchema = pgTable(

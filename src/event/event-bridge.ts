@@ -1,4 +1,4 @@
-import { Events, type Client } from "discord.js";
+import { Events, type Client, type Guild } from "discord.js";
 import { EventBus } from "./event-bus";
 import BotReadyEvent from "./events/bot-ready.event";
 import ComponentReceivedEvent from "./events/component-received.event";
@@ -8,12 +8,16 @@ import GuildLeftEvent from "./events/guild-left.event";
 import InviteCreatedEvent from "./events/invite-created.event";
 import InviteDeletedEvent from "./events/invite-deleted.event";
 import MemberGuildJoinEvent from "./events/member-guild-join.event";
+import MemberGuildLeaveEvent from "./events/member-guild-leave.event";
 import MemberRolesUpdatedEvent from "./events/member-roles-updated.event";
 import MessageCreatedEvent from "./events/message-created.event";
 import RoleDeletedEvent from "./events/role-deleted.event";
 import RoleUpdatedEvent from "./events/role-updated.event";
 import SlashCommandReceivedEvent from "./events/slash-command-received.event";
+import UserAvatarUpdatedEvent from "./events/user-avatar-updated.event";
+import UserDisplayNameUpdatedEvent from "./events/user-display-name-updated.event";
 import UserPresenceChangedEvent from "./events/user-presence-changed.event";
+import UserUsernameUpdatedEvent from "./events/user-username-updated.event";
 import VoiceStateChangedEvent from "./events/voice-state-changed.event";
 
 /**
@@ -88,6 +92,13 @@ export default class EventBridge {
       void EventBus.post(new MemberGuildJoinEvent(member));
     });
 
+    client.on(Events.GuildMemberRemove, member => {
+      if (member.user.bot) {
+        return;
+      }
+      void EventBus.post(new MemberGuildLeaveEvent(member));
+    });
+
     client.on(Events.GuildRoleUpdate, role => {
       void EventBus.post(new RoleUpdatedEvent(role.id, role.guild));
     });
@@ -97,9 +108,43 @@ export default class EventBridge {
     });
 
     client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
-      if (oldMember.roles.cache.size !== newMember.roles.cache.size) {
-        void EventBus.post(new MemberRolesUpdatedEvent(oldMember, newMember));
+      // `roles.cache` includes @everyone for both members, so it cancels out
+      // and never shows as a spurious addition or removal.
+      const oldRoleIds = new Set(oldMember.roles.cache.keys());
+      const newRoleIds = new Set(newMember.roles.cache.keys());
+      const added = newMember.roles.cache.filter(role => !oldRoleIds.has(role.id));
+      const removed = oldMember.roles.cache.filter(role => !newRoleIds.has(role.id));
+      if (added.size > 0 || removed.size > 0) {
+        void EventBus.post(new MemberRolesUpdatedEvent(oldMember, newMember, added, removed));
       }
+      if (oldMember.avatar !== newMember.avatar && !newMember.user.bot) {
+        void EventBus.post(new UserAvatarUpdatedEvent(newMember.guild, oldMember.user, newMember.user));
+      }
+    });
+
+    client.on(Events.UserUpdate, (oldUser, newUser) => {
+      if (newUser.bot) {
+        return;
+      }
+      const avatarChanged = oldUser.avatar !== newUser.avatar;
+      const usernameChanged = oldUser.username !== newUser.username;
+      const displayNameChanged = oldUser.globalName !== newUser.globalName;
+      if (!avatarChanged && !usernameChanged && !displayNameChanged) {
+        return;
+      }
+      // Global user changes arrive without a guild, so fan them out to the
+      // mutual guilds the bot and user share for per-guild logging.
+      this.fanOutToMutualGuilds(newUser.id, guild => {
+        if (avatarChanged) {
+          void EventBus.post(new UserAvatarUpdatedEvent(guild, oldUser, newUser));
+        }
+        if (usernameChanged) {
+          void EventBus.post(new UserUsernameUpdatedEvent(guild, oldUser, newUser));
+        }
+        if (displayNameChanged) {
+          void EventBus.post(new UserDisplayNameUpdatedEvent(guild, oldUser, newUser));
+        }
+      });
     });
 
     client.on(Events.PresenceUpdate, (oldPresence, newPresence) => {
@@ -119,5 +164,18 @@ export default class EventBridge {
         void EventBus.post(new ComponentReceivedEvent(interaction));
       }
     });
+  }
+
+  /**
+   * Run a callback for every mutual guild of the given user: a global user
+   * change has no guild of its own, so per-guild consumers need one event
+   * per shared guild.
+   */
+  private fanOutToMutualGuilds(userId: string, callback: (guild: Guild) => void): void {
+    for (const guild of this.client.guilds.cache.values()) {
+      if (guild.members.cache.has(userId)) {
+        callback(guild);
+      }
+    }
   }
 }

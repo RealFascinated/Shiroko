@@ -34,7 +34,11 @@ export default class VoiceLeaderboard extends UserLeaderboard<LeaderboardRow> {
       })
       .from(voiceSessionsSchema)
       .where(
-        and(eq(voiceSessionsSchema.guildId, scope), eq(voiceSessionsSchema.userId, id), isNotNull(voiceSessionsSchema.leftAt))
+        and(
+          eq(voiceSessionsSchema.guildId, scope),
+          eq(voiceSessionsSchema.userId, id),
+          isNotNull(voiceSessionsSchema.leftAt)
+        )
       )
       .groupBy(voiceSessionsSchema.userId);
     return row ?? null;

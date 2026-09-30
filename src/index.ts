@@ -14,6 +14,7 @@ import GuildJoinedEvent from "./event/events/guild-joined.event";
 import GuildLeftEvent from "./event/events/guild-left.event";
 import PostCommandLoadEvent from "./event/events/post-command-load.event";
 import { BirthdayScheduler } from "./feature/impl/birthday/birthday-scheduler";
+import LoggingFeature from "./feature/impl/logging";
 import FeatureManager from "./feature/index";
 import { env } from "./lib/env";
 import { DiscordBotListManager } from "./lib/misc/discordbotlist";
@@ -37,7 +38,6 @@ import { MetricManager } from "./metrics/index";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
 import { settingsPanel } from "./settings/settings-panel";
-import LoggingFeature from "./feature/impl/logging";
 
 const beforeMigrate = Date.now();
 await migrate(db, { migrationsFolder: "./drizzle" });

@@ -1,4 +1,3 @@
-import { discordTimestamp } from "@/lib/time";
 import { definePlaceholder, type Placeholder, type PlaceholderContext } from "../placeholder";
 
 /**

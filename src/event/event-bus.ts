@@ -43,8 +43,7 @@ export class EventBus {
    * becomes a handler on the bus.
    */
   public static subscribe(listener: EventListener): void {
-    const handlers = EventBus.listenerHandlers(listener);
-    for (const metadata of handlers) {
+    for (const metadata of EventBus.listenerHandlers(listener)) {
       const method = listener[metadata.method as keyof EventListener] as
         ((event: Event) => void | Promise<void>) | undefined;
       if (typeof method !== "function") {
@@ -52,19 +51,36 @@ export class EventBus {
           `EventListener "${listener.constructor.name}" declares @EventHandler for ${metadata.method} but the method does not exist`
         );
       }
-      const key = metadata.eventClass as new (...args: any[]) => Event;
-      const entries = EventBus.HANDLERS.get(key) ?? [];
-      entries.push({
-        listener,
-        method: metadata.method,
-        // Bind so `this` is the listener instance at dispatch time
-        // (standard decorators don't autobind).
-        handler: method.bind(listener) as AnyHandler,
-        featureId: metadata.featureId,
-        priority: 0,
-      });
-      EventBus.HANDLERS.set(key, entries);
+      // Bind so `this` is the listener instance at dispatch time
+      // (standard decorators don't autobind).
+      EventBus.add(listener, metadata.eventClass, metadata.method, method.bind(listener), metadata.featureId);
     }
+  }
+
+  /**
+   * Register a single handler for an event class without a decorated
+   * method, for listeners whose handlers are built dynamically (e.g. one
+   * pipeline shared across several event classes).
+   */
+  public static register<T extends Event>(
+    listener: EventListener,
+    eventClass: new (...args: any[]) => T,
+    handler: (event: T) => void | Promise<void>,
+    options: { featureId?: FeatureIds } = {}
+  ): void {
+    EventBus.add(listener, eventClass, "", handler as AnyHandler, options.featureId ?? null);
+  }
+
+  private static add(
+    listener: EventListener,
+    eventClass: new (...args: any[]) => Event,
+    method: string,
+    handler: AnyHandler,
+    featureId: FeatureIds | null
+  ): void {
+    const entries = EventBus.HANDLERS.get(eventClass) ?? [];
+    entries.push({ listener, method, handler, featureId, priority: 0 });
+    EventBus.HANDLERS.set(eventClass, entries);
   }
 
   /**

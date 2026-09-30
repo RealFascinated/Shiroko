@@ -84,11 +84,14 @@ export class SlashCommandListener extends EventListener {
       return;
     }
 
-    if (guild && (resolved ?? command).featureId) {
-      const enabled = await GuildFeatures.isFeatureEnabled(guild, (resolved ?? command).featureId!);
+    // A subcommand's own `featureId` wins; otherwise it inherits the
+    // parent's, so a feature command gates its whole family.
+    const featureId = resolved?.featureId ?? command.featureId;
+    if (guild && featureId) {
+      const enabled = await GuildFeatures.isFeatureEnabled(guild, featureId);
       if (!enabled) {
         await interaction.reply({
-          content: `The \`${(resolved ?? command).featureId}\` feature is disabled in this server.`,
+          content: `The \`${featureId}\` feature is disabled in this server.`,
           flags: MessageFlags.Ephemeral,
         });
         return;
