@@ -8,7 +8,6 @@ function globalUser(): GlobalUser {
     id: "7",
     displayName: "Shiro",
     username: "shiroko",
-    displayAvatarURL: () => "https://example.test/avatar.png",
   } as unknown as User;
   return { id: "7", firstSeen: new Date(0), discordUser: user } as unknown as GlobalUser;
 }
@@ -17,7 +16,6 @@ function guild(): Guild {
   return {
     name: "Test Guild",
     id: "1",
-    iconURL: () => null,
     ownerId: "2",
     createdAt: new Date(0),
     memberCount: 42,
@@ -35,11 +33,9 @@ describe("placeholder catalogs", () => {
       "user_name",
       "user_username",
       "user_mention",
-      "user_avatar",
       "user_first_seen",
       "guild_name",
       "guild_id",
-      "guild_icon",
       "guild_owner_mention",
       "guild_created_at",
       "member_count",
@@ -56,7 +52,6 @@ describe("placeholder catalogs", () => {
       "user_name",
       "user_username",
       "user_mention",
-      "user_avatar",
       "user_first_seen",
     ]);
   });
@@ -67,11 +62,6 @@ describe("placeholder catalogs", () => {
       "{guild_name} ({member_count}) {user_name} <@{user_id}>"
     );
     expect(text).toBe("Test Guild (42) Shiro <@7>");
-  });
-
-  test("renders an iconless guild's icon as empty", async () => {
-    const text = await placeholders.replace({ globalUser: globalUser(), guild: guild() }, "[{guild_icon}]");
-    expect(text).toBe("[]");
   });
 
   test("renders a missing boost count as 0", async () => {

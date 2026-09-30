@@ -27,11 +27,6 @@ const globalUserPlaceholders: ReadonlyArray<Placeholder<PlaceholderContext>> = [
     resolve: context => `<@${context.globalUser.id}>`,
   }),
   definePlaceholder({
-    key: "user_avatar",
-    description: "A URL to the user's displayed avatar.",
-    resolve: context => context.globalUser.discordUser.displayAvatarURL(),
-  }),
-  definePlaceholder({
     key: "user_first_seen",
     description: "The date the user was first seen by the bot.",
     resolve: context => discordTimestamp(context.globalUser.firstSeen, "D"),

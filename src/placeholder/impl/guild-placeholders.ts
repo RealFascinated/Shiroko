@@ -18,11 +18,6 @@ const guildPlaceholders: ReadonlyArray<Placeholder<GuildPlaceholderContext>> = [
     resolve: context => context.guild.id,
   }),
   definePlaceholder({
-    key: "guild_icon",
-    description: "A URL to the guild's icon, or empty when it has none.",
-    resolve: context => context.guild.iconURL() ?? "",
-  }),
-  definePlaceholder({
     key: "guild_owner_mention",
     description: "A mention that pings the guild owner.",
     resolve: context => `<@${context.guild.ownerId}>`,

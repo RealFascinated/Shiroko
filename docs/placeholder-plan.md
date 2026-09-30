@@ -19,7 +19,7 @@ consumed everywhere.
 - **Unknown tokens are left verbatim.** `Hello {nope}` renders as
   `Hello {nope}`. Silently emptying a mistyped token hides the mistake; the
   raw token in the output is a visible bug report. A resolved-but-absent
-  value (`{guild_icon}` on an icon-less guild) renders as the empty string.
+  value (e.g. a missing boost count) renders as the empty string.
 - Resolution is **asynchronous and ordered**: the template is scanned, every
   distinct key is resolved once (in parallel), then substituted.
 - Case sensitive. `{Guild_Name}` is not `{guild_name}`.
@@ -251,7 +251,6 @@ synchronously today, and section 7 covers adding more.
 | `{user_name}`       | Global display name, else username    |
 | `{user_username}`   | Username, without discriminator       |
 | `{user_mention}`    | `<@id>`                               |
-| `{user_avatar}`     | `displayAvatarURL()`                  |
 | `{user_first_seen}` | `<t:…:D>` from `globalUser.firstSeen` |
 
 ### Guild-scoped (`GuildPlaceholderContext`)
@@ -262,7 +261,6 @@ Synchronous, straight off the discord.js object:
 | ----------------------- | --------------------------------------------- |
 | `{guild_name}`          | `guild.name`                                  |
 | `{guild_id}`            | `guild.id`                                    |
-| `{guild_icon}`          | `iconURL() ?? ""`                             |
 | `{guild_owner_mention}` | `<@ownerId>`                                  |
 | `{guild_created_at}`    | `<t:…:D>` from `guild.createdAt`              |
 | `{member_count}`        | `guild.memberCount` (includes bots)           |
