@@ -8,7 +8,9 @@ import { FeatureIds } from "../feature-ids";
 import GuildFeatures from "../guild-features";
 
 const FEATURE_CHOICES: Record<string, string> = Object.fromEntries(
-  Feature.all().map(feature => [feature.id, feature.name])
+  Feature.all()
+    .filter(feature => feature.toggleable)
+    .map(feature => [feature.id, feature.name])
 );
 
 export default class FeatureCommand extends Command {

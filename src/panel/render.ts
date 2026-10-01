@@ -91,7 +91,7 @@ function viewSelectRow<C extends object>(
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(panelCustomId(panel.segment, view.segment, "root"))
-      .setPlaceholder("View")
+      .setPlaceholder(panel.viewPlaceholder ?? "View")
       .setMinValues(1)
       .setMaxValues(1)
       .addOptions(

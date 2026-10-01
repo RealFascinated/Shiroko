@@ -41,11 +41,11 @@ Every command should be user-installable unless it needs the guild. Override `us
 
 A command that registers subcommands cannot be invoked directly; Discord always sends a subcommand, so the parent's `onExecuteSlash` is never called. Don't implement a "choose a subcommand" handler or reply on such parents; leave `onExecuteSlash` at its default no-op and put all logic in the subcommands. `executeSlash` already short-circuits: it dispatches to the subcommand, or returns silently if none is supplied.
 
-Subcommands live in their own files under a `sub/` folder next to the parent command file (e.g. `src/command/commands/user/sub/avatar.command.ts`). Never inline subcommand classes into the parent file; the parent only imports and registers them. Shared helpers for those subcommands go in the same `sub/` folder (e.g. `sub/permissions-helpers.ts`).
+Subcommands live in their own files under a `sub/` folder next to the parent command file (e.g. `src/feature/impl/general/command/user/sub/avatar.command.ts`). Never inline subcommand classes into the parent file; the parent only imports and registers them. Shared helpers for those subcommands go in the same `sub/` folder (e.g. `sub/permissions-helpers.ts`).
 
-A command that has subcommands gets its own folder: parent file plus `sub/` (e.g. `src/command/commands/user/user.command.ts` + `src/command/commands/user/sub/`). Standalone commands with no subcommands stay flat files in `src/command/commands/`.
+A command that has subcommands gets its own folder: parent file plus `sub/` (e.g. `src/feature/impl/general/command/user/user.command.ts` + `src/feature/impl/general/command/user/sub/`). Standalone commands with no subcommands stay flat files.
 
-Commands owned by a feature live inside that feature's folder, under `command/` (e.g. `src/feature/stats/command/stats/stats.command.ts`, `src/feature/social/command/react/react.command.ts`). A feature with commands keeps them there, not in `src/command/commands/`. The general commands (`ping`, `user`, `botstats`, `guildinfo`, `/permissions`) stay in `src/command/commands/` (and `src/permission/`).
+Commands owned by a feature live inside that feature's folder, under `command/` (e.g. `src/feature/impl/stats/command/stats/stats.command.ts`, `src/feature/impl/social/command/react/react.command.ts`). A feature with commands keeps them there, not in `src/command/commands/`. The general commands (`ping`, `user`, `botstats`, `guildinfo`, `help`, `leaderboard`, `8ball`) live in the `General` feature (`src/feature/impl/general/command/`), which is always on and cannot be toggled. `/permissions` and `/settings` own features stay in `src/permission/` and `src/settings/`.
 
 ## Permissions
 
@@ -188,9 +188,9 @@ Never use em dashes (`—`) in code, comments, docs, or this file. Use a period 
 Use relative specifiers for anything at or below the current directory, and the `@/` alias (which maps to `src/`, per `"@/*": ["./src/*"]` in `tsconfig.json`) once a path climbs two or more directories up.
 
 ```ts
-// src/command/commands/ping.command.ts
-import Command from "../command"; // one up
-import { baseEmbed } from "@/lib/embed"; // three up, too deep to count
+// src/feature/impl/general/command/ping.command.ts
+import Command from "@/command/command"; // several up, too deep to count
+import { baseEmbed } from "@/lib/embed";
 ```
 
 - Same directory: `./option`, `./sub/rank.command`. Descending never changes the specifier's form.

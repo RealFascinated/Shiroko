@@ -5,6 +5,7 @@ import { FeatureIds } from "./feature-ids";
 
 type FeatureOptions = {
   defaultEnabled?: boolean;
+  toggleable?: boolean;
   name?: string;
   emoji?: string;
 };
@@ -21,6 +22,7 @@ export default class Feature extends EventListener {
   public readonly options: Required<FeatureOptions>;
   public readonly name: string;
   public readonly emoji: string;
+  public readonly toggleable: boolean;
 
   public commands: Command[] = [];
 
@@ -28,9 +30,10 @@ export default class Feature extends EventListener {
     super();
     EventBus.subscribe(this);
     this.id = id;
-    this.options = { defaultEnabled: true, name: id, emoji: "⚙️", ...options };
+    this.options = { defaultEnabled: true, toggleable: true, name: id, emoji: "⚙️", ...options };
     this.name = this.options.name;
     this.emoji = this.options.emoji;
+    this.toggleable = this.options.toggleable;
     Feature.REGISTRY.set(id, this);
   }
 

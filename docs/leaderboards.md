@@ -344,7 +344,7 @@ the old ranking code was deleted. No shims, no legacy paths.
      (Shape B), plus the `(guild_id, user_id)` index migration
      (`drizzle/0024`).
 4. **Command** (done)
-   - `/leaderboard` parent in `src/command/commands/leaderboard/` with
+   - `/leaderboard` parent in `src/feature/impl/general/command/leaderboard/` with
      `level`, `messages`, `invites`, and `voice` subcommands, all
      paginated. The old `/levels leaderboard` and `/invites leaderboard`
      subcommands were deleted (moved, not shimmed). The shared base

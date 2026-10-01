@@ -221,6 +221,12 @@ export default abstract class Panel<C extends object> {
   public readonly subtitle: string | undefined = undefined;
 
   /**
+   * The placeholder on the automatic view switcher, shown only when a panel
+   * declares several views. Defaults to "View" when unset.
+   */
+  public readonly viewPlaceholder: string | undefined = undefined;
+
+  /**
    * Read the panel's whole config for a guild.
    */
   public abstract getConfig(guild: Guild): Promise<C>;
