@@ -1,3 +1,6 @@
+import { assetChange } from "@/storage/media-asset";
+import { MediaKind } from "@/storage/media-key";
+import MediaService from "@/storage/media.service";
 import { Events, type Client, type DMChannel, type Guild, type NonThreadGuildBasedChannel } from "discord.js";
 import { EventBus } from "./event-bus";
 import BotReadyEvent from "./events/bot-ready.event";
@@ -197,7 +200,7 @@ export default class EventBridge {
       void EventBus.post(new RoleDeletedEvent(role));
     });
 
-    client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
+    client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
       // `roles.cache` includes @everyone for both members, so it cancels out
       // and never shows as a spurious addition or removal.
       const oldRoleIds = new Set(oldMember.roles.cache.keys());
@@ -208,14 +211,22 @@ export default class EventBridge {
         void EventBus.post(new MemberRolesUpdatedEvent(oldMember, newMember, added, removed));
       }
       if (oldMember.avatar !== newMember.avatar && !newMember.user.bot) {
-        void EventBus.post(new UserAvatarUpdatedEvent(newMember.guild, oldMember.user, newMember.user));
+        const { beforeUrl, afterUrl } = await MediaService.capture(
+          newMember.user.id,
+          MediaKind.Avatar,
+          assetChange(MediaKind.Avatar, oldMember.user),
+          assetChange(MediaKind.Avatar, newMember.user)
+        );
+        await EventBus.post(
+          new UserAvatarUpdatedEvent(newMember.guild, oldMember.user, newMember.user, beforeUrl, afterUrl)
+        );
       }
       if (oldMember.nickname !== newMember.nickname) {
         void EventBus.post(new MemberNicknameUpdatedEvent(oldMember, newMember));
       }
     });
 
-    client.on(Events.UserUpdate, (oldUser, newUser) => {
+    client.on(Events.UserUpdate, async (oldUser, newUser) => {
       if (newUser.bot) {
         return;
       }
@@ -228,12 +239,24 @@ export default class EventBridge {
       }
       // Global user changes arrive without a guild, so fan them out to the
       // mutual guilds the bot and user share for per-guild logging.
-      this.fanOutToMutualGuilds(newUser.id, guild => {
+      await this.fanOutToMutualGuilds(newUser.id, async guild => {
         if (avatarChanged) {
-          void EventBus.post(new UserAvatarUpdatedEvent(guild, oldUser, newUser));
+          const { beforeUrl, afterUrl } = await MediaService.capture(
+            newUser.id,
+            MediaKind.Avatar,
+            assetChange(MediaKind.Avatar, oldUser),
+            assetChange(MediaKind.Avatar, newUser)
+          );
+          await EventBus.post(new UserAvatarUpdatedEvent(guild, oldUser, newUser, beforeUrl, afterUrl));
         }
         if (bannerChanged) {
-          void EventBus.post(new UserBannerUpdatedEvent(guild, oldUser, newUser));
+          const { beforeUrl, afterUrl } = await MediaService.capture(
+            newUser.id,
+            MediaKind.Banner,
+            assetChange(MediaKind.Banner, oldUser),
+            assetChange(MediaKind.Banner, newUser)
+          );
+          await EventBus.post(new UserBannerUpdatedEvent(guild, oldUser, newUser, beforeUrl, afterUrl));
         }
         if (usernameChanged) {
           void EventBus.post(new UserUsernameUpdatedEvent(guild, oldUser, newUser));
@@ -266,12 +289,16 @@ export default class EventBridge {
   /**
    * Run a callback for every mutual guild of the given user: a global user
    * change has no guild of its own, so per-guild consumers need one event
-   * per shared guild.
+   * per shared guild. Awaited so a media capture completes before the event
+   * it backs is posted.
    */
-  private fanOutToMutualGuilds(userId: string, callback: (guild: Guild) => void): void {
+  private async fanOutToMutualGuilds(
+    userId: string,
+    callback: (guild: Guild) => Promise<void> | void
+  ): Promise<void> {
     for (const guild of this.client.guilds.cache.values()) {
       if (guild.members.cache.has(userId)) {
-        callback(guild);
+        await callback(guild);
       }
     }
   }

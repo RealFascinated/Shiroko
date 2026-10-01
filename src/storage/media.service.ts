@@ -1,7 +1,14 @@
 import { and, eq, isNotNull, isNull, lt, ne } from "drizzle-orm";
 import { db } from "../db/index";
 import { mediaSchema } from "../db/schemas/media";
-import { assetContentType, assetExtension, mediaKey, MediaKind } from "./media-key";
+import {
+  assetContentType,
+  assetExtension,
+  mediaKey,
+  MediaKind,
+  mediaUrl,
+  type AssetChange,
+} from "./media-key";
 import StorageService, { StorageBucket } from "./storage";
 
 export interface StoreMediaOptions {
@@ -151,6 +158,69 @@ export default class MediaService {
       .where(
         and(eq(mediaSchema.userId, userId), eq(mediaSchema.kind, kind), isNull(mediaSchema.supersededAt))
       );
+  }
+
+  /**
+   * Record a change to a user's asset and return the stored URLs on both
+   * sides. The previous asset is backfilled as historical (it was never
+   * seen as "new") so it starts its TTL, and the new asset becomes current;
+   * a removed asset has no live URL, so the last current one is superseded
+   * instead.
+   *
+   * Resolving the URLs here, before the change event is posted, is what
+   * lets every listener render a link that is known to exist: an upload can
+   * legitimately fail (Discord has usually invalidated the old hash by the
+   * time the change is observed), so the URL is only valid once the bytes
+   * were written.
+   *
+   * @param userId - the Discord user id.
+   * @param kind - the media kind.
+   * @param previous - the asset before the change.
+   * @param current - the asset after the change.
+   * @returns the stored URLs of the previous and current assets, each null
+   * when it is not in storage.
+   */
+  public static async capture(
+    userId: string,
+    kind: MediaKind,
+    previous: AssetChange,
+    current: AssetChange
+  ): Promise<{ beforeUrl: string | null; afterUrl: string | null }> {
+    if (previous.hash !== current.hash) {
+      if (previous.hash && previous.sourceUrl) {
+        await MediaService.backfill({ userId, kind, hash: previous.hash, sourceUrl: previous.sourceUrl });
+      }
+      if (current.hash && current.sourceUrl) {
+        await MediaService.store({ userId, kind, hash: current.hash, sourceUrl: current.sourceUrl });
+      } else {
+        await MediaService.supersede(userId, kind);
+      }
+    }
+    const [beforeUrl, afterUrl] = await Promise.all([
+      previous.hash ? MediaService.storedUrl(kind, userId, previous.hash) : null,
+      current.hash ? MediaService.storedUrl(kind, userId, current.hash) : null,
+    ]);
+    return { beforeUrl, afterUrl };
+  }
+
+  /**
+   * The stored URL of an asset, or null when it is not in storage. A stored
+   * link is only valid once the bytes were captured, and an upload can
+   * legitimately fail (Discord has usually invalidated the old hash by the
+   * time the change is observed), so a computed URL alone would point at an
+   * object that was never written.
+   *
+   * @param kind - the media kind.
+   * @param userId - the Discord user id.
+   * @param hash - Discord's asset hash.
+   * @returns the asset's public URL, or null when it is not stored.
+   */
+  private static async storedUrl(kind: MediaKind, userId: string, hash: string): Promise<string | null> {
+    const [row] = await db
+      .select({ hash: mediaSchema.hash })
+      .from(mediaSchema)
+      .where(and(eq(mediaSchema.userId, userId), eq(mediaSchema.kind, kind), eq(mediaSchema.hash, hash)));
+    return row ? mediaUrl(kind, userId, hash) : null;
   }
 
   /**

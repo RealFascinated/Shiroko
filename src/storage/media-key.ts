@@ -11,6 +11,17 @@ export enum MediaKind {
 }
 
 /**
+ * One side of a media change: Discord's asset hash and the live CDN URL the
+ * bytes are fetched from. Either is null when the asset is absent.
+ */
+export interface AssetChange {
+  /** Discord's asset hash, including the `a_` prefix when animated. */
+  readonly hash: string | null;
+  /** Live Discord CDN URL to fetch the bytes from, or null when absent. */
+  readonly sourceUrl: string | null;
+}
+
+/**
  * The format an asset is stored and served in. Discord prefixes an animated
  * asset hash with `a_`, and only GIF preserves the animation; static assets
  * are stored as WebP.

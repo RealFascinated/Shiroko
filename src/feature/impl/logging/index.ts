@@ -237,13 +237,13 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
-            `**➜** Avatar: ${assetLink(event.oldAssetUrl, "before")} → ${assetLink(event.newAssetUrl, "after")}`,
-          ]).setThumbnail(event.newAssetUrl),
+            `**➜** Avatar: ${assetLink(event.beforeAssetUrl, "before")} → ${assetLink(event.afterAssetUrl, "after")}`,
+          ]).setThumbnail(event.afterAssetUrl),
         ],
       });
     });
     this.handleEvent(UserBannerUpdatedEvent, "banner_update", async (event, channel) => {
-      const banner = event.newAssetUrl;
+      const banner = event.afterAssetUrl;
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -253,7 +253,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
-            `**➜** Banner: ${assetLink(event.oldAssetUrl, "before")} → ${assetLink(banner, "after")}`,
+            `**➜** Banner: ${assetLink(event.beforeAssetUrl, "before")} → ${assetLink(banner, "after")}`,
           ]).setImage(banner),
         ],
       });
