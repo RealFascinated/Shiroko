@@ -69,7 +69,7 @@ function formatRoleIds(roleIds: string[]): string {
 
 /** Render a stored asset URL as a markdown link, or "None" when absent. */
 function assetLink(url: string | null, type: "before" | "after"): string {
-  return url ? `[[${type}]](${url})` : "None";
+  return url ? `[[${type}]](${url})` : "Unknown";
 }
 
 /** User-facing names for Discord's channel types. */
