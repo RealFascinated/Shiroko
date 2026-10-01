@@ -99,21 +99,29 @@ function toCommandInfo(command: Command): HelpCommandInfo {
 function categoryLines(category: HelpCategory): string[] {
   const lines = [`### ${category.emoji} ${category.label}`, countLine(category), "", "**Commands**"];
   for (const command of category.commands) {
-    lines.push(`${command.mention} - ${command.description}`);
-    for (const sub of command.subcommands) {
-      lines.push(`${sub.mention} - ${sub.description}`);
+    // A command with subcommands has no invocable root, so list only the
+    // subcommands; their mentions already name the parent.
+    if (command.subcommands.length > 0) {
+      for (const sub of command.subcommands) {
+        lines.push(`${sub.mention} - ${sub.description}`);
+      }
+      continue;
     }
+    lines.push(`${command.mention} - ${command.description}`);
   }
   return lines;
 }
 
 function countLine(category: HelpCategory): string {
   const subcommands = category.commands.reduce((total, command) => total + command.subcommands.length, 0);
-  const commands = category.commands.length;
+  const commands = category.commands.filter(command => command.subcommands.length === 0).length;
+  const subWord = subcommands === 1 ? "sub-command" : "sub-commands";
+  if (commands === 0) {
+    return `${subcommands} ${subWord}`;
+  }
   const commandWord = commands === 1 ? "command" : "commands";
   if (subcommands === 0) {
     return `${commands} ${commandWord}`;
   }
-  const subWord = subcommands === 1 ? "sub-command" : "sub-commands";
   return `${commands} ${commandWord} (with ${subcommands} ${subWord})`;
 }
