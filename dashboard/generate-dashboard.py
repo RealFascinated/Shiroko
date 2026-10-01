@@ -227,6 +227,32 @@ CATEGORIES = [
         ],
     },
     {
+        # Media bucket occupancy: live objects plus the superseded backlog
+        # awaiting the TTL sweep. Totals are the real S3 footprint.
+        "key": "media",
+        "title": "🖼️ Media",
+        "panels": [
+            {
+                "key": "media-files",
+                "title": "Stored files",
+                "expr": "media_files{job=\"$job\"}",
+                "unit": "short",
+                "min": 0,
+                "width": 12,
+                "legend": "{{state}}",
+            },
+            {
+                "key": "media-bytes",
+                "title": "Stored size",
+                "expr": "media_bytes{job=\"$job\"}",
+                "unit": "bytes",
+                "min": 0,
+                "width": 12,
+                "legend": "{{state}}",
+            },
+        ],
+    },
+    {
         "key": "events",
         "title": "📈 Events per second",
         "panels": [

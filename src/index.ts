@@ -30,6 +30,7 @@ import { DiscordEventsMetric } from "./metrics/impl/discord-events";
 import { EventLoopMetric } from "./metrics/impl/event-loop-delay";
 import { GatewayLatencyMetric } from "./metrics/impl/gateway-latency";
 import { GuildsMetric } from "./metrics/impl/guild-count";
+import { MediaBytesMetric, MediaFilesMetric } from "./metrics/impl/media";
 import { ProcessRamTotalMetric } from "./metrics/impl/process-ram-total";
 import { ProcessRamUsedMetric } from "./metrics/impl/process-ram-used";
 import { SeenUsersMetric } from "./metrics/impl/seen-users";
@@ -73,6 +74,8 @@ metricManager.register(new UptimeMetric());
 metricManager.register(new EventLoopMetric());
 metricManager.register(new CacheMetricsMetric());
 metricManager.register(new DiscordCacheMetric(discordClient));
+metricManager.register(new MediaFilesMetric());
+metricManager.register(new MediaBytesMetric());
 const discordEventsMetric = metricManager.register(new DiscordEventsMetric());
 new EventVolumeListeners(discordEventsMetric);
 
