@@ -11,6 +11,7 @@ import { guildUsersSchema } from "./schemas/guild-users";
 import { interactionsSchema } from "./schemas/interactions";
 import { inviteJoinsSchema } from "./schemas/invite-joins";
 import { levelRewardsSchema } from "./schemas/level-rewards";
+import { mediaSchema } from "./schemas/media";
 import { messageEventsSchema } from "./schemas/message-events";
 import { userLevelsSchema } from "./schemas/user-levels";
 import { voiceSessionsSchema } from "./schemas/voice-sessions";
@@ -31,6 +32,7 @@ export const schema = {
   userLevels: userLevelsSchema,
   levelRewards: levelRewardsSchema,
   interactions: interactionsSchema,
+  media: mediaSchema,
   messageEvents: messageEventsSchema,
   voiceSessions: voiceSessionsSchema,
 };

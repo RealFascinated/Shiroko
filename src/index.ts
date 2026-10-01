@@ -38,10 +38,14 @@ import { MetricManager } from "./metrics/index";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
 import { settingsPanel } from "./settings/settings-panel";
+import { MediaListeners } from "./storage/media-listeners";
+import StorageService from "./storage/storage";
 
 const beforeMigrate = Date.now();
 await migrate(db, { migrationsFolder: "./drizzle" });
 console.log(`Migrations complete in ${formatDuration(Date.now() - beforeMigrate)}`);
+
+await StorageService.init();
 
 export const discordClient = new Client({
   intents: [
@@ -130,6 +134,7 @@ new ContextMenuCommandListener();
 new FeatureManager();
 new LoggingFeature();
 new BirthdayScheduler();
+new MediaListeners();
 
 if (env.VM_PUSH_URL) {
   const exporter = new VictoriaMetricsExporter(metricManager, {

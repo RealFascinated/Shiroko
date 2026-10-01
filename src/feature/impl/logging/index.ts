@@ -67,6 +67,11 @@ function formatRoleIds(roleIds: string[]): string {
   return roleIds.length > 0 ? roleIds.map(id => `<@&${id}>`).join(", ") : "None";
 }
 
+/** Render a stored asset URL as a markdown link, or "None" when absent. */
+function assetLink(url: string | null, type: "before" | "after"): string {
+  return url ? `[[${type}]](${url})` : "None";
+}
+
 /** User-facing names for Discord's channel types. */
 const CHANNEL_TYPE_NAMES: Record<number, string> = {
   [ChannelType.GuildText]: "Text",
@@ -232,12 +237,13 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
-          ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
+            `**➜** Avatar: ${assetLink(event.oldAssetUrl, "before")} → ${assetLink(event.newAssetUrl, "after")}`,
+          ]).setThumbnail(event.newAssetUrl),
         ],
       });
     });
     this.handleEvent(UserBannerUpdatedEvent, "banner_update", async (event, channel) => {
-      const banner = event.newUser.bannerURL({ size: 4096, extension: "webp" }) ?? null;
+      const banner = event.newAssetUrl;
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -247,6 +253,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
+            `**➜** Banner: ${assetLink(event.oldAssetUrl, "before")} → ${assetLink(banner, "after")}`,
           ]).setImage(banner),
         ],
       });
