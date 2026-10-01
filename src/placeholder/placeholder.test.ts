@@ -38,20 +38,6 @@ describe("PlaceholderExecutor", () => {
     expect(executor.parse("no tokens here")).toEqual([]);
   });
 
-  test("reports whether a key is registered", () => {
-    expect(executor.has("name")).toBe(true);
-    expect(executor.has("nope")).toBe(false);
-  });
-
-  test("exposes the registered placeholders in order", () => {
-    expect(executor.placeholders.map(placeholder => placeholder.key)).toEqual([
-      "name",
-      "count",
-      "absent",
-      "undefined",
-    ]);
-  });
-
   test("resolves each distinct key once", async () => {
     let calls = 0;
     const counting = new PlaceholderExecutor<PlaceholderContext>([

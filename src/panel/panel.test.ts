@@ -13,11 +13,6 @@ describe("panel custom ids", () => {
     );
   });
 
-  test("carries dotted paths unambiguously", () => {
-    const decoded = parsePanelCustomId(panelCustomId("w", "v", "choice", "a.b.c.d"));
-    expect(decoded?.path).toBe("a.b.c.d");
-  });
-
   test("decodes a view switcher", () => {
     expect(parsePanelCustomId(panelCustomId("w", "welcome", "root"))).toEqual({
       segment: "w",

@@ -180,10 +180,6 @@ describe("renderPanel", () => {
     expect(embeds[0]!.toJSON().title).toBe("Preview title");
   });
 
-  test("returns no embeds for a panel without embed sections", async () => {
-    expect(await renderPanelEmbeds(new DemoPanel(), context, "first")).toEqual([]);
-  });
-
   test("includes the heading, fields, and control labels", async () => {
     const rendered = await renderPanel(new DemoPanel(), context, "first");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));

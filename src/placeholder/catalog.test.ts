@@ -34,7 +34,6 @@ describe("placeholder catalogs", () => {
       "user_name",
       "user_username",
       "user_mention",
-      "user_first_seen",
       "guild_name",
       "guild_id",
       "guild_owner_mention",
@@ -53,7 +52,6 @@ describe("placeholder catalogs", () => {
       "user_name",
       "user_username",
       "user_mention",
-      "user_first_seen",
     ]);
   });
 

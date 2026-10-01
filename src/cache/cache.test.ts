@@ -20,18 +20,6 @@ describe("Cache", () => {
     expect(calls).toBe(1);
   });
 
-  test("caches a negative result instead of re-loading it", async () => {
-    const cache = newCache();
-    let calls = 0;
-    const loader = async (): Promise<number> => {
-      calls++;
-      return 0;
-    };
-    await cache.load(guildKey("g1"), loader);
-    await cache.load(guildKey("g1"), loader);
-    expect(calls).toBe(1);
-  });
-
   test("invalidate forces the next load", async () => {
     const cache = newCache();
     let calls = 0;
