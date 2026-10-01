@@ -243,18 +243,17 @@ export default class LoggingFeature extends Feature {
       });
     });
     this.handleEvent(UserBannerUpdatedEvent, "banner_update", async (event, channel) => {
-      const banner = event.afterAssetUrl;
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            banner
+            event.afterAssetUrl
               ? `Member ${event.newUser} changed their banner.`
               : `Member ${event.newUser} removed their banner.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
-            `**➜** Banner: ${assetLink(event.beforeAssetUrl, "before")} → ${assetLink(banner, "after")}`,
-          ]).setImage(banner),
+            `**➜** Banner: ${assetLink(event.beforeAssetUrl, "before")} → ${assetLink(event.afterAssetUrl, "after")}`,
+          ]).setImage(event.afterAssetUrl),
         ],
       });
     });
