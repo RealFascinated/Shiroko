@@ -125,6 +125,9 @@ function channelOverwriteLines(channel: NonThreadGuildBasedChannel): string[] {
   }
   const lines: string[] = [];
   for (const [id, overwrite] of targets) {
+    if (lines.length > 0) {
+      lines.push("");
+    }
     lines.push(
       `**➜** Added permissions for ${formatOverwriteTarget(channel.guild, id)}`,
       ...overwriteBlock(overwrite)
@@ -810,10 +813,16 @@ function describeOverwriteBlocks(
     const after = newOverwrites.get(id);
     const target = formatOverwriteTarget(newChannel.guild, id);
     if (!before && after) {
+      if (lines.length > 0) {
+        lines.push("");
+      }
       lines.push(`**➜** Added permissions for ${target}`, ...overwriteBlock(after));
       continue;
     }
     if (before && !after) {
+      if (lines.length > 0) {
+        lines.push("");
+      }
       lines.push(`**➜** Removed permissions for ${target}`, ...overwriteBlock(before));
       continue;
     }
@@ -823,6 +832,9 @@ function describeOverwriteBlocks(
     const transitions = formatOverwriteTransitions(before, after);
     if (transitions.length === 0) {
       continue;
+    }
+    if (lines.length > 0) {
+      lines.push("");
     }
     lines.push(
       `**➜** Updated permissions for ${target}`,
