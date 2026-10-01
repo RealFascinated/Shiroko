@@ -1,10 +1,6 @@
 import type { GuildEmoji } from "discord.js";
 import Event from "../event";
 
-/**
- * A guild emoji was updated. Carries the emoji before and after so
- * consumers can diff the fields they care about.
- */
 export default class EmojiUpdatedEvent extends Event {
   public readonly emojiId: string;
   public readonly guildData: GuildEmoji["guild"];

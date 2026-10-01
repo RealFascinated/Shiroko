@@ -5,9 +5,6 @@ import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
 import { ordinal } from "@/lib/format";
 import LeaderboardSubCommand from "../leaderboard-subcommand";
 
-/**
- * Show the server's levelling leaderboard, most XP first.
- */
 export default class LevelLeaderboardCommand extends LeaderboardSubCommand {
   constructor() {
     super("level", "Show the server's levelling leaderboard");

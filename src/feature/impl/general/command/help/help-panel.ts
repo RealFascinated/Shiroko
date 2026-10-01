@@ -112,7 +112,6 @@ function categoryLines(category: HelpCategory): string[] {
   return lines;
 }
 
-/** The `N commands (with M sub-commands)` summary line. */
 function countLine(category: HelpCategory): string {
   const subcommands = category.commands.reduce((total, command) => total + command.subcommands.length, 0);
   const commands = category.commands.length;

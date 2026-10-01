@@ -5,9 +5,6 @@ import { ordinal } from "@/lib/format";
 import { formatDuration } from "@/lib/time";
 import LeaderboardSubCommand from "../leaderboard-subcommand";
 
-/**
- * Show the server's voice-time leaderboard, most completed voice time first.
- */
 export default class VoiceLeaderboardCommand extends LeaderboardSubCommand {
   constructor() {
     super("voice", "Show the server's voice-time leaderboard");

@@ -1,10 +1,6 @@
 import type { Sticker } from "discord.js";
 import Event from "../event";
 
-/**
- * A sticker was deleted from a guild. Carries the deleted `Sticker` and
- * its guild.
- */
 export default class StickerDeletedEvent extends Event {
   public readonly stickerId: string;
   public readonly sticker: Sticker;

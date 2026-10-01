@@ -3,9 +3,6 @@ import { roleOption, type CommandOptionBuilder } from "@/command/option";
 import { autorolesService } from "@/feature/impl/autoroles/autoroles.service";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
-/**
- * Remove a role from the server's autorole list.
- */
 export default class RemoveCommand extends Command {
   constructor() {
     super("remove", "Remove an autorole");

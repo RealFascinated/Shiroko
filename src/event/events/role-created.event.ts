@@ -1,9 +1,6 @@
 import type { Role } from "discord.js";
 import Event from "../event";
 
-/**
- * A role was created in a guild. Carries the new `Role` and its guild.
- */
 export default class RoleCreatedEvent extends Event {
   public readonly roleId: string;
   public readonly role: Role;

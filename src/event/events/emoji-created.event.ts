@@ -1,10 +1,6 @@
 import type { GuildEmoji } from "discord.js";
 import Event from "../event";
 
-/**
- * An emoji was created in a guild. Carries the new `GuildEmoji` and its
- * guild.
- */
 export default class EmojiCreatedEvent extends Event {
   public readonly emojiId: string;
   public readonly emoji: GuildEmoji;

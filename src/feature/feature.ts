@@ -48,9 +48,6 @@ export default class Feature extends EventListener {
     return [...Feature.REGISTRY.values()];
   }
 
-  /**
-   * Register a slash command owned by this feature.
-   */
   public registerCommand(command: Command): void {
     command.featureId = this.id;
     this.commands.push(command);

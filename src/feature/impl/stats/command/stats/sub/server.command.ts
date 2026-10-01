@@ -3,9 +3,6 @@ import { renderStatsCard } from "@/feature/impl/stats/stats-card";
 import { statsService } from "@/feature/impl/stats/stats.service";
 import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
-/**
- * Show the whole server's combined activity as a card.
- */
 export default class StatsServerCommand extends Command {
   constructor() {
     super("server", "Show the whole server's activity as a card");

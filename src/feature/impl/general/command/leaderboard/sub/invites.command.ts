@@ -6,9 +6,6 @@ import { ordinal, pluralise } from "@/lib/format";
 import type { Guild } from "discord.js";
 import LeaderboardSubCommand from "../leaderboard-subcommand";
 
-/**
- * Show the server's invite leaderboard, most invites first.
- */
 export default class InvitesLeaderboardCommand extends LeaderboardSubCommand {
   constructor() {
     super("invites", "Show the server's invite leaderboard");

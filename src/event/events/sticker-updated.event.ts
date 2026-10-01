@@ -1,10 +1,6 @@
 import type { Sticker } from "discord.js";
 import Event from "../event";
 
-/**
- * A guild sticker was updated. Carries the sticker before and after so
- * consumers can diff the fields they care about.
- */
 export default class StickerUpdatedEvent extends Event {
   public readonly stickerId: string;
   public readonly guildData: Sticker["guild"];

@@ -7,9 +7,6 @@ import { baseEmbed } from "@/lib/embed";
 import { pluralise } from "@/lib/format";
 import { and, count, eq } from "drizzle-orm";
 
-/**
- * Show the total invites attributed to one user in the guild.
- */
 export default class InvitesUserCommand extends Command {
   constructor() {
     super("user", "Show the invites attributed to a user");

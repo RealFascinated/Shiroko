@@ -3,8 +3,9 @@ import type { VoiceState } from "discord.js";
 import Event from "../event";
 
 /**
- * A member's voice state changed (join, leave, move, mute, ...). Wraps the
- * raw old/new states plus the affected user id and guild.
+ * Covers every voice transition (join, leave, move, mute, ...); consumers
+ * diff the raw states to tell which. `oldState` is null when the previous
+ * state was not cached (e.g. an uncached join).
  */
 export default class VoiceStateChangedEvent extends Event {
   public readonly oldState: VoiceState | null;

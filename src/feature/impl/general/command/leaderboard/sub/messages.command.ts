@@ -4,9 +4,6 @@ import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
 import { ordinal, pluralise } from "@/lib/format";
 import LeaderboardSubCommand from "../leaderboard-subcommand";
 
-/**
- * Show the server's total message-count leaderboard, most messages first.
- */
 export default class MessagesLeaderboardCommand extends LeaderboardSubCommand {
   constructor() {
     super("messages", "Show the server's total message-count leaderboard");
