@@ -1,16 +1,13 @@
 import type { SlashCommandBuilder } from "discord.js";
-import { MessageFlags } from "discord.js";
+import { MessageFlags, type ApplicationCommand, type Collection } from "discord.js";
 import { EventBus } from "../event/event-bus";
 import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
 import SlashCommandReceivedEvent from "../event/events/slash-command-received.event";
-import FeatureCommand from "../feature/command/feature-command";
 import GuildFeatures from "../feature/guild-features";
 import StatsCommand from "../feature/impl/stats/command/stats/stats.command";
 import { fetchGuildMember } from "../lib/guild";
-import PermissionsCommand from "../permission/command/permissions.command";
 import Permissions, { hasFlags } from "../permission/permissions";
-import SettingsCommand from "../settings/command/settings.command";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import ParsedArguments from "./parsed-arguments";
@@ -20,13 +17,25 @@ export default class CommandManager {
 
   constructor() {
     CommandManager.registerCommand(new StatsCommand());
-    CommandManager.registerCommand(new FeatureCommand());
-    CommandManager.registerCommand(new PermissionsCommand());
-    CommandManager.registerCommand(new SettingsCommand());
   }
 
   public static getCommand(commandName: string): Command | undefined {
     return CommandManager.COMMANDS.get(commandName);
+  }
+
+  /**
+   * Stamp each registered command with the application command snowflake
+   * Discord assigned during the ready-time sync, so commands can render
+   * clickable `</name:id>` mentions. Subcommands share their parent's id.
+   */
+  public static applyApplicationCommandIds(commands: Collection<string, ApplicationCommand>): void {
+    for (const command of CommandManager.COMMANDS.values()) {
+      const appId = commands.find(candidate => candidate.name === command.id)?.id ?? null;
+      command.applicationCommandId = appId;
+      for (const sub of command.subCommands.values()) {
+        sub.applicationCommandId = appId;
+      }
+    }
   }
 
   public build(): SlashCommandBuilder[] {

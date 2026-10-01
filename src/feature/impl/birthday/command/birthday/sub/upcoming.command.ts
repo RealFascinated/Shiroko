@@ -4,7 +4,7 @@ import {
   UPCOMING_PAGE_SIZE,
   type UpcomingBirthday,
 } from "@/feature/impl/birthday/birthday.service";
-import { monthName } from "@/feature/impl/birthday/date";
+import { monthName } from "@/lib/date";
 import { baseEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
 import { attachPager, type Page } from "@/lib/pagination";

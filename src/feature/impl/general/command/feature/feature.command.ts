@@ -1,11 +1,11 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { booleanOption, stringOption, type CommandOptionBuilder } from "@/command/option";
+import Feature from "@/feature/feature";
+import { FeatureIds } from "@/feature/feature-ids";
+import GuildFeatures from "@/feature/guild-features";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { PermissionFlags } from "@/permission/permissions";
 import { PermissionFlagsBits } from "discord.js";
-import Feature from "../feature";
-import { FeatureIds } from "../feature-ids";
-import GuildFeatures from "../guild-features";
 
 const FEATURE_CHOICES: Record<string, string> = Object.fromEntries(
   Feature.all()

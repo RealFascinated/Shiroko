@@ -13,7 +13,7 @@ import BotReadyEvent from "./event/events/bot-ready.event";
 import GuildJoinedEvent from "./event/events/guild-joined.event";
 import GuildLeftEvent from "./event/events/guild-left.event";
 import PostCommandLoadEvent from "./event/events/post-command-load.event";
-import { BirthdayScheduler } from "./feature/impl/birthday/birthday-scheduler";
+import { settingsPanel } from "./feature/impl/general/command/settings/settings-panel";
 import LoggingFeature from "./feature/impl/logging";
 import FeatureManager from "./feature/index";
 import { env } from "./lib/env";
@@ -38,7 +38,6 @@ import { UptimeMetric } from "./metrics/impl/uptime-seconds";
 import { MetricManager } from "./metrics/index";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
-import { settingsPanel } from "./settings/settings-panel";
 import { MediaListeners } from "./storage/media-listeners";
 import StorageService from "./storage/storage";
 
@@ -101,6 +100,7 @@ class LifecycleListeners extends EventListener {
     }
     const allCommands = [...new CommandManager().build(), ...new ContextMenuCommandManager().build()];
     await application.commands.set(allCommands);
+    CommandManager.applyApplicationCommandIds(application.commands.cache);
     console.log(`Synced ${allCommands.length} command(s)`);
     await EventBus.post(new PostCommandLoadEvent(client, allCommands));
   }
@@ -136,7 +136,6 @@ new ContextMenuCommandListener();
 
 new FeatureManager();
 new LoggingFeature();
-new BirthdayScheduler();
 new MediaListeners();
 
 if (env.VM_PUSH_URL) {

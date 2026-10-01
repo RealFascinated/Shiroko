@@ -3,7 +3,7 @@ import { userOption } from "@/command/option";
 import { FeatureIds } from "@/feature/feature-ids";
 import GuildFeatures from "@/feature/guild-features";
 import { birthdayService } from "@/feature/impl/birthday/birthday.service";
-import { daysUntil, monthName } from "@/feature/impl/birthday/date";
+import { daysUntil, monthName } from "@/lib/date";
 import { levelsService } from "@/feature/impl/levels/levels.service";
 import { baseEmbed } from "@/lib/embed";
 import { fetchGuildMember } from "@/lib/guild";

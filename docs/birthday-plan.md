@@ -95,7 +95,7 @@ their own validation and could still be written as a state that never
 occurred.
 
 `{ mode: "date" }` makes drizzle hand the column back as a JS `Date` at UTC
-midnight rather than a string, which is what the pure helpers in `date.ts`
+midnight rather than a string, which is what the pure helpers in `lib/date.ts`
 expect. Read the components back with `getUTCFullYear`, `getUTCMonth`, and
 `getUTCDate`; reading them with local-time getters would shift the date for
 any server not on UTC.
@@ -220,7 +220,7 @@ src/feature/impl/birthday/command/birthday/
   obvious garbage never arrives. Discord's own upper bound is `Number.MAX_SAFE_INTEGER`,
   so an explicit `max` is required; without it `99999` is a valid option value.
 - Validates the combination in code (`31 2` is rejected). One helper,
-  `isValidBirthDate(year, month, day)`, round-trips through
+  `isValidCalendarDate(year, month, day)` (in `src/lib/date.ts`), round-trips through
   `Date.UTC(year, month - 1, day)`: it checks the constructed date's
   `getUTCMonth()` and `getUTCDate()` still match the input, which correctly
   rejects `31 2`, `30 2`, and `29 2` in a non-leap year while accepting
@@ -269,29 +269,25 @@ ephemeral, and report the stored date that was cleared.
 
 ### Scheduling
 
-`Bun.cron` with the in-process callback overload, pinned to UTC:
+`Bun.cron` with the in-process callback overload, pinned to UTC. The scheduler
+lives on the feature itself, which is already an `EventListener`:
 
 ```ts
-// src/feature/impl/birthday/birthday-scheduler.ts
+// src/feature/impl/birthday/index.ts
 const CRON = "1 0 * * *"; // 00:01 daily
 
-export class BirthdayScheduler extends EventListener {
+export default class BirthdayFeature extends Feature {
   private job: Bun.CronJob | undefined;
-
-  constructor() {
-    super();
-    EventBus.subscribe(this);
-  }
 
   @EventHandler(BotReadyEvent)
   public async onBotReady(event: BotReadyEvent): Promise<void> {
     this.job?.stop();
-    this.job = Bun.cron(CRON, () => birthdayService.sweep(event.client), { tz: "UTC" });
+    this.job = Bun.cron(CRON, () => runBirthdaySweep(event.client), { tz: "UTC" });
   }
 }
 ```
 
-- Started from `BotReadyEvent` rather than at module load, so the handler gets
+- Started from `BotReadyEvent` rather than at construction, so the handler gets
   its `Client` from the event and never imports `discordClient` (which would
   create the `src/index.ts` import cycle `lib/embed.ts` already documents).
   This mirrors `PresenceListener`, which also arms its timer on ready.
@@ -373,19 +369,18 @@ src/feature/feature-ids.ts               + Birthday = "birthday"
 src/feature/index.ts                     + new BirthdayFeature() in FeatureManager
 
 src/feature/impl/birthday/
-├── index.ts                  BirthdayFeature (replaces the empty stub)
+├── index.ts                  BirthdayFeature + cron handler (§5)
 ├── birthday-settings.ts      settings module (§3)
-├── birthday.service.ts       DB reads/writes + sweep (§2, §5)
-├── birthday-scheduler.ts     cron listener (§5)
-├── date.ts                   pure helpers: isValidBirthDate, todayUtc, daysUntil, ageInYears, formatMonthDay
+├── birthday.service.ts       DB reads/writes (§2)
+├── birthday-sweep.ts         nightly sweep (§5)
 └── command/birthday/         parent + sub/ (§4)
 
-src/index.ts                 + new BirthdayScheduler();
+src/lib/date.ts               pure date helpers (generic, shared)
 ```
 
-`date.ts` holds only pure functions, mirroring `xp.ts` in the levels feature,
-and is the natural home for a small `bun test` file covering
-`isValidBirthDate` (31/4, 29/2 in leap and non-leap years, 30/2),
+`src/lib/date.ts` holds only pure functions (generic calendar math any feature
+can reuse), and is the natural home for a small `bun test` file covering
+`isValidCalendarDate` (31/4, 29/2 in leap and non-leap years, 30/2),
 `daysUntil` wrap-around across the new year, and `ageInYears` on a birthday
 that has not yet occurred this year.
 
@@ -446,7 +441,7 @@ that has not yet occurred this year.
 
 - `bunx prettier --write .`
 - `bunx tsc --noEmit` with zero errors.
-- `bun test`, including the new `date.ts` cases.
+- `bun test`, including the new `lib/date.ts` cases.
 - `bunx drizzle-kit generate` reports "No schema changes" once the migration
   is committed, confirming the table is picked up from `src/db/schemas/`.
 - Confirm the generated DDL declares `birth_date date NOT NULL` and creates

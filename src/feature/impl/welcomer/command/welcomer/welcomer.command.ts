@@ -1,7 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { renderPanel, renderPanelEmbeds } from "@/panel/render";
 import { PermissionFlags } from "@/permission/permissions";
-import { welcomerPanel } from "../welcomer-panel";
+import { welcomerPanel } from "./welcomer-panel";
 
 /**
  * Open the welcomer panel: the welcome message, its controls, and a live

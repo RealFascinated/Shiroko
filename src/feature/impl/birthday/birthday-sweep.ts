@@ -1,10 +1,10 @@
 import { FeatureIds } from "@/feature/feature-ids";
 import GuildFeatures from "@/feature/guild-features";
+import { todayUtc } from "@/lib/date";
 import { baseEmbed } from "@/lib/embed";
 import type { Client, Guild } from "discord.js";
 import { birthdaySettings } from "./birthday-settings";
 import { birthdayService, type Celebrant } from "./birthday.service";
-import { todayUtc } from "./date";
 
 /**
  * The nightly birthday sweep, kept out of `birthday.service.ts` because it

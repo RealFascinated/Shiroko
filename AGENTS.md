@@ -45,17 +45,19 @@ Subcommands live in their own files under a `sub/` folder next to the parent com
 
 A command that has subcommands gets its own folder: parent file plus `sub/` (e.g. `src/feature/impl/general/command/user/user.command.ts` + `src/feature/impl/general/command/user/sub/`). Standalone commands with no subcommands stay flat files.
 
-Commands owned by a feature live inside that feature's folder, under `command/` (e.g. `src/feature/impl/stats/command/stats/stats.command.ts`, `src/feature/impl/social/command/react/react.command.ts`). A feature with commands keeps them there, not in `src/command/commands/`. The general commands (`ping`, `user`, `botstats`, `guildinfo`, `help`, `leaderboard`, `8ball`) live in the `General` feature (`src/feature/impl/general/command/`), which is always on and cannot be toggled. `/permissions` and `/settings` own features stay in `src/permission/` and `src/settings/`.
+A command backed by a panel gets its own folder holding both files, named `<command>.command.ts` and `<command>-panel.ts` (e.g. `src/feature/impl/general/command/help/help.command.ts` + `help/help-panel.ts`, `src/feature/impl/general/command/settings/settings.command.ts` + `settings/settings-panel.ts`, `src/feature/impl/welcomer/command/welcomer/welcomer.command.ts` + `welcomer/welcomer-panel.ts`). The command opens the panel; the panel declares its views and controls.
+
+Commands owned by a feature live inside that feature's folder, under `command/` (e.g. `src/feature/impl/stats/command/stats/stats.command.ts`, `src/feature/impl/social/command/react/react.command.ts`). A feature with commands keeps them there, not in `src/command/commands/`. The general commands (`ping`, `user`, `botstats`, `guildinfo`, `help`, `leaderboard`, `8ball`, `feature`, `permissions`, `settings`) live in the `General` feature (`src/feature/impl/general/command/`), which is always on and cannot be toggled.
 
 ## Permissions
 
-Bot permissions live entirely under `src/permission/`: the logic in `src/permission/permissions.ts` (the `Permissions` class + `PermissionFlags`), its tests, and the `/permissions` command in `src/permission/command/`. Do not put permission code anywhere else.
+Bot permissions live entirely under `src/permission/`: the logic in `src/permission/permissions.ts` (the `Permissions` class + `PermissionFlags`) and its tests. Do not put permission code anywhere else. The `/permissions` command itself lives with the other General commands at `src/feature/impl/general/command/permissions/`.
 
 - Flags are BigInt bitfields (`1n << n`) named after the command they gate, e.g. `FEATURE_COMMAND`, `PERMISSIONS_COMMAND`. Bits are permanent; never reuse a retired bit. `FLAG_DISPLAY_NAMES` maps each flag to its user-facing label and is the single source of truth for choice labels and `/permissions view` decoding.
 - Commands declare a `requiredFlags: bigint` getter (default `0n` = anyone). `CommandManager` enforces it after the feature check; the guild owner and members with Discord `Administrator` (when `ALLOW_ADMIN_BYPASS` is on) bypass all checks. A gate usually lives on the **parent** command (e.g. `/permissions`, `/level-config`); subcommands inherit it unless they declare their own `requiredFlags`, so a parent can stay open while a specific subcommand is gated (e.g. `/levels` open, `/level-config` admin-only). `featureId` inheritance mirrors this: the resolved subcommand's `featureId` wins, otherwise the parent's applies.
 - Effective flags: a role's own flags OR'd with its parent's effective flags (additive inheritance, cycle-safe), then OR'd across all the member's roles.
 - Cache resolution per guild (`loadGuild`) with invalidation on role events. Mirror the existing pattern, don't add ad-hoc checks.
-- Subcommands of `/permissions` live in `src/permission/command/sub/`, and shared helpers in the same folder (e.g. `sub/permissions-helpers.ts`). Only the parent imports `Command` from `@/command/command`; `@/command` would resolve to `src/command/index.ts` (`CommandManager`).
+- Subcommands of `/permissions` live in `src/feature/impl/general/command/permissions/sub/`, and shared helpers in the same folder (e.g. `sub/permissions-helpers.ts`). Only the parent imports `Command` from `@/command/command`; `@/command` would resolve to `src/command/index.ts` (`CommandManager`).
 
 ## Events
 
@@ -249,7 +251,29 @@ Applies to class fields, methods, getters, and setters. Constructors inherit the
 
 ## Comments
 
-Only full JSDoc comments on methods. Never use 1-line comments (`/** ... */` or `// ...`) on methods; if a method needs a comment, write a complete JSDoc block describing it. 1-line comments are acceptable only as brief inline section markers inside a method body.
+Most methods, classes, and constructors need no comment. Write one only when a reader cannot recover the reason from the name and the body; the default is silence, not documentation.
+
+If a method genuinely needs documentation, write a full JSDoc block. Never use a 1-line comment (`/** ... */` or `// ...`) on a method. 1-line comments are acceptable only as brief inline section markers inside a method body.
+
+A comment explains **why**, never **what**. Never paraphrase a symbol's name or body:
+
+Bad:
+
+```ts
+/** The birthday feature: `/birthday` plus the nightly sweep. */
+export default class BirthdayFeature extends Feature {
+```
+
+Good:
+
+```ts
+/**
+ * Started from `BotReadyEvent` rather than at construction so the job takes
+ * its `Client` from the event instead of importing `discordClient` (which
+ * would pull in `src/index.ts` and its cycle).
+ */
+@EventHandler(BotReadyEvent)
+```
 
 ## Return statements
 

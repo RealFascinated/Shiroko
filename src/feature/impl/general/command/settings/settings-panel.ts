@@ -2,10 +2,10 @@ import { fetchGuildMember } from "@/lib/guild";
 import { formatDuration, parseDuration } from "@/lib/time";
 import Panel, { type PanelAccess, type PanelControl, type PanelView } from "@/panel/panel";
 import Permissions, { PermissionFlags } from "@/permission/permissions";
+import SettingsManager from "@/settings/index";
+import type SettingsModule from "@/settings/settings-module";
+import type { RuntimeSettingDescriptor } from "@/settings/settings-module";
 import type { Guild } from "discord.js";
-import SettingsManager from "./index";
-import type SettingsModule from "./settings-module";
-import type { RuntimeSettingDescriptor } from "./settings-module";
 
 /**
  * The aggregated per-guild state the hub renders over: every enabled

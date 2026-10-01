@@ -1,13 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { integerOption } from "@/command/option";
 import { birthdayService } from "@/feature/impl/birthday/birthday.service";
-import {
-  ageInYears,
-  isValidBirthDate,
-  isValidBirthYear,
-  monthName,
-  todayUtc,
-} from "@/feature/impl/birthday/date";
+import { ageInYears, isValidCalendarDate, isValidYear, monthName, todayUtc } from "@/lib/date";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
 import GlobalUsersManager from "@/user/global-users-manager";
@@ -37,12 +31,12 @@ export default class SetCommand extends Command {
     const month = args.integer("month")!;
     const year = args.integer("year")!;
 
-    if (!isValidBirthYear(year)) {
+    if (!isValidYear(year)) {
       return ctx.reply(
         ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("That year is out of range."))
       );
     }
-    if (!isValidBirthDate(year, month, day)) {
+    if (!isValidCalendarDate(year, month, day)) {
       return ctx.reply(
         ephemeralErrorReply(
           commandName,

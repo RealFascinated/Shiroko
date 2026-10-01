@@ -4,8 +4,8 @@ import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import PanelManager from "@/panel/index";
 import GlobalUsersManager from "@/user/global-users-manager";
-import WelcomerCommand from "./command/welcomer.command";
-import { welcomerPanel } from "./welcomer-panel";
+import { welcomerPanel } from "./command/welcomer/welcomer-panel";
+import WelcomerCommand from "./command/welcomer/welcomer.command";
 import { welcomerService } from "./welcomer.service";
 
 export default class WelcomerFeature extends Feature {

@@ -1,11 +1,11 @@
+import { welcomerSettings, type WelcomerSettingsData } from "@/feature/impl/welcomer/welcomer-settings";
+import { welcomerService } from "@/feature/impl/welcomer/welcomer.service";
 import { formatColor, parseColor } from "@/lib/color";
 import { fetchGuildMember } from "@/lib/guild";
 import Panel, { type PanelAccess, type PanelContext, type PanelControl, type PanelView } from "@/panel/panel";
 import Permissions, { PermissionFlags } from "@/permission/permissions";
 import { placeholders } from "@/placeholder";
 import type { EmbedBuilder, Guild } from "discord.js";
-import { welcomerSettings, type WelcomerSettingsData } from "./welcomer-settings";
-import { welcomerService } from "./welcomer.service";
 
 /**
  * The welcomer's panel, declared as controls over the guild's welcome

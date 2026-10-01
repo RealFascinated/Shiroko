@@ -2,16 +2,20 @@ import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import PanelManager from "@/panel/index";
 import BotStatsCommand from "./command/botstats.command";
+import FeatureCommand from "./command/feature/feature.command";
 import GuildInfoCommand from "./command/guildinfo.command";
-import HelpCommand from "./command/help.command";
+import { helpPanel } from "./command/help/help-panel";
+import HelpCommand from "./command/help/help.command";
 import LeaderboardCommand from "./command/leaderboard/leaderboard.command";
+import PermissionsCommand from "./command/permissions/permissions.command";
 import PingCommand from "./command/ping.command";
+import SettingsCommand from "./command/settings/settings.command";
 import UserCommand from "./command/user/user.command";
-import { helpPanel } from "./help-panel";
 
 /**
  * The general feature: the core commands (ping, help, user info,
- * leaderboards, bot and guild info). Always on and not toggleable.
+ * leaderboards, bot and guild info) plus the framework commands (feature,
+ * permissions, settings). Always on and not toggleable.
  */
 export default class GeneralFeature extends Feature {
   constructor() {
@@ -24,5 +28,8 @@ export default class GeneralFeature extends Feature {
     this.registerCommand(new BotStatsCommand());
     this.registerCommand(new HelpCommand());
     this.registerCommand(new LeaderboardCommand());
+    this.registerCommand(new FeatureCommand());
+    this.registerCommand(new PermissionsCommand());
+    this.registerCommand(new SettingsCommand());
   }
 }

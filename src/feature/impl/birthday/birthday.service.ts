@@ -1,10 +1,10 @@
 import { db } from "@/db/index";
 import { guildBirthdaysSchema } from "@/db/schemas/guild-birthdays";
+import { ageInYears } from "@/lib/date";
 import { loadPage, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
 import { and, eq, sql, type SQL } from "drizzle-orm";
 import { birthdaySettings } from "./birthday-settings";
-import { ageInYears } from "./date";
 
 export interface BirthdayRow {
   month: number;
@@ -39,7 +39,7 @@ export const UPCOMING_PAGE_SIZE = 10;
  *
  * A 29 February birthday only exists in leap years, so the search walks
  * forward until the constructed date lands on the stored month and day
- * instead of rolling into 1 March. This mirrors `daysUntil` in `date.ts`,
+ * instead of rolling into 1 March. This mirrors `daysUntil` in `@/lib/date`.
  * which the sweep relies on; the two must agree on when a birthday is.
  */
 function nextOccurrence(today: string): SQL {

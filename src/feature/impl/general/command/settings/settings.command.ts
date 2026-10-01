@@ -2,8 +2,8 @@ import Command, { type ExecuteContext } from "@/command/command";
 import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { renderPanel } from "@/panel/render";
 import { PermissionFlags } from "@/permission/permissions";
-import SettingsManager from "../index";
-import { settingsPanel } from "../settings-panel";
+import SettingsManager from "@/settings/index";
+import { settingsPanel } from "./settings-panel";
 
 /**
  * Open the aggregated settings panel: the engine renders every enabled

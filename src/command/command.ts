@@ -89,6 +89,15 @@ export default abstract class Command {
   public readonly slashCommand: SlashCommandBuilder;
   public featureId?: FeatureIds;
 
+  /**
+   * The application command snowflake Discord assigns on sync. Populated by
+   * `CommandManager` after the ready-time `commands.set`, so a command can
+   * render itself as a clickable `</name:id>` mention. `null` until then, and
+   * for subcommands it is the parent's id (Discord mentions the top-level
+   * command even for a subcommand path).
+   */
+  public applicationCommandId: string | null = null;
+
   public readonly subCommands: Map<string, Command> = new Map();
   public parent?: Command;
 
@@ -136,7 +145,18 @@ export default abstract class Command {
    */
   public registerSubCommand(command: Command): void {
     command.parent = this;
+    command.applicationCommandId = this.applicationCommandId;
     this.subCommands.set(command.id, command);
+  }
+
+  /**
+   * The clickable `</name:id>` mention for this command, or `/name` when it
+   * has not been synced yet. A subcommand mentions its top-level command,
+   * since Discord resolves the mention to the parent's snowflake.
+   */
+  public mention(): string {
+    const name = this.parent ? `${this.parent.id} ${this.id}` : this.id;
+    return this.applicationCommandId ? `</${name}:${this.applicationCommandId}>` : `/${name}`;
   }
 
   public build(): SlashCommandBuilder {

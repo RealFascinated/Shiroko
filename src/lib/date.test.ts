@@ -1,48 +1,53 @@
 import { describe, expect, test } from "bun:test";
-import { ageInYears, daysUntil, isValidBirthDate, isValidBirthYear, monthName, todayUtc } from "./date";
+import { ageInYears, daysUntil, isValidCalendarDate, isValidYear, monthName, todayUtc } from "./date";
 
-describe("isValidBirthDate", () => {
+describe("isValidCalendarDate", () => {
   test("accepts real dates", () => {
-    expect(isValidBirthDate(1996, 5, 14)).toBe(true);
-    expect(isValidBirthDate(2000, 1, 1)).toBe(true);
-    expect(isValidBirthDate(1990, 12, 31)).toBe(true);
+    expect(isValidCalendarDate(1996, 5, 14)).toBe(true);
+    expect(isValidCalendarDate(2000, 1, 1)).toBe(true);
+    expect(isValidCalendarDate(1990, 12, 31)).toBe(true);
   });
 
   test("accepts 29 February only in leap years", () => {
-    expect(isValidBirthDate(1996, 2, 29)).toBe(true);
-    expect(isValidBirthDate(2000, 2, 29)).toBe(true);
-    expect(isValidBirthDate(1998, 2, 29)).toBe(false);
-    expect(isValidBirthDate(1900, 2, 29)).toBe(false);
+    expect(isValidCalendarDate(1996, 2, 29)).toBe(true);
+    expect(isValidCalendarDate(2000, 2, 29)).toBe(true);
+    expect(isValidCalendarDate(1998, 2, 29)).toBe(false);
+    expect(isValidCalendarDate(1900, 2, 29)).toBe(false);
   });
 
   test("rejects month/day overflows", () => {
-    expect(isValidBirthDate(1998, 2, 30)).toBe(false);
-    expect(isValidBirthDate(2001, 4, 31)).toBe(false);
-    expect(isValidBirthDate(1994, 13, 1)).toBe(false);
-    expect(isValidBirthDate(1994, 0, 1)).toBe(false);
-    expect(isValidBirthDate(1994, 1, 0)).toBe(false);
-    expect(isValidBirthDate(1994, 1, 32)).toBe(false);
+    expect(isValidCalendarDate(1998, 2, 30)).toBe(false);
+    expect(isValidCalendarDate(2001, 4, 31)).toBe(false);
+    expect(isValidCalendarDate(1994, 13, 1)).toBe(false);
+    expect(isValidCalendarDate(1994, 0, 1)).toBe(false);
+    expect(isValidCalendarDate(1994, 1, 0)).toBe(false);
+    expect(isValidCalendarDate(1994, 1, 32)).toBe(false);
   });
 
   test("rejects non-integers", () => {
-    expect(isValidBirthDate(1994, 1.5, 1)).toBe(false);
-    expect(isValidBirthDate(1994, 1, 1.5)).toBe(false);
+    expect(isValidCalendarDate(1994, 1.5, 1)).toBe(false);
+    expect(isValidCalendarDate(1994, 1, 1.5)).toBe(false);
   });
 });
 
-describe("isValidBirthYear", () => {
+describe("isValidYear", () => {
   const now = new Date(Date.UTC(2026, 8, 28));
 
   test("accepts the minimum and this year", () => {
-    expect(isValidBirthYear(1900, now)).toBe(true);
-    expect(isValidBirthYear(2026, now)).toBe(true);
+    expect(isValidYear(1900, now)).toBe(true);
+    expect(isValidYear(2026, now)).toBe(true);
   });
 
   test("rejects future and absurd years", () => {
-    expect(isValidBirthYear(2027, now)).toBe(false);
-    expect(isValidBirthYear(1899, now)).toBe(false);
-    expect(isValidBirthYear(0, now)).toBe(false);
-    expect(isValidBirthYear(-5, now)).toBe(false);
+    expect(isValidYear(2027, now)).toBe(false);
+    expect(isValidYear(1899, now)).toBe(false);
+    expect(isValidYear(0, now)).toBe(false);
+    expect(isValidYear(-5, now)).toBe(false);
+  });
+
+  test("honours a custom lower bound", () => {
+    expect(isValidYear(2000, now, 2001)).toBe(false);
+    expect(isValidYear(2001, now, 2001)).toBe(true);
   });
 });
 

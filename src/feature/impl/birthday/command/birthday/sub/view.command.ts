@@ -1,7 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
 import { birthdayService } from "@/feature/impl/birthday/birthday.service";
-import { daysUntil, monthName, todayUtc } from "@/feature/impl/birthday/date";
+import { daysUntil, monthName, todayUtc } from "@/lib/date";
 import { baseEmbed } from "@/lib/embed";
 import { ordinal, pluralise } from "@/lib/format";
 

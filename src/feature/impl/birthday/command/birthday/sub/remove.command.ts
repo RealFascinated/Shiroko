@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { birthdayService } from "@/feature/impl/birthday/birthday.service";
-import { monthName } from "@/feature/impl/birthday/date";
+import { monthName } from "@/lib/date";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
 import { MessageFlags } from "discord.js";

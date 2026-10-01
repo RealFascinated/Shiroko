@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { renderPanel } from "@/panel/render";
-import { helpPanel } from "../help-panel";
+import { helpPanel } from "./help-panel";
 
 /**
  * Show the bot's commands grouped by feature. The panel is read-only; its

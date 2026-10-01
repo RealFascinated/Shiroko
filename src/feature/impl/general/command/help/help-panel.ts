@@ -1,15 +1,15 @@
-import type Command from "@/command/command";
+import Command from "@/command/command";
 import Feature from "@/feature/feature";
 import GuildFeatures from "@/feature/guild-features";
 import { env } from "@/lib/env";
 import Panel, { type PanelControl, type PanelView } from "@/panel/panel";
 import type { Guild } from "discord.js";
 
-/** One command's listing: its id, description, and its sub-commands. */
+/** One command's listing: its clickable mention, description, and its sub-commands. */
 interface HelpCommandInfo {
-  id: string;
+  mention: string;
   description: string;
-  subcommands: readonly { id: string; description: string }[];
+  subcommands: readonly { mention: string; description: string }[];
 }
 
 /** One category of commands: a feature, or the bot's own framework commands. */
@@ -24,30 +24,6 @@ interface HelpCategory {
 interface HelpConfig {
   categories: readonly HelpCategory[];
 }
-
-/**
- * The framework commands that belong to no feature and are therefore not
- * discoverable from the feature registry. They always show.
- */
-const BOT_CATEGORY: HelpCategory = {
-  id: "bot",
-  label: "Bot",
-  emoji: "🤖",
-  commands: [
-    { id: "feature", description: "Enable or disable server features", subcommands: [] },
-    {
-      id: "permissions",
-      description: "Manage role permissions",
-      subcommands: [
-        { id: "view", description: "View role permissions" },
-        { id: "set", description: "Set a role's permissions" },
-        { id: "inherit", description: "Set or clear a role's parent for inheritance" },
-        { id: "clear", description: "Remove a role's permission configuration" },
-      ],
-    },
-    { id: "settings", description: "Configure server settings", subcommands: [] },
-  ],
-};
 
 /**
  * The `/help` panel: one read-only view per available feature, listing its
@@ -78,7 +54,6 @@ export default class HelpPanel extends Panel<HelpConfig> {
         commands: feature.commands.map(toCommandInfo),
       });
     }
-    categories.push(BOT_CATEGORY);
     return { categories };
   }
 
@@ -113,10 +88,10 @@ export const helpPanel = new HelpPanel();
 /** Read one registered command into its listing shape. */
 function toCommandInfo(command: Command): HelpCommandInfo {
   return {
-    id: command.id,
+    mention: command.mention(),
     description: command.displayName,
     subcommands: [...command.subCommands.values()].map(sub => ({
-      id: sub.id,
+      mention: sub.mention(),
       description: sub.displayName,
     })),
   };
@@ -124,14 +99,14 @@ function toCommandInfo(command: Command): HelpCommandInfo {
 
 /**
  * A category's body: its heading, the command/sub-command count, and one
- * line per command and sub-command.
+ * clickable line per command and sub-command.
  */
 function categoryLines(category: HelpCategory): string[] {
   const lines = [`### ${category.emoji} ${category.label}`, countLine(category), "", "**Commands**"];
   for (const command of category.commands) {
-    lines.push(`\`/${command.id}\` - ${command.description}`);
+    lines.push(`${command.mention} - ${command.description}`);
     for (const sub of command.subcommands) {
-      lines.push(`\`/${command.id} ${sub.id}\` - ${sub.description}`);
+      lines.push(`${sub.mention} - ${sub.description}`);
     }
   }
   return lines;
