@@ -18,9 +18,6 @@ export interface WelcomerPayload {
 }
 
 export default class WelcomerService {
-  /**
-   * The guild's stored welcome message.
-   */
   public async get(guildId: string): Promise<WelcomerSettingsData> {
     return welcomerSettings.allValues(guildId);
   }

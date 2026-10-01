@@ -62,8 +62,8 @@ const STICKER_FORMAT_NAMES: Record<number, string> = {
   [StickerFormatType.GIF]: "GIF",
 };
 
-/** Render role ids as mentions, or "None" when the list is empty. */
 function formatRoleIds(roleIds: string[]): string {
+  return roleIds.length > 0 ? roleIds.map(id => `<@&${id}>`).join(", ") : "None";
   return roleIds.length > 0 ? roleIds.map(id => `<@&${id}>`).join(", ") : "None";
 }
 
@@ -854,7 +854,6 @@ function describeOverwriteBlocks(
   return lines;
 }
 
-/** The allowed and denied permission lines for a single overwrite. */
 function overwriteBlock(overwrite: PermissionOverwrites): string[] {
   return [
     "**✓** Allowed permissions",
@@ -864,7 +863,7 @@ function overwriteBlock(overwrite: PermissionOverwrites): string[] {
   ];
 }
 
-/** Render permission names as a comma-separated list, or "none" when empty. */
 function formatPermissionLabels(names: string[]): string {
+  return names.length > 0 ? names.map(permissionLabel).sort().join(", ") : "none";
   return names.length > 0 ? names.map(permissionLabel).sort().join(", ") : "none";
 }

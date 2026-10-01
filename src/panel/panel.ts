@@ -226,9 +226,6 @@ export default abstract class Panel<C extends object> {
    */
   public readonly viewPlaceholder: string | undefined = undefined;
 
-  /**
-   * Read the panel's whole config for a guild.
-   */
   public abstract getConfig(guild: Guild): Promise<C>;
 
   /**

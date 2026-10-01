@@ -64,9 +64,6 @@ async function paintHeader(canvas: Canvas, data: StatsCardData): Promise<void> {
   canvas.text(cardTitle(data.kind, data.scope), x + size + 24, y + 74, 20, ACCENT, 500);
 }
 
-/**
- * Draw the four window tiles: today, last 7 days, last 30 days, total.
- */
 function paintWindowRow(canvas: Canvas, data: StatsCardData): void {
   const labels = ["Today", "Last 7d", "Last 30d", "Total"];
   const tiles = tileValues(data);

@@ -1,6 +1,3 @@
-/**
- * Enum representing different time units.
- */
 export enum TimeUnit {
   Millisecond = "millisecond",
   Second = "second",

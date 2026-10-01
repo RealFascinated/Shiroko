@@ -41,9 +41,6 @@ export default class PlaceholderExecutor<C extends PlaceholderContext = Placehol
       .join("\n");
   }
 
-  /**
-   * Whether a key is registered here.
-   */
   public has(key: string): boolean {
     return this.byKey.has(key);
   }

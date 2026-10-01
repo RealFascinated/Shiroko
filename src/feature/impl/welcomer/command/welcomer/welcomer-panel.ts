@@ -93,12 +93,10 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
     ];
   }
 
-  /** The message as a real embed, for the panel's preview. */
   private async previewEmbed(message: WelcomerSettingsData, context: PanelContext): Promise<EmbedBuilder> {
     return welcomerService.previewEmbed(context.guild, message, context.user);
   }
 
-  /** The resolved simple body, for the panel's preview. */
   private async previewText(message: WelcomerSettingsData, context: PanelContext): Promise<string> {
     const body = await welcomerService.previewText(context.guild, message, context.user);
     return ["## Preview", "-# Simple format, rendered with this server's values.", "", body].join("\n");

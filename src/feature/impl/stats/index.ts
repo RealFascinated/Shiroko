@@ -10,9 +10,6 @@ import GlobalUsersManager from "@/user/global-users-manager";
 import StatsCommand from "./command/stats/stats.command";
 import { statsService } from "./stats.service";
 
-/**
- * The stats feature: `/stats` command plus voice/message tracking.
- */
 export default class StatsFeature extends Feature {
   constructor() {
     super(FeatureIds.Stats, { name: "Stats", emoji: "📊" });
@@ -75,9 +72,6 @@ export default class StatsFeature extends Feature {
     );
   }
 
-  /**
-   * Seed open voice sessions at startup.
-   */
   @EventHandler(BotReadyEvent)
   public async onBotReady(event: BotReadyEvent): Promise<void> {
     await statsService.recoverOpenSessions(event.client);

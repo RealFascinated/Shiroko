@@ -20,10 +20,6 @@ export type InteractionType =
   | "blowkiss"
   | "bite";
 
-/**
- * Increments the interaction count from `actorId` to `targetId` and
- * returns the new count.
- */
 export default class SocialService {
   public static async incrementInteraction(
     actorId: string,

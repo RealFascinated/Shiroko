@@ -51,9 +51,6 @@ export default class EventBridge {
     this.client = client;
   }
 
-  /**
-   * Attach the bridge's client listeners.
-   */
   public registerHandlers(): void {
     const client = this.client;
 

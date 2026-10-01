@@ -177,9 +177,6 @@ export default class LevelsService {
       });
   }
 
-  /**
-   * Remove the reward for a guild level.
-   */
   public async removeReward(guildId: string, level: number): Promise<void> {
     await db
       .delete(levelRewardsSchema)

@@ -85,7 +85,6 @@ export default class HelpPanel extends Panel<HelpConfig> {
  */
 export const helpPanel = new HelpPanel();
 
-/** Read one registered command into its listing shape. */
 function toCommandInfo(command: Command): HelpCommandInfo {
   return {
     mention: command.mention(),
@@ -97,10 +96,6 @@ function toCommandInfo(command: Command): HelpCommandInfo {
   };
 }
 
-/**
- * A category's body: its heading, the command/sub-command count, and one
- * clickable line per command and sub-command.
- */
 function categoryLines(category: HelpCategory): string[] {
   const lines = [`### ${category.emoji} ${category.label}`, countLine(category), "", "**Commands**"];
   for (const command of category.commands) {
