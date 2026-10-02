@@ -24,6 +24,7 @@ import { VoiceKeepaliveListener } from "./lib/voice";
 import { EventVolumeListeners } from "./metrics/event-volume-listeners";
 import { VictoriaMetricsExporter } from "./metrics/exporter";
 import { CacheMetricsMetric } from "./metrics/impl/cache";
+import { CommandCallsMetric } from "./metrics/impl/command-calls";
 import { ProcessCpuUsageMetric } from "./metrics/impl/cpu-usage";
 import { DiscordCacheMetric } from "./metrics/impl/discord-cache";
 import { DiscordEventsMetric } from "./metrics/impl/discord-events";
@@ -75,6 +76,7 @@ metricManager.register(new CacheMetricsMetric());
 metricManager.register(new DiscordCacheMetric(discordClient));
 metricManager.register(new MediaFilesMetric());
 metricManager.register(new MediaBytesMetric());
+metricManager.register(new CommandCallsMetric());
 const discordEventsMetric = metricManager.register(new DiscordEventsMetric());
 new EventVolumeListeners(discordEventsMetric);
 

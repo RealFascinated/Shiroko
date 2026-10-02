@@ -336,6 +336,34 @@ CATEGORIES = [
             },
         ],
     },
+    {
+        # Persistent command tallies from Postgres. The stacked total is the
+        # all-time per-command share of traffic; the second panel is the
+        # current per-second call rate.
+        "key": "commands",
+        "title": "⚡ Commands",
+        "panels": [
+            {
+                "key": "command-calls-total",
+                "title": "Command calls (total)",
+                "expr": "command_calls_total{job=\"$job\"}",
+                "unit": "short",
+                "min": 0,
+                "width": 12,
+                "legend": "{{command}}",
+                "fillOpacity": 100,
+            },
+            {
+                "key": "command-calls-rate",
+                "title": "Command calls per second",
+                "expr": "rate(command_calls_total{job=\"$job\"}[5m])",
+                "unit": "ops",
+                "min": 0,
+                "width": 12,
+                "legend": "{{command}}",
+            },
+        ],
+    },
 ]
 
 
@@ -357,7 +385,7 @@ def panel_query(expr: str, legend: str) -> dict:
     }
 
 
-def timeseries_viz(unit: str, minv: float | None, maxv: float | None) -> dict:
+def timeseries_viz(unit: str, minv: float | None, maxv: float | None, fill_opacity: float = 10) -> dict:
     defaults: dict = {
         "color": {"mode": "palette-classic"},
         "custom": {
@@ -369,7 +397,7 @@ def timeseries_viz(unit: str, minv: float | None, maxv: float | None) -> dict:
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": fill_opacity,
             "gradientMode": "none",
             "hideFrom": {"legend": False, "tooltip": False, "viz": False},
             "insertNulls": False,
@@ -412,6 +440,7 @@ def panel(
     minv: float | None,
     maxv: float | None,
     legend: str,
+    fill_opacity: float = 10,
 ) -> dict:
     return {
         "kind": "Panel",
@@ -428,7 +457,7 @@ def panel(
             "id": panel_id,
             "links": [],
             "title": title,
-            "vizConfig": timeseries_viz(unit, minv, maxv),
+            "vizConfig": timeseries_viz(unit, minv, maxv, fill_opacity),
         },
     }
 
@@ -458,7 +487,14 @@ def build() -> dict:
                 panel_id += 1
                 panel_key = f"panel-{panel_id}"
                 elements[panel_key] = panel(
-                    panel_id, p["title"], p["expr"], p["unit"], p.get("min"), p.get("max"), p["legend"]
+                    panel_id,
+                    p["title"],
+                    p["expr"],
+                    p["unit"],
+                    p.get("min"),
+                    p.get("max"),
+                    p["legend"],
+                    p.get("fillOpacity", 10),
                 )
                 row_items.append(
                     {

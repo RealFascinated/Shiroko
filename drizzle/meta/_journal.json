@@ -211,6 +211,13 @@
       "when": 1790821336037,
       "tag": "0029_mighty_gargoyle",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790919155715,
+      "tag": "0030_ordinary_wallop",
+      "breakpoints": true
     }
   ]
 }

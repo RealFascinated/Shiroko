@@ -3,6 +3,7 @@ import { db } from "@/db/index";
 import { globalUsersSchema } from "@/db/schemas/global-users";
 import { baseEmbed } from "@/lib/embed";
 import { formatDuration } from "@/lib/time";
+import CommandCallService from "@/metrics/command-calls.service";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -29,6 +30,7 @@ export default class BotStatsCommand extends Command {
     const avatarUrl = bot.displayAvatarURL({ size: 4096, extension: "webp" });
     const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${ctx.client.application!.id}&scope=bot%20applications.commands&permissions=8`;
     const [userCount] = await db.select({ value: sql<number>`count(*)` }).from(globalUsersSchema);
+    const commandCalls = await CommandCallService.total();
     const { heap_size_limit: heapMax } = getHeapStatistics();
 
     const sections: string[][] = [
@@ -37,6 +39,7 @@ export default class BotStatsCommand extends Command {
         `**Servers:** ${ctx.client.guilds.cache.size.toLocaleString("en-US")}`,
         `**Users:** ${ctx.client.users.cache.size.toLocaleString("en-US")}`,
         `**Users Seen:** ${(userCount?.value ?? 0).toLocaleString("en-US")}`,
+        `**Commands Run:** ${commandCalls.toLocaleString("en-US")}`,
       ],
       [
         `**⚡ Status**`,

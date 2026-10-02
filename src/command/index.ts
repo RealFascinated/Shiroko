@@ -7,6 +7,7 @@ import SlashCommandReceivedEvent from "../event/events/slash-command-received.ev
 import GuildFeatures from "../feature/guild-features";
 import StatsCommand from "../feature/impl/stats/command/stats/stats.command";
 import { fetchGuildMember } from "../lib/guild";
+import CommandCallService from "../metrics/command-calls.service";
 import Permissions, { hasFlags } from "../permission/permissions";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
@@ -114,6 +115,7 @@ export class SlashCommandListener extends EventListener {
     try {
       const user = await GlobalUsersManager.getUser(interaction.user);
       const args = new ParsedArguments(interaction.options);
+      void CommandCallService.record(command.id);
       await command.executeSlash({
         user,
         guild: guild,
