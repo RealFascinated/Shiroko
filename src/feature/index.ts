@@ -1,6 +1,7 @@
 import type Feature from "./feature";
 import AutorolesFeature from "./impl/autoroles/index";
 import BirthdayFeature from "./impl/birthday/index";
+import FunFeature from "./impl/fun/index";
 import GeneralFeature from "./impl/general/index";
 import InvitesFeature from "./impl/invites/index";
 import LevelsFeature from "./impl/levels/index";
@@ -20,6 +21,7 @@ export default class FeatureManager {
     FeatureManager.registerFeature(new BirthdayFeature());
     FeatureManager.registerFeature(new AutorolesFeature());
     FeatureManager.registerFeature(new WelcomerFeature());
+    FeatureManager.registerFeature(new FunFeature());
   }
 
   public static registerFeature(feature: Feature): void {

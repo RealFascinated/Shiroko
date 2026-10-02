@@ -1,87 +1,105 @@
 # Agents
 
+`Behavior`, `Commits`, `Bun`, `Libraries`, `APIs`, and `Testing` are generic engineering rules (Bun-first) that apply to any repo. `Shell` is a rule about this workstation, not the repo. `Code Style` and `Verify` assume a TypeScript/Bun project. `Commands`, `Permissions`, `Events`, and `Database` are specific to this project (the Arona Discord bot).
+
 ## Behavior
 
 Think before coding. Pick the simplest valid approach and say why. State assumptions explicitly; ask when something critical is unclear, never guess silently.
 
 - Write the minimum code that solves the problem. No speculative features, no abstractions for single-use code, no error handling for impossible scenarios. If a solution could be half the size it is, rewrite it.
-- No backward-compat shims unless explicitly requested: no migration paths, dual-format loaders, deprecated-key fallbacks, or legacy shims when changing configs, persisted data, serialized fields, or APIs. Default to the new shape. If a change could break something live, ask first.
+- No backward-compat shims unless explicitly requested: no migration paths, dual-format loaders, deprecated-key fallbacks, or legacy shims when changing configs, persisted data, serialized fields, or APIs. Default to the new shape. "Live" means things the running bot depends on: deployed migrations and DB schemas, persisted guild/user config, serialized fields already written to the DB or disk, and APIs other code calls. If a change to any of those could break the running bot, ask first.
 - Touch only what you must. Don't "improve" adjacent code, formatting, or comments; don't refactor working code you weren't asked to change. Remove imports/variables/methods that _your_ changes made unused; leave pre-existing dead code alone.
 
-## Comments
+## Commits
 
-Write no comments that merely restate the code. A `//` line must earn its place:
-
-- It explains **why**, not **what**: a platform quirk (`ModalSubmitInteraction` typings lack `update`), a hidden constraint (Discord's 15-minute interaction-token cap, 5 components per row), a deliberate workaround (import-cycle avoidance, SQL concurrency semantics), or the reasoning behind a non-obvious algorithm.
-- If a reader could re-derive the statement from the adjacent code in a few seconds, delete the comment: don't narrate branches, assignments, or assertions (e.g. `// The first enabled module is the initial category.` before `modules[0]!`).
-- One-word field clarifications on serialized or unit-ambiguous shapes (`// milliseconds`, `// null = unset`) are fine.
-- Leave existing comments alone unless they're part of the task; don't rewrite someone else's to match your style.
-
-### Commits
-
-When the user asks you to commit, stage and commit only the files for the current task, not everything dirty in the working tree.
+When the user asks you to commit, stage only the files for the current task, not everything dirty in the working tree, then suggest a message. The user runs `git commit` themselves.
 
 - Identify the scope first. From this chat's edits (and `git diff` / `git status`), list the files that belong to the feature, fix, or request you just finished. Ignore unrelated local changes from other work.
-- Stage paths explicitly: `git add <path>…` for those files only. Never `git add -A`, `git add .`, or `git commit -a` unless the user explicitly asked to commit _all_ current changes.
+- Stage paths explicitly: `git add <path>…` for those files only. Never `git add -A`, `git add .`, or `git commit -a` unless the user explicitly asked to stage _all_ current changes.
 - One logical change per commit. If unrelated files would be included, leave them unstaged.
-- Before committing, briefly list the staged files so the user can see the scope. If a dirty file might belong to this task but you're unsure, ask; don't guess and sweep it in.
-- Never commit automatically: suggest a short, plain commit message (no `feat:`/`fix:` prefixes), then let the user commit.
+- Before you finish staging, briefly list the staged files so the user can see the scope. If a dirty file might belong to this task but you're unsure, ask; don't guess and sweep it in.
+- Never run `git commit` yourself: after staging, suggest a short, plain commit message (no `feat:`/`fix:` prefixes) and let the user commit.
 - Exclude ephemeral debug code (instrumentation the user added for this session) unless they asked to keep it.
 - Never stage secrets (`.env`, credentials, tokens). Warn the user if they ask to commit those.
 
-### Commands
+## Shell
 
-Required command options can't be empty or null. When reading a required option with the strict flag (`getString("name", true)`), assert non-null with `!`; the option is guaranteed present.
+Terminal commands run in fish on this machine. Fish does not accept POSIX/bash syntax, so whenever a command needs any of it, wrap it so it is interpreted by bash:
 
-```typescript
-const question = ctx.options.getString("question", true)!;
+```bash
+bash -c 'find . -name "*.ts" | xargs wc -l'
 ```
 
-Every command should be user-installable unless it needs the guild. Override `userInstallable` to return `true` so the command registers for both guild and user installs and can be used in servers and DMs. Only return `false` when the command genuinely needs a guild context.
+- Applies to heredocs (`<<EOF`), `set -e`, globs that fish mishandles, `$(...)`, env prefixes like `FOO=1 cmd`, `&&`/`||` chains, pipes with substitutions, and `for`/`if` syntax.
+- Prefer single commands that fish runs natively (`bun`, `bunx tsc --noEmit`, `git status`) over wrapping them. Wrap only when bash-only syntax is needed.
+- Use single quotes around the whole payload so nothing is expanded by fish before bash sees it.
 
-A command that registers subcommands cannot be invoked directly; Discord always sends a subcommand, so the parent's `onExecuteSlash` is never called. Don't implement a "choose a subcommand" handler or reply on such parents; leave `onExecuteSlash` at its default no-op and put all logic in the subcommands. `executeSlash` already short-circuits: it dispatches to the subcommand, or returns silently if none is supplied.
+## Commands
 
-Subcommands live in their own files under a `sub/` folder next to the parent command file (e.g. `src/feature/impl/general/command/user/sub/avatar.command.ts`). Never inline subcommand classes into the parent file; the parent only imports and registers them. Shared helpers for those subcommands go in the same `sub/` folder (e.g. `sub/permissions-helpers.ts`).
+Required command options can't be empty or null. Read a required option from `ctx.options` with the strict flag, which already returns a non-null type, so never add a redundant `!`. For an optional option, use the `args` bag (`ExecuteContext`'s `args`, available inside `onExecuteSlash`: `args.string`, `args.integer`, ...), which returns `T | null`; handle the null instead of asserting it away.
 
-A command that has subcommands gets its own folder: parent file plus `sub/` (e.g. `src/feature/impl/general/command/user/user.command.ts` + `src/feature/impl/general/command/user/sub/`). Standalone commands with no subcommands stay flat files.
+```typescript
+const question = ctx.options.getString("question", true); // string
+const target = args.user("user") ?? user.discordUser; // User | null
+```
 
-A command backed by a panel gets its own folder holding both files, named `<command>.command.ts` and `<command>-panel.ts` (e.g. `src/feature/impl/general/command/help/help.command.ts` + `help/help-panel.ts`, `src/feature/impl/general/command/settings/settings.command.ts` + `settings/settings-panel.ts`, `src/feature/impl/welcomer/command/welcomer/welcomer.command.ts` + `welcomer/welcomer-panel.ts`). The command opens the panel; the panel declares its views and controls.
+Override `userInstallable` to return `true` so the command registers for both guild and user installs; return `false` only when it genuinely needs a guild context.
 
-Commands owned by a feature live inside that feature's folder, under `command/` (e.g. `src/feature/impl/stats/command/stats/stats.command.ts`, `src/feature/impl/social/command/react/react.command.ts`). A feature with commands keeps them there, not in `src/command/commands/`. The general commands (`ping`, `user`, `botstats`, `guildinfo`, `help`, `leaderboard`, `8ball`, `feature`, `permissions`, `settings`) live in the `General` feature (`src/feature/impl/general/command/`), which is always on and cannot be toggled.
+A command that registers subcommands cannot be invoked directly; Discord always sends a subcommand, so the parent's `onExecuteSlash` is never called. Leave it at its default no-op and put all logic in the subcommands.
+
+Subcommands live in their own files under a `sub/` folder next to the parent (e.g. `.../user/sub/avatar.command.ts`); never inline them into the parent, which only imports and registers them. Shared helpers go in the same folder.
+
+Folder layout:
+
+- A command with subcommands gets its own folder (parent file plus `sub/`); standalone commands stay flat files.
+- A panel-backed command gets a folder holding `<command>.command.ts` and `<command>-panel.ts` (e.g. `help/help.command.ts` + `help/help-panel.ts`).
+
+Commands owned by a feature live in that feature's `command/` folder, not `src/command/commands/`. General commands live in the always-on `General` feature (`src/feature/impl/general/command/`).
+
+Declare options with the helpers in `src/command/option.ts` (`stringOption`, `userOption`, ...) in a `get options()` override. A command backed by a panel registers its panel with `PanelManager.register` and opens it via `renderPanel` (`@/panel/render`); see `src/feature/impl/general/command/settings/`.
 
 ## Permissions
 
-Bot permissions live entirely under `src/permission/`: the logic in `src/permission/permissions.ts` (the `Permissions` class + `PermissionFlags`) and its tests. Do not put permission code anywhere else. The `/permissions` command itself lives with the other General commands at `src/feature/impl/general/command/permissions/`.
+Bot permissions live entirely under `src/permission/`: the logic in `src/permission/permissions.ts` (the `Permissions` class + `PermissionFlags`) and its tests. Nothing else contains permission code. The `/permissions` command lives with the other General commands at `src/feature/impl/general/command/permissions/`.
 
-- Flags are BigInt bitfields (`1n << n`) named after the command they gate, e.g. `FEATURE_COMMAND`, `PERMISSIONS_COMMAND`. Bits are permanent; never reuse a retired bit. `FLAG_DISPLAY_NAMES` maps each flag to its user-facing label and is the single source of truth for choice labels and `/permissions view` decoding.
-- Commands declare a `requiredFlags: bigint` getter (default `0n` = anyone). `CommandManager` enforces it after the feature check; the guild owner and members with Discord `Administrator` (when `ALLOW_ADMIN_BYPASS` is on) bypass all checks. A gate usually lives on the **parent** command (e.g. `/permissions`, `/level-config`); subcommands inherit it unless they declare their own `requiredFlags`, so a parent can stay open while a specific subcommand is gated (e.g. `/levels` open, `/level-config` admin-only). `featureId` inheritance mirrors this: the resolved subcommand's `featureId` wins, otherwise the parent's applies.
+- Flags are BigInt bitfields (`1n << n`) named after the command they gate, e.g. `FEATURE_COMMAND`. Bits are permanent; never reuse a retired bit. `FLAG_DISPLAY_NAMES` maps each flag to its user-facing label and is the single source of truth for choice labels and `/permissions view` decoding.
+- Commands declare a `requiredFlags: bigint` getter (default `0n` = anyone). `CommandManager` enforces it after the feature check; the guild owner and members with Discord `Administrator` (when `ALLOW_ADMIN_BYPASS` is on) bypass all checks. A gate usually lives on the **parent** command; subcommands inherit it unless they declare their own `requiredFlags`, so a parent can stay open while a specific subcommand is gated (e.g. `/levels` open, `/level-config` admin-only). `featureId` inheritance mirrors this: the resolved subcommand's `featureId` wins, otherwise the parent's applies.
+- Config storage: each feature's settings live in a `SettingsModule<C>` (`src/settings/settings-module.ts`, e.g. `levels-settings.ts`), registered with `SettingsManager.register` in the feature constructor; keys are `<moduleId>.<key>` rows in `guild_settings`. A feature can hold a module without registering it when a panel edits it instead (`welcomer-settings.ts`).
 - Effective flags: a role's own flags OR'd with its parent's effective flags (additive inheritance, cycle-safe), then OR'd across all the member's roles.
 - Cache resolution per guild (`loadGuild`) with invalidation on role events. Mirror the existing pattern, don't add ad-hoc checks.
-- Subcommands of `/permissions` live in `src/feature/impl/general/command/permissions/sub/`, and shared helpers in the same folder (e.g. `sub/permissions-helpers.ts`). Only the parent imports `Command` from `@/command/command`; `@/command` would resolve to `src/command/index.ts` (`CommandManager`).
 
 ## Events
 
-Internal event system in `src/event/` (Docs: `DESIGN.md`, see "Internal Events"). It models Meteor's Orbit: typed event classes posted to a bus, listeners subscribe via `@EventHandler` annotations. **No code outside `src/event/event-bridge.ts` ever calls `client.on`**; the bridge is the single adapter from the discord.js gateway to the bus.
+Internal event system in `src/event/`. It models Meteor's Orbit: typed event classes posted to a bus, listeners subscribe via `@EventHandler` annotations. **No code outside `src/event/event-bridge.ts` ever calls `client.on`**; the bridge is the single adapter from the discord.js gateway to the bus.
 
 ### Adding a new event
 
-1. **Define the event class** in `src/event/events/<name>.event.ts`, extending `Event` and wrapping the raw payload + resolved context (guild, userId, optionally a pre-resolved `GlobalUser`). Export it from `src/event/events/index.ts`.
+1. **Define the event class** in `src/event/events/<name>.event.ts`, extending `Event` and wrapping the raw payload + resolved context (guild, userId, optionally a pre-resolved `GlobalUser`). Events are imported by path, so no barrel export is needed.
 
 ```ts
-import type { Guild, VoiceState } from "discord.js";
+import type { Guild } from "discord.js";
 import Event from "../event";
-import { FeatureIds } from "@/feature/feature-ids";
 
 export default class VoiceSessionEndedEvent extends Event {
   public override readonly userId: string;
   public readonly guildData: Guild;
   public readonly channelId: string | null;
+  public readonly joinedAt: Date;
+  public readonly leftAt: Date;
 
-  constructor(options: { userId: string; guild: Guild; channelId: string | null }) {
-    super({ guild: options.guild, userId: options.userId, featureId: FeatureIds.Stats });
+  constructor(options: {
+    userId: string;
+    guild: Guild;
+    channelId: string | null;
+    joinedAt: Date;
+    leftAt: Date;
+  }) {
+    super({ guild: options.guild, userId: options.userId });
     this.userId = options.userId;
     this.guildData = options.guild;
     this.channelId = options.channelId;
+    this.joinedAt = options.joinedAt;
+    this.leftAt = options.leftAt;
   }
 }
 ```
@@ -103,47 +121,47 @@ export class MyListeners extends EventListener {
   }
 
   @EventHandler(MessageCreatedEvent)
-  public async onMessageCreated(event: MessageCreatedEvent): Promise<void> { ... }
+  public async onMessageCreated(event: MessageCreatedEvent): Promise<void> {
+    // handler body
+  }
 }
 ```
 
-Co-locate the listener class with the code it serves: a feature listener (e.g. `StatsListeners`) lives in that feature's `index.ts` beside the feature class, `PermissionsListeners` lives in `src/permission/permissions.ts`, the slash-dispatch listener in `src/command/index.ts`, the context-menu one in `src/context-menu/context-menu-command-manager.ts`, voice keepalive in `src/lib/voice.ts`, lifecycle in `src/index.ts`. Instantiate each listener once in `src/index.ts` near the other listeners.
+Co-locate the listener with the code it serves: a feature listener lives in that feature's `index.ts` beside the feature class, `PermissionsListeners` in `src/permission/permissions.ts`, lifecycle listeners in `src/index.ts`. Instantiate each listener once in `src/index.ts` near the other listeners. The `@/event/...` specifiers above assume the listener lives outside `src/event/`; a listener that is a direct child of `src/event/` uses `../event-bus` and `../events/<name>.event` instead (see Import discipline).
+
+Nightly jobs use `Bun.cron(CRON, fn, { tz: "UTC" })` with the CRON expression as a top-of-file constant, armed on `BotReadyEvent`, stopping any previous job first (`this.job?.stop()`); see `src/feature/impl/birthday/index.ts` and `src/storage/media-listeners.ts`.
 
 ### Rules
 
 - **`@EventHandler` takes the event class explicitly**; standard decorators can't infer the param type at runtime (no `emitDecoratorMetadata`). Signature: `@EventHandler(MyEvent, { featureId?: FeatureIds })`.
-- **Feature gating is per-listener**: pass `{ featureId: FeatureIds.X }` and the bus checks `GuildFeatures.isFeatureEnabled(event.guild, featureId)` before dispatch. Leave it out for ungated listeners. Prefer per-listener over baking the feature into the event class.
-- **`this` is bound**: the bus binds each handler to its listener instance, so `this.myHelper()` works inside handlers.
-- **Resolve global users via `GlobalUsersManager.getUser(user)`**; it get-or-creates the row in the DB. There is no in-process cache, so hot paths (per-message events) go straight to the DB.
-- **Dispatch order**: handlers run in subscription order (priority tier reserved for later). Multiple listeners for one event are fine.
-- **Lifecycle**: listeners subscribe in their constructor via `EventBus.subscribe(this)`; remove via `EventBus.unsubscribe(listener)`.
-- **Import discipline** (avoid cycles): listeners import from leaf modules (`../event-bus`, `../event-listener`, `../event-handler`, `../events/<name>.event`), never the `src/event/index.ts` barrel which only re-exports the core (`Event`, `EventBus`, `EventHandler`, `EventListener`). Feature code imports `FeatureIds` from `@/feature/feature-ids` (leaf), and `Feature` never statically imports `CommandManager` (dynamic import to dodge the command/feature cycle).
+- **Feature gating is per-listener**: pass `{ featureId: FeatureIds.X }` and the bus checks `GuildFeatures.isFeatureEnabled(event.guild, featureId)` before dispatch. Leave it out for ungated listeners.
+- **`this` is bound**: the bus binds each handler to its listener instance.
+- **Resolve global users via `GlobalUsersManager.getUser(user)`**; it get-or-creates the row in the DB, cached behind the `global-users` cache. Guild-scoped rows go through `GuildUsersManager.getUser`/`claimLastMessage`, which read the DB every call (the SQL predicate is the cooldown's source of truth; never cache in front of it).
+- **Dispatch order**: handlers run in subscription order (priority tier reserved for later).
+- **Lifecycle**: listeners subscribe in their constructor via `EventBus.subscribe(this)`.
+- **Import discipline** (avoid cycles): listeners import from leaf modules (`../event-bus`, `../events/<name>.event`), never the `src/event/index.ts` barrel. `Feature` never statically imports `CommandManager` (dynamic import to dodge the command/feature cycle). `src/lib/embed.ts` imports `discordClient` from `src/index.ts`, so modules on that chain must not import embeds at module-init time; a sweep that builds embeds lives in its own file (`birthday-sweep.ts`, `media.service.ts`).
 
 ## Read the Subsystem
 
-Read the subsystem before you write code. A change sits inside a framework, manager, registry, or feature area; explore base classes, registration paths, config hooks, and existing implementations first.
+Read the subsystem before you write code. A change sits inside a framework, manager, registry, or feature area; explore base classes, registration paths, config hooks, and existing implementations first. Stop once you've found one sibling to mirror; explore further only if that example leaves a genuine gap.
 
 - Follow integration points. New code registers where its siblings register; find that spot and do the same.
 - No loose workarounds. Don't reach around a framework with one-off hacks, duplicated logic, or hard-coded values an existing abstraction already handles. If the framework lacks support, extend it at the right layer.
 - Mirror a nearby example end-to-end: setup → registration → config → behavior. That path is your template.
 
-Default to using Bun instead of Node.js.
+## Bun
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
+Default to using Bun instead of Node.js. Use the `bun`/`bunx` CLI in place of its npm/yarn/pnpm/npx equivalents, and `bun test` instead of jest or vitest.
+
 - Bun automatically loads .env, so don't use dotenv.
 
 ## Libraries
 
 Prefer an existing, well-maintained library over writing a new implementation. Reuse beats reinvention: libraries are tested, maintained, and handle edge cases you will otherwise forget.
 
-- Reach for a package first. Only write your own implementation when no library satisfies the requirement, or when a custom version is meaningfully simpler than the dependency.
-- Avoid reimplementing what the standard library, Bun, or a dependency already provides: hashing, validation, date handling, parsing, pagination, retries, etc.
-- Add dependencies to `dependencies`, not `devDependencies`. Keep the dependency footprint small; prefer one package that covers many needs over several narrow ones.
+- Check the standard library, Bun, and existing dependencies first: they already cover most needs (hashing, validation, date handling, parsing, pagination, retries). Reach for a new package only when none of them fits, and only if a custom version would not be meaningfully simpler.
+- Avoid reimplementing what the standard library, Bun, or a dependency already provides.
+- Add dependencies to `dependencies`, not `devDependencies`. Keep the dependency footprint small.
 
 ## APIs
 
@@ -153,37 +171,28 @@ Prefer an existing, well-maintained library over writing a new implementation. R
 - `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
 - `WebSocket` is built-in. Don't use `ws`.
 - Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+- Use `Bun.$` for shell commands instead of execa.
 
 ## Testing
 
-Use `bun test` to run tests.
-
-```ts#index.test.ts
-import { test, expect } from "bun:test";
-
-test("hello world", () => {
-  expect(1).toBe(1);
-});
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+Use `bun test` to run tests. Import `test`/`expect` from `bun:test`; the Bun API docs live in `node_modules/bun-types/docs/**.mdx`. Tests sit next to the code as `<file>.test.ts` (e.g. `src/cache/cache.test.ts`, `src/panel/router.test.ts`).
 
 ## Database
 
-Postgres runs via Docker Compose (`docker-compose.yml`, `postgres:16-alpine`); start it with `docker compose up -d`. Connection config lives in `.env` (`DATABASE_URL`).
+Postgres runs via Docker Compose (`docker-compose.yml`, `postgres:18-alpine`, plus MinIO for the S3 storage layer); start it with `docker compose up -d`. Connection config lives in `.env` (`DATABASE_URL`).
 
-Drizzle ORM wraps the `pg` driver (`drizzle-orm/node-postgres`). `db` is exported from `src/db/index.ts`; tables live in `src/db/schemas/`, one file per table named after it (`guild-users.ts`, `user-levels.ts`, `guild-settings.ts`, ...).
+Drizzle ORM wraps the `pg` driver (`drizzle-orm/node-postgres`). `db` is exported from `src/db/index.ts`; tables live in `src/db/schemas/`, one file per table named after it (`guild-settings.ts`, ...), and the schema must stay registered in the aggregate object in `src/db/index.ts` or `drizzle-kit generate` will emit a `DROP TABLE` for it.
 
 - Migrations: `bunx drizzle-kit generate` to create, `bunx drizzle-kit migrate` to apply. `push` applies schema without migration files; `drop` removes them.
 - `drizzle/meta/` is machine-generated and prettier-ignored; don't hand-edit it.
+- Writes use drizzle upserts (`onConflictDoUpdate`/`onConflictDoNothing` with `.returning()`); a read that a caller must survive a conflict uses the returning row's presence as the verdict. See `src/user/guild-users-manager.ts` for the atomic-claim pattern.
 - Exception to the "use `Bun.sql`" rule: drizzle's `pg` driver is permitted. Drizzle is an ORM layer, not raw `pg` usage.
 
 # Code Style
 
 ## Punctuation
 
-Never use em dashes (`—`) in code, comments, docs, or this file. Use a period to split into two sentences, a colon to introduce, or a semicolon to join related clauses. The codebase is kept free of them, so new text must follow suit. En dashes (`–`) should also be avoided; use a plain hyphen in ranges and compound words.
+Never use em dashes (`—`) or en dashes (`–`) in code, comments, or docs. Use a period to split into two sentences, a colon to introduce, or a semicolon to join related clauses; use a plain hyphen in ranges and compound words.
 
 ## Imports
 
@@ -206,30 +215,45 @@ Model variation with types, not branching. When behaviour differs by kind, categ
 
 - Extend existing abstractions. Read siblings and follow the hierarchy.
 - Pull shared logic up; subclasses override only what varies; call sites depend on the supertype and let dispatch select the implementation.
-- Abstract only where it earns its keep. A single implementation with no realistic second variant stays concrete; don't create a base class for one subclass.
+- Abstract only where it earns its keep: two or more variants exist or are about to exist. A single implementation with no realistic second variant stays concrete; don't create a base class for one subclass.
 
 Bad:
 
-```js
+```ts
 if (type === "currency") { ... }
 else if (type === "item") { ... }
 ```
 
 Good:
 
-```js
+```ts
 abstract class Reward {
-  abstract grant(user: User): void;
+  public abstract grant(user: User): void;
 }
+
+class CurrencyReward extends Reward {
+  public grant(user: User): void {
+    // ...
+  }
+}
+
+class ItemReward extends Reward {
+  public grant(user: User): void {
+    // ...
+  }
+}
+
+// Call site: dispatch selects the implementation, no branch on kind.
+reward.grant(user);
 ```
 
 ## Class Members
 
-Every class member must declare an explicit visibility modifier (`public`, `protected`, `private`) and, for fields and methods, an explicit return type.
+Every class member must declare an explicit visibility modifier (`public`, `protected`, `private`). Fields need an explicit type; methods and getters need an explicit return type. An `override` member may rely on the inherited return type, which is how most `get options()` and `onExecuteSlash` overrides are written.
 
 Bad:
 
-```js
+```ts
 class Foo {
   counter = 0;
   compute() {
@@ -240,7 +264,7 @@ class Foo {
 
 Good:
 
-```js
+```ts
 class Foo {
   public counter: number = 0;
   public compute(): number { return this.counter; }
@@ -253,9 +277,9 @@ Applies to class fields, methods, getters, and setters. Constructors inherit the
 
 Most methods, classes, and constructors need no comment. Write one only when a reader cannot recover the reason from the name and the body; the default is silence, not documentation.
 
-If a method genuinely needs documentation, write a full JSDoc block. Never use a 1-line comment (`/** ... */` or `// ...`) on a method. 1-line comments are acceptable only as brief inline section markers inside a method body.
+If a method genuinely needs documentation, write a full JSDoc block. Never use a 1-line JSDoc (`/** ... */`) to document a method or class. This rule is about method and class documentation only: short `//` notes on fields and inside bodies are fine, as below.
 
-A comment explains **why**, never **what**. Never paraphrase a symbol's name or body:
+A comment explains **why**, never **what**. Never paraphrase a symbol's name or body. If a reader could re-derive it from the adjacent code, delete it: don't narrate branches, assignments, or assertions. One-word clarifications on unit-ambiguous shapes (`// milliseconds`, `// null = unset`) are fine. Leave existing comments alone unless they're part of the task.
 
 Bad:
 
@@ -273,41 +297,18 @@ Good:
  * would pull in `src/index.ts` and its cycle).
  */
 @EventHandler(BotReadyEvent)
+public async onBotReady(event: BotReadyEvent): Promise<void> {
+  // ...
+}
 ```
 
 ## Return statements
 
 Return a concise expression directly instead of assigning to a single-use variable first.
 
-Bad:
-
-```js
-const total = this.calculateSum(a, b);
-return total;
-```
-
-Good:
-
-```js
-return this.calculateSum(a, b);
-```
-
 ## Dead code
 
-No useless variables; don't assign to a variable used once immediately after. No useless methods; don't extract a method called from one place that adds no clarity. Inline it.
-
-Bad:
-
-```js
-const name = data.get("name");
-this.name = name;
-```
-
-Good:
-
-```js
-this.name = data.get("name");
-```
+No useless variables; don't assign to a variable used once immediately after. No useless methods; don't extract a method called from one place that adds no clarity. Inline it. This governs the code you write; don't inline pre-existing single-use methods you weren't asked to touch.
 
 ## Spacing
 
@@ -315,66 +316,11 @@ No blank lines between trivial or adjacent logic. Add vertical space only to sep
 
 ## Braces
 
-Never inline control-flow bodies. Always use braces, even for a single statement.
-
-Bad:
-
-```js
-if (user) user.save();
-
-for (const item of cart) total += item.price;
-
-if (res.ok) return res.json();
-log("saved");
-```
-
-Good:
-
-```js
-if (user) {
-  user.save();
-}
-
-for (const item of cart) {
-  total += item.price;
-}
-
-if (res.ok) {
-  return res.json();
-}
-log("saved");
-```
-
-Applies to `if`, `else`, `for`, `while`, `do`, and `try`/`catch`/`finally`.
+Never inline control-flow bodies. Always use braces, even for a single statement. Applies to `if`, `else`, `for`, `while`, `do`, and `try`/`catch`/`finally`.
 
 ## Async/Await
 
-Prefer `async`/`await` over `.then` chains. Read top-to-bottom, composes with `try`/`catch`, and avoids nested callback scope.
-
-Bad:
-
-```js
-getUser(id)
-  .then(user => getUserProfile(user.id))
-  .then(profile => saveProfile(user.id, profile))
-  .then(() => log("saved"))
-  .catch(err => console.error(err));
-```
-
-Good:
-
-```js
-async function saveProfileFlow(id) {
-  try {
-    const user = await getUser(id);
-    const profile = await getUserProfile(user.id);
-    await saveProfile(user.id, profile);
-    log("saved");
-  } catch (err) {
-    console.error(err);
-  }
-}
-```
+Prefer `async`/`await` over `.then` chains: it reads top-to-bottom, composes with `try`/`catch`, and avoids nested callback scope.
 
 ## Scope
 
@@ -388,6 +334,6 @@ Don't make sweeping changes. Edit the existing code that's directly relevant to 
 
 Finish every change by verifying it builds and passes. Do not submit code that fails any of these.
 
-- Format: run `bunx prettier --write .`. Add `prettier` to devDependencies if it is not installed.
-- Type-check: run `bunx tsc --noEmit`. `tsconfig.json` is `strict` with `noEmit`, so this catches type errors without emitting files. This must pass with zero errors.
-- Test: run `bun test` when tests exist.
+- Format: `bunx prettier --write <changed files>` (add `prettier` to devDependencies if missing), or `bunx prettier --check <changed files>` to verify without writing. Never run prettier over the whole repo; it would reformat unrelated files.
+- Type-check: `bunx tsc --noEmit`, which must pass with zero errors.
+- Test: when tests exist, `bun test <path>` for the touched area while iterating, and the full `bun test` before finishing a broad change. Both baselines are clean.
