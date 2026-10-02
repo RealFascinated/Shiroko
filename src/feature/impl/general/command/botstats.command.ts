@@ -39,6 +39,7 @@ export default class BotStatsCommand extends Command {
         `**Servers:** ${ctx.client.guilds.cache.size.toLocaleString("en-US")}`,
         `**Users:** ${ctx.client.users.cache.size.toLocaleString("en-US")}`,
         `**Users Seen:** ${(userCount?.value ?? 0).toLocaleString("en-US")}`,
+        `**Commands:** ${ctx.client.application.commands.cache.size.toLocaleString("en-US")}`,
         `**Commands Run:** ${commandCalls.toLocaleString("en-US")}`,
       ],
       [

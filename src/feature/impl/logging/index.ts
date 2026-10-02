@@ -566,8 +566,6 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Code: \`${invite.code}\``,
             `**➜** Channel: \`${invite.channel ? `<#${invite.channel.id}>` : "unknown"}\``,
-            `**➜** Inviter: ${invite.inviter ? `${invite.inviter.tag} (${invite.inviter.id})` : "unknown"}`,
-            `**➜** Uses: \`${invite.uses ?? 0}\``,
             `**➜** Expires: ${invite.expiresAt ? `<t:${Math.floor(invite.expiresAt.getTime() / 1000)}>` : "never"}`,
           ]).setThumbnail(invite.inviter?.displayAvatarURL({ size: 4096, extension: "webp" }) ?? null),
         ],
