@@ -18,7 +18,7 @@ export default class GuildFeatures {
    * feature default; missing rows fall back to it.
    */
   public static async isFeatureEnabled(guild: Guild, featureId: FeatureIds): Promise<boolean> {
-    // A non-toggleable feature (General) is always on; no stored row can
+    // A non-toggleable feature is always on; no stored row can
     // disable it.
     if (Feature.get(featureId)?.toggleable === false) {
       return true;
