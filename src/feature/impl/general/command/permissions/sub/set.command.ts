@@ -28,7 +28,7 @@ export default class PermissionsSetCommand extends Command {
         ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A role is required."))
       );
     }
-    const flagChoice = ctx.options.getString("flags", true)!;
+    const flagChoice = ctx.options.getString("flags", true);
     const flags = parseFlags([flagChoice]);
     const parent = args.role("parent");
     try {

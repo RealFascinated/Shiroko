@@ -28,7 +28,7 @@ export default class EightBallCommand extends Command {
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
-    const question = ctx.options.getString("question", true)!;
+    const question = ctx.options.getString("question", true);
     const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
     return ctx.reply({
       embeds: [

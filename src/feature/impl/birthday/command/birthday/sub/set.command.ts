@@ -25,11 +25,11 @@ export default class SetCommand extends Command {
     ];
   }
 
-  protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ user, ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const day = args.integer("day")!;
-    const month = args.integer("month")!;
-    const year = args.integer("year")!;
+    const day = ctx.options.getInteger("day", true);
+    const month = ctx.options.getInteger("month", true);
+    const year = ctx.options.getInteger("year", true);
 
     if (!isValidYear(year)) {
       return ctx.reply(

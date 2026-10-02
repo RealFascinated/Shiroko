@@ -63,8 +63,8 @@ export default abstract class PairInteractionCommand extends Command {
     return embed;
   }
 
-  protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
-    const target = args.user("target")!;
+  protected override async onExecuteSlash({ user, ctx, commandName }: ExecuteContext) {
+    const target = ctx.options.getUser("target", true);
     if (target.id === user.discordUser.id) {
       return ctx.reply({ content: `You can't ${this.verb} yourself! :(`, flags: MessageFlags.Ephemeral });
     }

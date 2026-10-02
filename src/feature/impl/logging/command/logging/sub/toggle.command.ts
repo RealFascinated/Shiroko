@@ -20,15 +20,15 @@ export default class ToggleCommand extends Command {
     ];
   }
 
-  protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const logType = args.string("type") as LogType | null;
-    if (!logType || !(logType in logTypes)) {
+    const logType = ctx.options.getString("type", true) as LogType;
+    if (!(logType in logTypes)) {
       return ctx.reply(
         ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A log type is required."))
       );
     }
-    const enabled = ctx.options.getBoolean("enabled", true)!;
+    const enabled = ctx.options.getBoolean("enabled", true);
     await loggingService.setEnabled(guild, logType, enabled);
     const label = logTypes[logType].label;
     return ctx.reply({

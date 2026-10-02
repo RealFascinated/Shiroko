@@ -64,7 +64,6 @@ const STICKER_FORMAT_NAMES: Record<number, string> = {
 
 function formatRoleIds(roleIds: string[]): string {
   return roleIds.length > 0 ? roleIds.map(id => `<@&${id}>`).join(", ") : "None";
-  return roleIds.length > 0 ? roleIds.map(id => `<@&${id}>`).join(", ") : "None";
 }
 
 /** Render a stored asset URL as a markdown link, or "None" when absent. */

@@ -32,7 +32,7 @@ export default class FeatureCommand extends Command {
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const featureId = ctx.options.getString("feature", true)! as FeatureIds;
+    const featureId = ctx.options.getString("feature", true) as FeatureIds;
     if (!Object.values(FeatureIds).includes(featureId)) {
       return ctx.reply(
         ephemeralErrorReply(
@@ -41,7 +41,7 @@ export default class FeatureCommand extends Command {
         )
       );
     }
-    const enabled = ctx.options.getBoolean("enabled", true)!;
+    const enabled = ctx.options.getBoolean("enabled", true);
     await GuildFeatures.setFeatureEnabled(guild, featureId, enabled);
     const feature = Feature.get(featureId);
     const name = feature?.name ?? featureId;

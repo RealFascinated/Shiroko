@@ -47,7 +47,7 @@ interface UserLevelSnapshot {
 export default class LevelsService {
   /**
    * Try to grant message XP to a user in a guild, gated by the per-guild
-   * user's `lastMessageAt` cooldown (atomically claimed in SQL — exactly
+   * user's `lastMessageAt` cooldown (atomically claimed in SQL; exactly
    * one concurrent message per window wins). Returns the new level
    * snapshot, or `null` when the grant was skipped (bot-safe channel
    * ignored, cooldown not elapsed, no guild).
@@ -102,7 +102,7 @@ export default class LevelsService {
 
   /**
    * The (level, xp) pair for a user in a guild, derived fresh from
-   * `user_levels`. No cache — every read hits the DB.
+   * `user_levels`. No cache: every read hits the DB.
    *
    * **Level is always derived from `xp`**. Reads never trust a stored
    * level, so they stay consistent: the same `xp` maps to the same level
