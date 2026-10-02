@@ -7,12 +7,6 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { PermissionFlags } from "@/permission/permissions";
 import { PermissionFlagsBits } from "discord.js";
 
-const FEATURE_CHOICES: Record<string, string> = Object.fromEntries(
-  Feature.all()
-    .filter(feature => feature.toggleable)
-    .map(feature => [feature.id, feature.name])
-);
-
 export default class FeatureCommand extends Command {
   constructor() {
     super("feature", "Enable or disable server features");
@@ -24,8 +18,13 @@ export default class FeatureCommand extends Command {
   }
 
   public override get options(): CommandOptionBuilder[] {
+    const choices: Record<string, string> = Object.fromEntries(
+      Feature.all()
+        .filter(feature => feature.toggleable)
+        .map(feature => [feature.id, feature.name])
+    );
     return [
-      stringOption(true, "feature", "Which feature to change", { choices: FEATURE_CHOICES }),
+      stringOption(true, "feature", "Which feature to change", { choices }),
       booleanOption(true, "enabled", "Turn the feature on or off"),
     ];
   }
