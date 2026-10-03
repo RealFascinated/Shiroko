@@ -22,7 +22,7 @@ export default class LevelLeaderboardCommand extends LeaderboardSubCommand {
     return "No tracked levels in this server yet.";
   }
 
-  protected override renderRow(row: LeaderboardRow, position: number, name: string): string {
-    return `**${ordinal(position)}.** ${name}: **${levelForXp(row.value)}** (${row.value.toLocaleString("en-US")} XP)`;
+  protected override renderRow(row: LeaderboardRow, position: number): string {
+    return `**${ordinal(position)}.** <@${row.id}>: **${levelForXp(row.value)}** (${row.value.toLocaleString("en-US")} XP)`;
   }
 }

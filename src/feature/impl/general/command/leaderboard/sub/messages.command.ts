@@ -21,7 +21,7 @@ export default class MessagesLeaderboardCommand extends LeaderboardSubCommand {
     return "No messages tracked in this server yet.";
   }
 
-  protected override renderRow(row: LeaderboardRow, position: number, name: string): string {
-    return `**${ordinal(position)}.** ${name}: **${row.value.toLocaleString("en-US")}** ${pluralise(row.value, "message")}`;
+  protected override renderRow(row: LeaderboardRow, position: number): string {
+    return `**${ordinal(position)}.** <@${row.id}>: **${row.value.toLocaleString("en-US")}** ${pluralise(row.value, "message")}`;
   }
 }
