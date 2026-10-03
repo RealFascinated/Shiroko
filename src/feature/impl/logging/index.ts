@@ -205,7 +205,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member ${event.member} joined the server.`,
+            `${event.member} joined the server.`,
             "",
             `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
@@ -219,7 +219,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member ${event.member} left the server.`,
+            `${event.member} left the server.`,
             "",
             `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
@@ -232,7 +232,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member ${event.newUser} changed their avatar.`,
+            `${event.newUser} changed their avatar.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
@@ -246,8 +246,8 @@ export default class LoggingFeature extends Feature {
         embeds: [
           this.baseLogEmbed([
             event.afterAssetUrl
-              ? `Member ${event.newUser} changed their banner.`
-              : `Member ${event.newUser} removed their banner.`,
+              ? `${event.newUser} changed their banner.`
+              : `${event.newUser} removed their banner.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
@@ -260,7 +260,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member ${event.newUser} changed their username.`,
+            `${event.newUser} changed their username.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Before: \`${event.oldUser.username}\``,
@@ -274,7 +274,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member ${event.newUser} changed their display name.`,
+            `${event.newUser} changed their display name.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Before: \`${event.oldUser.displayName}\``,
@@ -291,7 +291,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member ${event.newMember} was given roles.`,
+            `${event.newMember} was given roles.`,
             "",
             `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.added.map(role => role.toString()).join(", ")}`,
@@ -307,7 +307,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member ${event.newMember} had roles removed.`,
+            `${event.newMember} had roles removed.`,
             "",
             `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
@@ -320,7 +320,7 @@ export default class LoggingFeature extends Feature {
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `Member ${event.newMember} changed their nickname.`,
+            `${event.newMember} changed their nickname.`,
             "",
             `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Before: \`${event.oldMember.nickname ?? "None"}\``,
