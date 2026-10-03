@@ -225,6 +225,13 @@
       "when": 1790994393504,
       "tag": "0031_parallel_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791011281380,
+      "tag": "0032_empty_gorilla_man",
+      "breakpoints": true
     }
   ]
 }

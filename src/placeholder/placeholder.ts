@@ -6,11 +6,10 @@ import type { Guild } from "discord.js";
  * resolver may rely on: `guild` is optional because a context may be
  * guild-less.
  *
- * A feature whose tokens need neither a member nor a guild (a YouTube
- * upload announcement, say) extends this directly, so its context can carry
- * exactly what its own tokens read. Contexts that need a member or a guild
- * narrow this via {@link GlobalUserPlaceholderContext} and
- * {@link GuildPlaceholderContext}.
+ * A feature whose tokens need neither a member nor a guild extends this
+ * directly, so its context can carry exactly what its own tokens read.
+ * Contexts that need a member or a guild narrow this via
+ * {@link GlobalUserPlaceholderContext} and {@link GuildPlaceholderContext}.
  */
 export interface PlaceholderContext {
   readonly guild?: Guild | undefined;

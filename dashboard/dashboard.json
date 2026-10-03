@@ -1616,8 +1616,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "last_over_time(tracked_youtube_channels{job=\"$job\"}[1h])",
-                        "legendFormat": "channels",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"messages\"}[5m])",
+                        "legendFormat": "messages",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1633,7 +1633,7 @@
           "description": "",
           "id": 15,
           "links": [],
-          "title": "Tracked channels",
+          "title": "Messages",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1686,7 +1686,7 @@
                       }
                     ]
                   },
-                  "unit": "short",
+                  "unit": "ops",
                   "min": 0
                 },
                 "overrides": []
@@ -1728,8 +1728,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"messages\"}[5m])",
-                        "legendFormat": "messages",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"slash_commands\"}[5m])",
+                        "legendFormat": "slash",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1745,7 +1745,7 @@
           "description": "",
           "id": 16,
           "links": [],
-          "title": "Messages",
+          "title": "Slash commands",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1840,8 +1840,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"slash_commands\"}[5m])",
-                        "legendFormat": "slash",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"components\"}[5m])",
+                        "legendFormat": "components",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1857,7 +1857,7 @@
           "description": "",
           "id": 17,
           "links": [],
-          "title": "Slash commands",
+          "title": "Components",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1952,8 +1952,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"components\"}[5m])",
-                        "legendFormat": "components",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"context_menus\"}[5m])",
+                        "legendFormat": "context",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1969,7 +1969,7 @@
           "description": "",
           "id": 18,
           "links": [],
-          "title": "Components",
+          "title": "Context menus",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -2064,8 +2064,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"context_menus\"}[5m])",
-                        "legendFormat": "context",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"member_joins\"}[5m])",
+                        "legendFormat": "joins",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -2081,7 +2081,7 @@
           "description": "",
           "id": 19,
           "links": [],
-          "title": "Context menus",
+          "title": "Member joins",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -2176,8 +2176,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"member_joins\"}[5m])",
-                        "legendFormat": "joins",
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"presence_changes\"}[5m])",
+                        "legendFormat": "presence",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -2193,7 +2193,7 @@
           "description": "",
           "id": 20,
           "links": [],
-          "title": "Member joins",
+          "title": "Presence changes",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -2288,8 +2288,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"presence_changes\"}[5m])",
-                        "legendFormat": "presence",
+                        "expr": "rate(event_loop_ms_sum{job=\"$job\"}[5m]) / rate(event_loop_ms_count{job=\"$job\"}[5m])",
+                        "legendFormat": "average",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -2305,7 +2305,7 @@
           "description": "",
           "id": 21,
           "links": [],
-          "title": "Presence changes",
+          "title": "Event loop delay (average)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -2358,7 +2358,7 @@
                       }
                     ]
                   },
-                  "unit": "ops",
+                  "unit": "ms",
                   "min": 0
                 },
                 "overrides": []
@@ -2400,8 +2400,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(event_loop_ms_sum{job=\"$job\"}[5m]) / rate(event_loop_ms_count{job=\"$job\"}[5m])",
-                        "legendFormat": "average",
+                        "expr": "histogram_quantile(0.95, sum(rate(event_loop_ms_bucket{job=\"$job\"}[5m])) by (le))",
+                        "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -2417,7 +2417,7 @@
           "description": "",
           "id": 22,
           "links": [],
-          "title": "Event loop delay (average)",
+          "title": "Event loop delay (p95)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -2512,118 +2512,6 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum(rate(event_loop_ms_bucket{job=\"$job\"}[5m])) by (le))",
-                        "legendFormat": "p95",
-                        "queryType": "MetricsQL"
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "A"
-                  }
-                }
-              ],
-              "queryOptions": {},
-              "transformations": []
-            }
-          },
-          "description": "",
-          "id": 23,
-          "links": [],
-          "title": "Event loop delay (p95)",
-          "vizConfig": {
-            "group": "timeseries",
-            "kind": "VizConfig",
-            "spec": {
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green",
-                        "value": 0
-                      }
-                    ]
-                  },
-                  "unit": "ms",
-                  "min": 0
-                },
-                "overrides": []
-              },
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "maxHeight": 600,
-                  "mode": "multi",
-                  "sort": "desc"
-                }
-              }
-            },
-            "version": "13.2.2"
-          }
-        }
-      },
-      "panel-24": {
-        "kind": "Panel",
-        "spec": {
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "${vm}"
-                      },
-                      "group": "victoriametrics-metrics-datasource",
-                      "kind": "DataQuery",
-                      "spec": {
                         "expr": "command_calls_total{job=\"$job\"}",
                         "legendFormat": "{{command}}",
                         "queryType": "MetricsQL"
@@ -2639,7 +2527,7 @@
             }
           },
           "description": "",
-          "id": 24,
+          "id": 23,
           "links": [],
           "title": "Command calls (total)",
           "vizConfig": {
@@ -2718,7 +2606,7 @@
           }
         }
       },
-      "panel-25": {
+      "panel-24": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -2751,7 +2639,7 @@
             }
           },
           "description": "",
-          "id": 25,
+          "id": 24,
           "links": [],
           "title": "Command calls per second",
           "vizConfig": {
@@ -3159,25 +3047,11 @@
                           "name": "panel-15"
                         },
                         "height": 8,
-                        "width": 24,
+                        "width": 8,
                         "x": 0,
                         "y": 0
                       }
-                    }
-                  ]
-                }
-              },
-              "title": "\ud83d\udcfa YouTube"
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "collapse": false,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
+                    },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
@@ -3187,7 +3061,7 @@
                         },
                         "height": 8,
                         "width": 8,
-                        "x": 0,
+                        "x": 8,
                         "y": 0
                       }
                     },
@@ -3200,7 +3074,7 @@
                         },
                         "height": 8,
                         "width": 8,
-                        "x": 8,
+                        "x": 16,
                         "y": 0
                       }
                     },
@@ -3213,19 +3087,6 @@
                         },
                         "height": 8,
                         "width": 8,
-                        "x": 16,
-                        "y": 0
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-19"
-                        },
-                        "height": 8,
-                        "width": 8,
                         "x": 0,
                         "y": 8
                       }
@@ -3235,7 +3096,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-20"
+                          "name": "panel-19"
                         },
                         "height": 8,
                         "width": 8,
@@ -3248,7 +3109,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-21"
+                          "name": "panel-20"
                         },
                         "height": 8,
                         "width": 8,
@@ -3275,7 +3136,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-22"
+                          "name": "panel-21"
                         },
                         "height": 8,
                         "width": 12,
@@ -3288,7 +3149,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-23"
+                          "name": "panel-22"
                         },
                         "height": 8,
                         "width": 12,
@@ -3315,7 +3176,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-24"
+                          "name": "panel-23"
                         },
                         "height": 8,
                         "width": 12,
@@ -3328,7 +3189,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-25"
+                          "name": "panel-24"
                         },
                         "height": 8,
                         "width": 12,
