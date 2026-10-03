@@ -8,9 +8,11 @@ function render(value: PlaceholderValue): string {
 /**
  * Resolves `{token}` placeholders in a template against a context.
  *
- * `C` is the context this executor supports. An executor built with
- * guild-scoped placeholders is `PlaceholderExecutor<GuildPlaceholderContext>`,
- * so its `replace` cannot be called without a guild.
+ * `C` is the context this executor supports, so `replace` cannot be called
+ * without whatever that context requires: a registry of guild-scoped
+ * placeholders is `PlaceholderExecutor<GuildPlaceholderContext>` and needs a
+ * guild, while a feature may type its own executor to a context that carries
+ * only its tokens.
  */
 export default class PlaceholderExecutor<C extends PlaceholderContext = PlaceholderContext> {
   /** `{snake_case}` tokens; anything else is left untouched. */

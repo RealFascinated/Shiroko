@@ -1,10 +1,10 @@
-import { definePlaceholder, type Placeholder, type PlaceholderContext } from "../placeholder";
+import { definePlaceholder, type GlobalUserPlaceholderContext, type Placeholder } from "../placeholder";
 
 /**
  * Placeholders that need only the global user, so they work in every
- * context including DMs.
+ * context that has one, including DMs.
  */
-const globalUserPlaceholders: ReadonlyArray<Placeholder<PlaceholderContext>> = [
+const globalUserPlaceholders: ReadonlyArray<Placeholder<GlobalUserPlaceholderContext>> = [
   definePlaceholder({
     key: "user_id",
     description: "The user's ID.",

@@ -1,14 +1,14 @@
 import type GlobalUser from "@/user/global-user";
 import { describe, expect, test } from "bun:test";
-import { definePlaceholder, type PlaceholderContext } from "./placeholder";
+import { definePlaceholder, type GlobalUserPlaceholderContext } from "./placeholder";
 import PlaceholderExecutor from "./placeholder-executor";
 
 /** The executor never reads the user, so a stub id is enough. */
-function context(): PlaceholderContext {
+function context(): GlobalUserPlaceholderContext {
   return { globalUser: { id: "7" } as unknown as GlobalUser };
 }
 
-const executor = new PlaceholderExecutor<PlaceholderContext>([
+const executor = new PlaceholderExecutor<GlobalUserPlaceholderContext>([
   definePlaceholder({ key: "name", description: "test", resolve: () => "Shiroko" }),
   definePlaceholder({ key: "count", description: "test", resolve: () => 3 }),
   definePlaceholder({ key: "absent", description: "test", resolve: () => null }),
@@ -40,7 +40,7 @@ describe("PlaceholderExecutor", () => {
 
   test("resolves each distinct key once", async () => {
     let calls = 0;
-    const counting = new PlaceholderExecutor<PlaceholderContext>([
+    const counting = new PlaceholderExecutor<GlobalUserPlaceholderContext>([
       definePlaceholder({
         key: "x",
         description: "test",
@@ -55,7 +55,7 @@ describe("PlaceholderExecutor", () => {
   });
 
   test("awaits async resolvers", async () => {
-    const async = new PlaceholderExecutor<PlaceholderContext>([
+    const async = new PlaceholderExecutor<GlobalUserPlaceholderContext>([
       definePlaceholder({ key: "slow", description: "test", resolve: async () => "done" }),
     ]);
     expect(await async.replace(context(), "{slow}")).toBe("done");

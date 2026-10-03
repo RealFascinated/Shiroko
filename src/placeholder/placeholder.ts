@@ -2,22 +2,34 @@ import type GlobalUser from "@/user/global-user";
 import type { Guild } from "discord.js";
 
 /**
- * The data every placeholder resolves against. `globalUser` is always
- * present; `guild` is present only when a guild is in scope. Guild-scoped
- * placeholders narrow this via {@link GuildPlaceholderContext}.
+ * The base every placeholder context extends. It guarantees nothing a
+ * resolver may rely on: `guild` is optional because a context may be
+ * guild-less.
  *
- * `guild` is optional (`Guild | undefined`) so `GuildPlaceholderContext`
- * stays a subtype: that relation is what makes a guild-agnostic
- * placeholder assignable to a guild-scoped registry.
+ * A feature whose tokens need neither a member nor a guild (a YouTube
+ * upload announcement, say) extends this directly, so its context can carry
+ * exactly what its own tokens read. Contexts that need a member or a guild
+ * narrow this via {@link GlobalUserPlaceholderContext} and
+ * {@link GuildPlaceholderContext}.
  */
 export interface PlaceholderContext {
-  readonly globalUser: GlobalUser;
   readonly guild?: Guild | undefined;
 }
 
 /**
- * The context of a guild-scoped replacement: {@link PlaceholderContext}
- * with `guild` required and non-null.
+ * A context with the member a message is rendered for, resolved to their
+ * stored global user. The welcomer and other member-facing messages use it.
+ *
+ * `guild` stays optional here so a DM context remains expressible.
+ */
+export interface GlobalUserPlaceholderContext extends PlaceholderContext {
+  readonly globalUser: GlobalUser;
+}
+
+/**
+ * A context with a guild in scope: {@link PlaceholderContext} with `guild`
+ * required and non-null. A registry typed to this cannot be called without
+ * a guild, which is what keeps guild tokens out of guild-less messages.
  */
 export interface GuildPlaceholderContext extends PlaceholderContext {
   readonly guild: Guild;
@@ -31,12 +43,14 @@ export type PlaceholderValue = string | number | null | undefined;
  * types a registry.
  *
  * `resolve` is deliberately a **property of function type**, not a method.
- * Under `strictFunctionTypes` that makes it contravariant in `C`, so a
- * guild-agnostic placeholder (`Placeholder<PlaceholderContext>`) is
- * assignable to a guild-scoped registry
- * (`PlaceholderExecutor<GuildPlaceholderContext>`), while a guild-scoped
- * placeholder is a compile error in a guild-less registry. Declaring it as
- * a method would make the check bivariant and lose both guarantees.
+ * Under `strictFunctionTypes` that makes it contravariant in `C`, which is
+ * what makes a registry's context an upper bound on what its placeholders
+ * may demand: a member-scoped placeholder
+ * (`Placeholder<GlobalUserPlaceholderContext>`) drops into the combined
+ * guild registry (`PlaceholderExecutor<GlobalUserPlaceholderContext &
+ * GuildPlaceholderContext>`), while a guild-scoped placeholder is a compile
+ * error in a registry whose context does not guarantee a guild. Declaring it
+ * as a method would make the check bivariant and lose that guarantee.
  */
 export interface Placeholder<C extends PlaceholderContext = PlaceholderContext> {
   readonly key: string;
