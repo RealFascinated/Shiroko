@@ -218,6 +218,13 @@
       "when": 1790919155715,
       "tag": "0030_ordinary_wallop",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790994393504,
+      "tag": "0031_parallel_shooting_star",
+      "breakpoints": true
     }
   ]
 }

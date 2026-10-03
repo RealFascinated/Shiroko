@@ -14,4 +14,5 @@ export enum FeatureIds {
   Stats = "stats",
   Welcomer = "welcomer",
   Logging = "logs",
+  Youtube = "youtube",
 }

@@ -16,8 +16,11 @@ import { levelRewardsSchema } from "./schemas/level-rewards";
 import { logsSchema } from "./schemas/logs";
 import { mediaSchema } from "./schemas/media";
 import { messageEventsSchema } from "./schemas/message-events";
+import { seenYoutubeUploadsSchema } from "./schemas/seen-youtube-uploads";
 import { userLevelsSchema } from "./schemas/user-levels";
 import { voiceSessionsSchema } from "./schemas/voice-sessions";
+import { youtubeChannelsSchema } from "./schemas/youtube-channels";
+import { youtubeSubscriptionsSchema } from "./schemas/youtube-subscriptions";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -40,7 +43,10 @@ export const schema = {
   logs: logsSchema,
   media: mediaSchema,
   messageEvents: messageEventsSchema,
+  seenYoutubeUploads: seenYoutubeUploadsSchema,
+  youtubeChannels: youtubeChannelsSchema,
   voiceSessions: voiceSessionsSchema,
+  youtubeSubscriptions: youtubeSubscriptionsSchema,
 };
 
 export const db = drizzle(pool, { schema });

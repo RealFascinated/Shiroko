@@ -8,6 +8,7 @@ import LevelsFeature from "./impl/levels/index";
 import SocialFeature from "./impl/social/index";
 import StatsFeature from "./impl/stats/index";
 import WelcomerFeature from "./impl/welcomer/index";
+import YoutubeFeature from "./impl/youtube/index";
 
 export default class FeatureManager {
   private static FEATURES: Feature[] = [];
@@ -22,6 +23,7 @@ export default class FeatureManager {
     FeatureManager.registerFeature(new AutorolesFeature());
     FeatureManager.registerFeature(new WelcomerFeature());
     FeatureManager.registerFeature(new FunFeature());
+    FeatureManager.registerFeature(new YoutubeFeature());
   }
 
   public static registerFeature(feature: Feature): void {

@@ -253,6 +253,23 @@ CATEGORIES = [
         ],
     },
     {
+        # YouTube upload tracking: distinct channels polled for new uploads.
+        # Global, so a channel two guilds track is one series.
+        "key": "youtube",
+        "title": "📺 YouTube",
+        "panels": [
+            {
+                "key": "tracked-youtube-channels",
+                "title": "Tracked channels",
+                "expr": "last_over_time(tracked_youtube_channels{job=\"$job\"}[1h])",
+                "unit": "short",
+                "min": 0,
+                "width": 24,
+                "legend": "channels",
+            },
+        ],
+    },
+    {
         "key": "events",
         "title": "📈 Events per second",
         "panels": [
