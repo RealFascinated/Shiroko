@@ -12,13 +12,14 @@ Think before coding. Pick the simplest valid approach and say why. State assumpt
 
 ## Commits
 
-When the user asks you to commit, stage only the files for the current task, not everything dirty in the working tree, then suggest a message. The user runs `git commit` themselves.
+When the user asks you to commit, stage only the files for the current task, not everything dirty in the working tree, then commit. Push only when the user asks you to push.
 
 - Identify the scope first. From this chat's edits (and `git diff` / `git status`), list the files that belong to the feature, fix, or request you just finished. Ignore unrelated local changes from other work.
 - Stage paths explicitly: `git add <path>…` for those files only. Never `git add -A`, `git add .`, or `git commit -a` unless the user explicitly asked to stage _all_ current changes.
 - One logical change per commit. If unrelated files would be included, leave them unstaged.
-- Before you finish staging, briefly list the staged files so the user can see the scope. If a dirty file might belong to this task but you're unsure, ask; don't guess and sweep it in.
-- Never run `git commit` yourself: after staging, suggest a short, plain commit message (no `feat:`/`fix:` prefixes) and let the user commit.
+- Before you commit, briefly list the staged files so the user can see the scope. If a dirty file might belong to this task but you're unsure, ask; don't guess and sweep it in.
+- Suggest a short, plain commit message (no `feat:`/`fix:` prefixes), then run `git commit` yourself once the staged set and message are right. Never amend, rebase, or rewrite pushed history unless the user explicitly asks.
+- Push only on a request to push: run `git push`, setting the upstream with `-u` on the first push of a branch, and report the branch and remote it went to. Never force-push unless the user explicitly asks.
 - Exclude ephemeral debug code (instrumentation the user added for this session) unless they asked to keep it.
 - Never stage secrets (`.env`, credentials, tokens). Warn the user if they ask to commit those.
 
