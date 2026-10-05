@@ -2,9 +2,16 @@ import { FeatureIds } from "@/feature/feature-ids";
 import GuildFeatures from "@/feature/guild-features";
 import { todayUtc } from "@/lib/date";
 import { baseEmbed } from "@/lib/embed";
-import type { Client, Guild } from "discord.js";
+import { fetchGuildMember } from "@/lib/guild";
+import type { Client, Guild, GuildMember } from "discord.js";
 import { birthdaySettings } from "./birthday-settings";
 import { birthdayService, type Celebrant } from "./birthday.service";
+
+/** A stored celebrant resolved against the guild's current membership. */
+interface ResolvedCelebrant {
+  member: GuildMember;
+  age: number;
+}
 
 /**
  * The nightly birthday sweep, kept out of `birthday.service.ts` because it
@@ -44,9 +51,16 @@ async function sweepGuild(guild: Guild, celebrants: Celebrant[]): Promise<void> 
   if (!(await GuildFeatures.isFeatureEnabled(guild, FeatureIds.Birthday))) {
     return;
   }
-  // Stored rows outlive guild membership, so narrow to current members
-  // before acting on them.
-  const members = celebrants.filter(celebrant => guild.members.cache.has(celebrant.userId));
+  // Stored rows outlive guild membership and the member cache only holds
+  // members the gateway has sent, so resolve each celebrant against the API
+  // rather than dropping whoever the cache is missing.
+  const resolved = await Promise.all(
+    celebrants.map(async celebrant => {
+      const member = await fetchGuildMember(guild, celebrant.userId);
+      return member ? { member, age: celebrant.age } : null;
+    })
+  );
+  const members = resolved.filter((entry): entry is ResolvedCelebrant => entry !== null);
   if (members.length === 0) {
     return;
   }
@@ -66,7 +80,7 @@ async function sweepGuild(guild: Guild, celebrants: Celebrant[]): Promise<void> 
  * celebrants", which clears stale grants without needing a `granted_at`
  * column, and runs first so a sweep never strips a role it just handed out.
  */
-async function swapRoles(guild: Guild, roleId: string, celebrants: Celebrant[]): Promise<void> {
+async function swapRoles(guild: Guild, roleId: string, celebrants: ResolvedCelebrant[]): Promise<void> {
   const role = guild.roles.cache.get(roleId);
   if (!role) {
     console.error(`Birthday role ${roleId} not found in ${guild.id}`);
@@ -78,7 +92,7 @@ async function swapRoles(guild: Guild, roleId: string, celebrants: Celebrant[]):
     return;
   }
 
-  const celebrantIds = new Set(celebrants.map(celebrant => celebrant.userId));
+  const celebrantIds = new Set(celebrants.map(({ member }) => member.id));
   for (const member of guild.members.cache.values()) {
     if (!member.roles.cache.has(roleId) || celebrantIds.has(member.id)) {
       continue;
@@ -90,15 +104,14 @@ async function swapRoles(guild: Guild, roleId: string, celebrants: Celebrant[]):
     }
   }
 
-  for (const { userId } of celebrants) {
-    const member = guild.members.cache.get(userId);
-    if (!member || member.roles.cache.has(roleId)) {
+  for (const { member } of celebrants) {
+    if (member.roles.cache.has(roleId)) {
       continue;
     }
     try {
       await member.roles.add(roleId, "Happy birthday!");
     } catch (error) {
-      console.error(`Failed to grant birthday role to ${userId}:`, error);
+      console.error(`Failed to grant birthday role to ${member.id}:`, error);
     }
   }
 }
@@ -108,13 +121,13 @@ async function swapRoles(guild: Guild, roleId: string, celebrants: Celebrant[]):
  * missing or not sendable logs and skips; announcing is best-effort and
  * never fatal.
  */
-async function announce(guild: Guild, channelId: string, celebrants: Celebrant[]): Promise<void> {
+async function announce(guild: Guild, channelId: string, celebrants: ResolvedCelebrant[]): Promise<void> {
   const channel = guild.channels.cache.get(channelId);
   if (!channel || !channel.isSendable()) {
     console.error(`Birthday announce channel ${channelId} not sendable in ${guild.id}`);
     return;
   }
-  const lines = celebrants.map(({ userId, age }) => `<@${userId}> turns **${age}** today!`);
+  const lines = celebrants.map(({ member, age }) => `<@${member.id}> turns **${age}** today!`);
   const embed = baseEmbed("birthday")
     .setTitle("🎂 Happy Birthday!")
     .setDescription(`Happy birthday!\n\n${lines.join("\n")}`);
