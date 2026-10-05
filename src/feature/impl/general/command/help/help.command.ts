@@ -12,7 +12,7 @@ import { helpPanel } from "./help-panel";
  */
 export default class HelpCommand extends Command {
   constructor() {
-    super("help", "Show every command, grouped by feature");
+    super({ id: "help", displayName: "Show every command, grouped by feature" });
   }
 
   protected override async onExecuteSlash({ ctx, user }: ExecuteContext) {

@@ -4,7 +4,7 @@ import { baseEmbed } from "@/lib/embed";
 
 export default class BannerCommand extends Command {
   constructor() {
-    super("banner", "Show a user's profile banner");
+    super({ id: "banner", displayName: "Show a user's profile banner" });
   }
 
   public override get userInstallable(): boolean {

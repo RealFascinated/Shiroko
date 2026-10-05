@@ -10,7 +10,7 @@ import { welcomerPanel } from "./welcomer-panel";
  */
 export default class WelcomerCommand extends Command {
   constructor() {
-    super("welcomer", "Configure the message sent when members join");
+    super({ id: "welcomer", displayName: "Configure the message sent when members join" });
   }
 
   public override get requiredFlags(): bigint {

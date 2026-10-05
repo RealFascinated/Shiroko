@@ -5,6 +5,7 @@ import { fetchGuildMember } from "@/lib/guild";
 import Panel, { type PanelAccess, type PanelContext, type PanelControl, type PanelView } from "@/panel/panel";
 import Permissions, { PermissionFlags } from "@/permission/permissions";
 import { placeholders } from "@/placeholder";
+import { type WritablePaths } from "@/settings/settings-module";
 import type { EmbedBuilder, Guild } from "discord.js";
 
 /**
@@ -38,7 +39,7 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
   };
 
   public async getConfig(guild: Guild): Promise<WelcomerSettingsData> {
-    return welcomerSettings.allValues(guild.id);
+    return welcomerSettings.values(guild.id);
   }
 
   public override async updateConfig(
@@ -48,7 +49,7 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
     value: unknown
   ): Promise<void> {
     // A control key is the setting key, so the write names one setting.
-    await welcomerSettings.set(guild.id, key as keyof WelcomerSettingsData, value as never);
+    await welcomerSettings.set(guild.id, key as WritablePaths<WelcomerSettingsData>, value as never);
   }
 
   public override accent(config: WelcomerSettingsData): number {

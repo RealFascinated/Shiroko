@@ -6,7 +6,7 @@ import ToggleCommand from "./sub/toggle.command";
 
 export default class LoggingCommand extends Command {
   constructor() {
-    super("logging", "Configure server event logs");
+    super({ id: "logging", displayName: "Configure server event logs" });
 
     this.registerSubCommand(new ChannelCommand());
     this.registerSubCommand(new ToggleCommand());

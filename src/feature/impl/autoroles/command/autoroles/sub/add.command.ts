@@ -10,7 +10,7 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
  */
 export default class AddCommand extends Command {
   constructor() {
-    super("add", "Add a role to be granted automatically on join");
+    super({ id: "add", displayName: "Add a role to be granted automatically on join" });
   }
 
   public override get options(): CommandOptionBuilder[] {

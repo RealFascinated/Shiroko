@@ -12,7 +12,7 @@ import { ordinal, pluralise } from "@/lib/format";
  */
 export default class ViewCommand extends Command {
   constructor() {
-    super("view", "Show a saved birthday");
+    super({ id: "view", displayName: "Show a saved birthday" });
   }
 
   public override get options() {

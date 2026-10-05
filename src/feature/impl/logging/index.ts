@@ -28,6 +28,7 @@ import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import { baseEmbed } from "@/lib/embed";
 import { yesNo } from "@/lib/format";
+import SettingsManager from "@/settings/index";
 import {
   ChannelType,
   EmbedBuilder,
@@ -43,6 +44,7 @@ import {
 } from "discord.js";
 import LoggingCommand from "./command/logging/logging.command";
 import type { LogType } from "./log-type";
+import { loggingSettings } from "./logging-settings";
 import { loggingService } from "./logging.service";
 
 /** User-facing names for Discord's guild verification levels. */
@@ -199,6 +201,7 @@ export default class LoggingFeature extends Feature {
   constructor() {
     super(FeatureIds.Logging, { name: "Logging", emoji: "📔" });
 
+    SettingsManager.register(loggingSettings);
     this.registerCommand(new LoggingCommand());
 
     this.handleEvent(MemberGuildJoinEvent, "member_join", async (event, channel) => {

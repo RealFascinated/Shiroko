@@ -16,7 +16,7 @@ import { attachPager, type Page } from "@/lib/pagination";
  */
 export default class UpcomingCommand extends Command {
   constructor() {
-    super("upcoming", "Show upcoming birthdays in this server");
+    super({ id: "upcoming", displayName: "Show upcoming birthdays in this server" });
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {

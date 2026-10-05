@@ -7,7 +7,7 @@ import UserCommand from "./sub/user.command";
  */
 export default class InvitesCommand extends Command {
   constructor() {
-    super("invites", "Show invite stats");
+    super({ id: "invites", displayName: "Show invite stats" });
     this.registerSubCommand(new UserCommand());
   }
 }

@@ -8,7 +8,7 @@ import Permissions from "@/permission/permissions";
  */
 export default class PermissionsClearCommand extends Command {
   constructor() {
-    super("clear", "Remove a role's permission configuration");
+    super({ id: "clear", displayName: "Remove a role's permission configuration" });
   }
 
   public override get options(): CommandOptionBuilder[] {

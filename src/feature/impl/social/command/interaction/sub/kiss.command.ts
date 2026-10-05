@@ -2,7 +2,7 @@ import PairInteractionCommand from "../pair-interaction.command";
 
 export default class KissCommand extends PairInteractionCommand {
   constructor() {
-    super("kiss", "Kiss someone");
+    super({ id: "kiss", displayName: "Kiss someone" });
   }
   protected readonly interactionType = "kiss";
   protected readonly gifCategory = "kiss";

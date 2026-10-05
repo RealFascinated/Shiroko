@@ -24,6 +24,17 @@ import type GlobalUser from "../user/global-user";
 import type { CommandOptionBuilder } from "./option";
 import type ParsedArguments from "./parsed-arguments";
 
+/** Identity and registration scope of a command. */
+export interface CommandInfo {
+  id: string;
+  displayName: string;
+  /**
+   * Register as a guild command scoped to `PRIVATE_COMMANDS_GUILD_ID` instead of a global
+   * command. Private commands are only visible in that one guild.
+   */
+  private?: boolean;
+}
+
 export interface ExecuteContext {
   user: GlobalUser;
   guild: Guild | null;
@@ -86,6 +97,7 @@ type FollowUpReturn = InteractionResponse<boolean> | FollowUp;
 export default abstract class Command {
   public readonly id: string;
   public readonly displayName: string;
+  public readonly private: boolean;
   public readonly slashCommand: SlashCommandBuilder;
   public featureId?: FeatureIds;
 
@@ -101,10 +113,11 @@ export default abstract class Command {
   public readonly subCommands: Map<string, Command> = new Map();
   public parent?: Command;
 
-  constructor(id: string, displayName: string) {
-    this.id = id;
-    this.displayName = displayName;
-    this.slashCommand = new SlashCommandBuilder().setName(id).setDescription(displayName);
+  constructor(info: CommandInfo) {
+    this.id = info.id;
+    this.displayName = info.displayName;
+    this.private = info.private ?? false;
+    this.slashCommand = new SlashCommandBuilder().setName(info.id).setDescription(info.displayName);
   }
 
   public get options(): CommandOptionBuilder[] {

@@ -5,7 +5,7 @@ import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
 export default class StatsServerCommand extends Command {
   constructor() {
-    super("server", "Show the whole server's activity as a card");
+    super({ id: "server", displayName: "Show the whole server's activity as a card" });
   }
 
   protected override async onExecuteSlash({ guild, ctx, commandName }: ExecuteContext) {

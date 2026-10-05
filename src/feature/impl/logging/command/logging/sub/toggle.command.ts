@@ -10,7 +10,7 @@ const LOG_TYPE_CHOICES: Record<string, string> = Object.fromEntries(
 
 export default class ToggleCommand extends Command {
   constructor() {
-    super("toggle", "Enable or disable a log type");
+    super({ id: "toggle", displayName: "Enable or disable a log type" });
   }
 
   public override get options(): CommandOptionBuilder[] {

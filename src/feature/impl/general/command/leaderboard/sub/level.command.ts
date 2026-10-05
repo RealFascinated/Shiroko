@@ -7,7 +7,7 @@ import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 export default class LevelLeaderboardCommand extends LeaderboardSubCommand {
   constructor() {
-    super("level", "Show the server's levelling leaderboard");
+    super({ id: "level", displayName: "Show the server's levelling leaderboard" });
   }
 
   public override get board(): Leaderboard<LeaderboardRow> {

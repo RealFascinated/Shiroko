@@ -9,7 +9,7 @@ import { and, count, eq } from "drizzle-orm";
 
 export default class InvitesUserCommand extends Command {
   constructor() {
-    super("user", "Show the invites attributed to a user");
+    super({ id: "user", displayName: "Show the invites attributed to a user" });
   }
 
   public override get options() {

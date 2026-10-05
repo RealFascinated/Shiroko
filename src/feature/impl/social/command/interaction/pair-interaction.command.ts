@@ -1,4 +1,4 @@
-import Command, { type ExecuteContext } from "@/command/command";
+import Command, { type CommandInfo, type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
 import SocialService, { type InteractionType } from "@/feature/impl/social/social.service";
 import { getGif, type AnimeGif } from "@/lib/anime/index";
@@ -38,8 +38,8 @@ export default abstract class PairInteractionCommand extends Command {
   protected abstract readonly gifCategory: Parameters<typeof getGif>[0];
   protected abstract readonly verb: string;
   protected abstract readonly emoji: string;
-  constructor(id: string, displayName: string) {
-    super(id, displayName);
+  constructor(info: CommandInfo) {
+    super(info);
   }
 
   public override get options() {

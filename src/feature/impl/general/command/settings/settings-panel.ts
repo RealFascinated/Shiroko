@@ -4,13 +4,14 @@ import Panel, { type PanelAccess, type PanelControl, type PanelView } from "@/pa
 import Permissions, { PermissionFlags } from "@/permission/permissions";
 import SettingsManager from "@/settings/index";
 import type SettingsModule from "@/settings/settings-module";
-import type { RuntimeSettingDescriptor } from "@/settings/settings-module";
+import type { RuntimeFieldDescriptor } from "@/settings/settings-module";
 import type { Guild } from "discord.js";
 
 /**
  * The aggregated per-guild state the hub renders over: every enabled
  * settings module's values, nested under the module's id, so a control's
- * dotted key (`levels.messageXp`) resolves to one stored setting.
+ * dotted key (`levels.messageXp`, `logging.enabled.message`) resolves to
+ * one stored setting.
  */
 type SettingsHubConfig = Record<string, Record<string, unknown>>;
 
@@ -19,8 +20,11 @@ type SettingsHubConfig = Record<string, Record<string, unknown>>;
  * every registered settings module. Each module whose feature is enabled
  * becomes a view, so the engine's automatic view switcher is the category
  * dropdown, and each module's descriptors are translated into the engine's
- * controls. Reads and writes still go through each module's own
+ * controls. Reads and writes go through each module's own
  * `SettingsModule`, so storage and per-guild caching are unchanged.
+ *
+ * Maps are not editable here: their keys are dynamic, so a map's view
+ * shows a note pointing at the feature's own command instead of controls.
  */
 export default class SettingsPanel extends Panel<SettingsHubConfig> {
   public readonly segment = "settings";
@@ -44,23 +48,26 @@ export default class SettingsPanel extends Panel<SettingsHubConfig> {
   public async getConfig(guild: Guild): Promise<SettingsHubConfig> {
     const modules = await SettingsManager.enabledModules(guild);
     const entries = await Promise.all(
-      modules.map(async module => [module.id, await module.allValues(guild.id)] as const)
+      modules.map(async module => [module.id, await module.values(guild.id)] as const)
     );
     return Object.fromEntries(entries) as SettingsHubConfig;
   }
 
   public override async updateConfig(
     guild: Guild,
-    view: PanelView<SettingsHubConfig>,
+    _view: PanelView<SettingsHubConfig>,
     key: string,
     value: unknown
   ): Promise<void> {
-    const [moduleId, settingKey] = key.split(".");
-    const module = moduleId !== undefined ? SettingsManager.get(moduleId) : undefined;
-    if (!module || settingKey === undefined) {
+    const dot = key.indexOf(".");
+    if (dot <= 0) {
       return;
     }
-    await module.set(guild.id, settingKey as never, value as never);
+    const module = SettingsManager.get(key.slice(0, dot));
+    if (!module) {
+      return;
+    }
+    await module.set(guild.id, key.slice(dot + 1) as never, value as never);
   }
 
   public views(config: SettingsHubConfig): readonly PanelView<SettingsHubConfig>[] {
@@ -83,20 +90,50 @@ function makeView(moduleId: string): PanelView<SettingsHubConfig> {
     label: module.displayName,
     segment: module.id,
     controls: () => toControls(module, moduleId),
+    summary: () => mapSummaries(module),
   };
 }
 
 /**
  * Translate a module's runtime descriptors into the engine's control kinds.
- * Each control's `key` is dotted `<module>.<setting>` so the hub's
- * `updateConfig` can route the write to the right module's store.
+ * Groups recurse into their fields; maps are skipped (a map's keys are
+ * dynamic, so it is edited by the feature's own command). Each control's
+ * `key` is the full dotted path, so the hub's `updateConfig` can route the
+ * write to the right module and leaf.
  */
 function toControls(module: SettingsModule<any>, moduleId: string): PanelControl<SettingsHubConfig>[] {
-  return module.runtimeDescriptors.map(descriptor => controlFor(moduleId, descriptor));
+  const controls: PanelControl<SettingsHubConfig>[] = [];
+  for (const descriptor of module.runtimeDescriptors) {
+    collectControls(`${moduleId}.${descriptor.key}`, descriptor, controls);
+  }
+  return controls;
 }
 
-function controlFor(moduleId: string, descriptor: RuntimeSettingDescriptor): PanelControl<SettingsHubConfig> {
-  const key = `${moduleId}.${descriptor.key}`;
+function collectControls(
+  key: string,
+  descriptor: RuntimeFieldDescriptor,
+  controls: PanelControl<SettingsHubConfig>[]
+): void {
+  if (descriptor.type === "group") {
+    for (const field of descriptor.fields ?? []) {
+      collectControls(`${key}.${field.key}`, field, controls);
+    }
+    return;
+  }
+  if (descriptor.type === "map") {
+    return;
+  }
+  controls.push(controlFor(key, descriptor));
+}
+
+/** A read-only note for each map setting, naming where it is edited. */
+function mapSummaries(module: SettingsModule<any>): string[] {
+  return module.runtimeDescriptors
+    .filter(descriptor => descriptor.type === "map")
+    .map(descriptor => `-# **${descriptor.label}:** edited with the feature's own command.`);
+}
+
+function controlFor(key: string, descriptor: RuntimeFieldDescriptor): PanelControl<SettingsHubConfig> {
   const description = descriptor.description;
 
   switch (descriptor.type) {
@@ -219,7 +256,7 @@ function controlFor(moduleId: string, descriptor: RuntimeSettingDescriptor): Pan
 }
 
 /** A number's bounds problem, or null when the input is empty or in range. */
-function numberProblem(descriptor: RuntimeSettingDescriptor, input: string): string | null {
+function numberProblem(descriptor: RuntimeFieldDescriptor, input: string): string | null {
   if (input.trim() === "") {
     return null;
   }
@@ -237,7 +274,7 @@ function numberProblem(descriptor: RuntimeSettingDescriptor, input: string): str
 }
 
 /** A duration's parse/bounds problem, or null when empty or in range. */
-function durationProblem(descriptor: RuntimeSettingDescriptor, input: string): string | null {
+function durationProblem(descriptor: RuntimeFieldDescriptor, input: string): string | null {
   if (input.trim() === "") {
     return null;
   }
@@ -255,7 +292,7 @@ function durationProblem(descriptor: RuntimeSettingDescriptor, input: string): s
 }
 
 /** The most roles a role-list can hold: the descriptor's `max`, capping 25. */
-function roleListLimit(descriptor: RuntimeSettingDescriptor): number {
+function roleListLimit(descriptor: RuntimeFieldDescriptor): number {
   const max = descriptor.max ?? 25;
   return Math.min(Math.max(1, max), 25);
 }
@@ -265,7 +302,7 @@ function roleListLimit(descriptor: RuntimeSettingDescriptor): number {
  * `validate` hook. Called after the transform, so it sees the stored value
  * (a number, or null when the field was cleared).
  */
-function numberValueProblem(descriptor: RuntimeSettingDescriptor, value: unknown): string | null {
+function numberValueProblem(descriptor: RuntimeFieldDescriptor, value: unknown): string | null {
   if (value !== null) {
     const num = Number(value);
     if (!Number.isFinite(num)) {
@@ -282,7 +319,7 @@ function numberValueProblem(descriptor: RuntimeSettingDescriptor, value: unknown
 }
 
 /** As {@link numberValueProblem}, for a duration stored as milliseconds. */
-function durationValueProblem(descriptor: RuntimeSettingDescriptor, value: unknown): string | null {
+function durationValueProblem(descriptor: RuntimeFieldDescriptor, value: unknown): string | null {
   if (value !== null) {
     const ms = Number(value);
     if (!Number.isFinite(ms)) {

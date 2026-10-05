@@ -19,7 +19,7 @@ export interface WelcomerPayload {
 
 export default class WelcomerService {
   public async get(guildId: string): Promise<WelcomerSettingsData> {
-    return welcomerSettings.allValues(guildId);
+    return welcomerSettings.values(guildId);
   }
 
   /**

@@ -7,7 +7,7 @@ import ViewCommand from "./sub/view.command";
 
 export default class PermissionsCommand extends Command {
   constructor() {
-    super("permissions", "Manage role permissions");
+    super({ id: "permissions", displayName: "Manage role permissions" });
 
     this.registerSubCommand(new ViewCommand());
     this.registerSubCommand(new SetCommand());

@@ -14,7 +14,7 @@ export default class StatsKindCommand extends Command {
     id: string,
     description: string
   ) {
-    super(id, description);
+    super({ id, displayName: description });
   }
 
   public override get options() {

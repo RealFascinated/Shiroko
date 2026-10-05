@@ -6,7 +6,7 @@ import ViewCommand from "./sub/view.command";
 
 export default class BirthdayCommand extends Command {
   constructor() {
-    super("birthday", "Save your birthday and see upcoming ones");
+    super({ id: "birthday", displayName: "Save your birthday and see upcoming ones" });
 
     this.registerSubCommand(new SetCommand());
     this.registerSubCommand(new RemoveCommand());

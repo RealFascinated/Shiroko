@@ -2,7 +2,7 @@ import PairInteractionCommand from "../pair-interaction.command";
 
 export default class DanceCommand extends PairInteractionCommand {
   constructor() {
-    super("dance", "Dance with someone");
+    super({ id: "dance", displayName: "Dance with someone" });
   }
   protected readonly interactionType = "dance";
   protected readonly gifCategory = "dance";

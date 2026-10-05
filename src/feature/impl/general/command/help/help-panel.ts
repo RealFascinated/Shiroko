@@ -51,7 +51,9 @@ export default class HelpPanel extends Panel<HelpConfig> {
         id: feature.id,
         label: feature.name,
         emoji: feature.emoji,
-        commands: feature.commands.map(toCommandInfo),
+        commands: feature.commands
+          .filter(command => !command.private || guild.id === env.PRIVATE_COMMANDS_GUILD_ID)
+          .map(toCommandInfo),
       });
     }
     return { categories };

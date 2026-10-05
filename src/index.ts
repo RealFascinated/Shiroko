@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, type ApplicationCommandDataResolvable } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { CacheListeners } from "./cache/cache-listeners";
 import CommandManager, { SlashCommandListener } from "./command/index";
@@ -13,6 +13,7 @@ import BotReadyEvent from "./event/events/bot-ready.event";
 import GuildJoinedEvent from "./event/events/guild-joined.event";
 import GuildLeftEvent from "./event/events/guild-left.event";
 import PostCommandLoadEvent from "./event/events/post-command-load.event";
+import { featureSettings } from "./feature/feature-settings";
 import { settingsPanel } from "./feature/impl/general/command/settings/settings-panel";
 import LoggingFeature from "./feature/impl/logging";
 import FeatureManager from "./feature/index";
@@ -40,6 +41,7 @@ import { UptimeMetric } from "./metrics/impl/uptime-seconds";
 import { MetricManager } from "./metrics/index";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
+import SettingsManager from "./settings/index";
 import { MediaListeners } from "./storage/media-listeners";
 import StorageService from "./storage/storage";
 
@@ -97,15 +99,51 @@ class LifecycleListeners extends EventListener {
     const client = event.client;
     console.log(`Ready! Logged in as ${client.user?.tag}`);
 
+    const commands = await this.syncCommands(client);
+    console.log(`Synced ${commands.length} command(s)`);
+    await EventBus.post(new PostCommandLoadEvent(client, commands));
+  }
+
+  /**
+   * Push global commands, then the private ones to their guild. Returns the
+   * global set so the ready handler can publish it.
+   */
+  private async syncCommands(client: Client): Promise<ApplicationCommandDataResolvable[]> {
     const application = client.application;
     if (!application) {
       throw new Error("Application is not available");
     }
-    const allCommands = [...new CommandManager().build(), ...new ContextMenuCommandManager().build()];
-    await application.commands.set(allCommands);
+    const commandManager = new CommandManager();
+    const globalCommands = [...commandManager.buildGlobal(), ...new ContextMenuCommandManager().build()];
+    await application.commands.set(globalCommands);
     CommandManager.applyApplicationCommandIds(application.commands.cache);
-    console.log(`Synced ${allCommands.length} command(s)`);
-    await EventBus.post(new PostCommandLoadEvent(client, allCommands));
+    await this.syncPrivateCommands(client, commandManager);
+    return globalCommands;
+  }
+
+  /**
+   * Register the private commands as guild commands on `PRIVATE_COMMANDS_GUILD_ID`. No-op when
+   * there are none; warns when they exist but the guild is unreachable.
+   */
+  private async syncPrivateCommands(client: Client, commandManager: CommandManager): Promise<void> {
+    const privateCommands = commandManager.buildPrivate();
+    if (privateCommands.length === 0) {
+      return;
+    }
+    const guild = env.PRIVATE_COMMANDS_GUILD_ID
+      ? client.guilds.cache.get(env.PRIVATE_COMMANDS_GUILD_ID)
+      : undefined;
+    if (!guild) {
+      console.warn(
+        `Skipped ${privateCommands.length} private command(s): PRIVATE_COMMANDS_GUILD_ID is unset or the bot is not in that guild.`
+      );
+      return;
+    }
+    await guild.commands.set(privateCommands);
+    CommandManager.applyApplicationCommandIds(guild.commands.cache);
+    console.log(
+      `Synced ${privateCommands.length} private command(s) to guild ${env.PRIVATE_COMMANDS_GUILD_ID}`
+    );
   }
 
   @EventHandler(GuildJoinedEvent)
@@ -139,6 +177,7 @@ new ContextMenuCommandListener();
 
 new FeatureManager();
 new LoggingFeature();
+SettingsManager.register(featureSettings());
 new MediaListeners();
 
 if (env.VM_PUSH_URL) {

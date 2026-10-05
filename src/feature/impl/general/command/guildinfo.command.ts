@@ -8,7 +8,7 @@ import { ChannelType } from "discord.js";
  */
 export default class GuildInfoCommand extends Command {
   constructor() {
-    super("guildinfo", "Show the current server's info");
+    super({ id: "guildinfo", displayName: "Show the current server's info" });
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {

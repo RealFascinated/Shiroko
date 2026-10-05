@@ -7,9 +7,9 @@ import { guildSettingsSchema, type JsonValue } from "../db/schemas/guild-setting
 
 /**
  * Key-value settings store backing the generic `/settings` system. One row
- * per (guild, key); keys are namespaced `<module>.<setting>`. Absence of a
- * row means "use the code-side default", so deleting a row resets a
- * setting.
+ * per (guild, key); keys are namespaced `<module>.<setting>[.<path>]`.
+ * Absence of a row means "use the code-side default", so deleting a row
+ * resets a setting.
  *
  * Cached per guild as one entry holding every stored key, so a settings
  * read costs a map lookup instead of a query, and `all()` is free. The
@@ -18,22 +18,21 @@ import { guildSettingsSchema, type JsonValue } from "../db/schemas/guild-setting
  */
 export default class GuildSettings {
   private static readonly CACHE = Caches.register(
-    new Cache<Map<string, JsonValue>>({ name: "guild-settings", mode: "authoritative", max: 5_000 })
+    new Cache<Map<string, JsonValue>>({ name: "guild-settings", mode: "authoritative", max: 20_000 })
   );
 
   /**
-   * Read a setting's stored value, or `null` when no row exists (the
-   * caller falls back to its module default).
+   * Every stored key for a guild, from the per-guild cache. Modules merge
+   * these over their code-side defaults.
    */
-  public static async get(guildId: string, key: string): Promise<JsonValue | null> {
-    const stored = await GuildSettings.CACHE.load(guildKey(guildId), async () => {
+  public static async all(guildId: string): Promise<Map<string, JsonValue>> {
+    return GuildSettings.CACHE.load(guildKey(guildId), async () => {
       const rows = await db
         .select({ key: guildSettingsSchema.key, value: guildSettingsSchema.value })
         .from(guildSettingsSchema)
         .where(eq(guildSettingsSchema.guildId, guildId));
       return new Map(rows.map(row => [row.key, row.value]));
     });
-    return stored.get(key) ?? null;
   }
 
   /**

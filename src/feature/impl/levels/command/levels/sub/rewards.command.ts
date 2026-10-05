@@ -8,7 +8,7 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
  */
 export default class RewardsCommand extends Command {
   constructor() {
-    super("rewards", "Show the server's level-up rewards");
+    super({ id: "rewards", displayName: "Show the server's level-up rewards" });
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
@@ -18,9 +18,7 @@ export default class RewardsCommand extends Command {
       return ctx.reply(
         ephemeralErrorReply(
           commandName,
-          errorEmbed(commandName).setDescription(
-            "No level-up rewards configured yet. Use `/settings` → Levelling to set one."
-          )
+          errorEmbed(commandName).setDescription("No level-up rewards configured yet.")
         )
       );
     }

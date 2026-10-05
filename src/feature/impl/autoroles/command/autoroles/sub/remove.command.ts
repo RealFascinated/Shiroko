@@ -5,7 +5,7 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
 export default class RemoveCommand extends Command {
   constructor() {
-    super("remove", "Remove an autorole");
+    super({ id: "remove", displayName: "Remove an autorole" });
   }
 
   public override get options(): CommandOptionBuilder[] {

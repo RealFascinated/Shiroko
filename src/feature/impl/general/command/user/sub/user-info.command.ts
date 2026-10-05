@@ -27,7 +27,7 @@ import {
  */
 export default class UserInfoCommand extends Command {
   constructor() {
-    super("info", "Show a user's info");
+    super({ id: "info", displayName: "Show a user's info" });
   }
 
   public override get options() {

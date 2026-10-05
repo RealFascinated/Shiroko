@@ -27,6 +27,7 @@ export const PermissionFlags = Object.freeze({
   AUTOROLE_COMMAND: 1n << 5n,
   WELCOMER_COMMAND: 1n << 6n,
   LOGGING_COMMAND: 1n << 7n,
+  LEVELS_COMMAND: 1n << 9n,
   // 1n << 8n was retired with the YouTube feature; never reuse a retired bit.
 } as const satisfies Record<string, bigint>);
 
@@ -41,6 +42,7 @@ export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: st
   { flag: PermissionFlags.AUTOROLE_COMMAND, label: "Autoroles Command" },
   { flag: PermissionFlags.WELCOMER_COMMAND, label: "Welcomer Command" },
   { flag: PermissionFlags.LOGGING_COMMAND, label: "Logging Command" },
+  { flag: PermissionFlags.LEVELS_COMMAND, label: "Levels Command" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];

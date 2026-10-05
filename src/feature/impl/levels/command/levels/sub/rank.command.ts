@@ -16,7 +16,7 @@ const PODIUM_COLORS = {
  */
 export default class RankCommand extends Command {
   constructor() {
-    super("rank", "Show your (or another user's) level and XP");
+    super({ id: "rank", displayName: "Show your (or another user's) level and XP" });
   }
 
   public override get options() {

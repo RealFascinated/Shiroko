@@ -7,7 +7,7 @@ import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 export default class VoiceLeaderboardCommand extends LeaderboardSubCommand {
   constructor() {
-    super("voice", "Show the server's voice-time leaderboard");
+    super({ id: "voice", displayName: "Show the server's voice-time leaderboard" });
   }
 
   public override get board(): Leaderboard<LeaderboardRow> {

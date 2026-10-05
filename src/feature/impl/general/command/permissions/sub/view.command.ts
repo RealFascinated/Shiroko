@@ -21,7 +21,7 @@ const PERMISSIONS_PER_PAGE = 10;
  */
 export default class PermissionsViewCommand extends Command {
   constructor() {
-    super("view", "View role permissions");
+    super({ id: "view", displayName: "View role permissions" });
   }
 
   public override get options(): CommandOptionBuilder[] {

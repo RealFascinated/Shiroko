@@ -11,7 +11,7 @@ import type { EmbedBuilder } from "discord.js";
  */
 export default class SyncCommand extends Command {
   constructor() {
-    super("sync", "Grant missing autoroles to existing members");
+    super({ id: "sync", displayName: "Grant missing autoroles to existing members" });
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext): Promise<void> {

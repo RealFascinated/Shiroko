@@ -11,7 +11,7 @@ import { MessageFlags } from "discord.js";
  */
 export default class RemoveCommand extends Command {
   constructor() {
-    super("remove", "Remove your saved birthday");
+    super({ id: "remove", displayName: "Remove your saved birthday" });
   }
 
   protected override async onExecuteSlash({ user, ctx, commandName }: ExecuteContext) {

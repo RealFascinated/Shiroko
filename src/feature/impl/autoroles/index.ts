@@ -2,6 +2,8 @@ import { EventHandler } from "@/event/event-handler";
 import MemberGuildJoinEvent from "@/event/events/member-guild-join.event";
 import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
+import SettingsManager from "@/settings/index";
+import { autorolesSettings } from "./autoroles-settings";
 import { autorolesService } from "./autoroles.service";
 import AutorolesCommand from "./command/autoroles/autoroles.command";
 
@@ -14,6 +16,7 @@ export default class AutorolesFeature extends Feature {
   constructor() {
     super(FeatureIds.Autoroles, { defaultEnabled: false, name: "Autoroles", emoji: "🎭" });
 
+    SettingsManager.register(autorolesSettings);
     this.registerCommand(new AutorolesCommand());
   }
 

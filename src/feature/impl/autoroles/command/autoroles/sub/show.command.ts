@@ -7,7 +7,7 @@ import { baseEmbed } from "@/lib/embed";
  */
 export default class ShowCommand extends Command {
   constructor() {
-    super("show", "List the server's autoroles");
+    super({ id: "show", displayName: "List the server's autoroles" });
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {

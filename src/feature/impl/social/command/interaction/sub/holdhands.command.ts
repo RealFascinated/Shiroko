@@ -2,7 +2,7 @@ import PairInteractionCommand from "../pair-interaction.command";
 
 export default class HoldhandsCommand extends PairInteractionCommand {
   constructor() {
-    super("holdhands", "Hold someone's hand");
+    super({ id: "holdhands", displayName: "Hold someone's hand" });
   }
   protected readonly interactionType = "holdhands";
   protected readonly gifCategory = "handhold";

@@ -5,7 +5,7 @@ import UserInfoCommand from "./sub/user-info.command";
 
 export default class UserCommand extends Command {
   constructor() {
-    super("user", "Show a user's info: avatar, banner and more");
+    super({ id: "user", displayName: "Show a user's info: avatar, banner and more" });
     this.registerSubCommand(new UserInfoCommand());
     this.registerSubCommand(new AvatarCommand());
     this.registerSubCommand(new BannerCommand());

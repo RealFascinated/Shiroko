@@ -18,7 +18,7 @@ import WinkCommand from "./sub/wink.command";
 
 export default class InteractionCommand extends Command {
   constructor() {
-    super("interact", "Interact with others");
+    super({ id: "interact", displayName: "Interact with others" });
 
     this.registerSubCommand(new HugCommand());
     this.registerSubCommand(new KissCommand());

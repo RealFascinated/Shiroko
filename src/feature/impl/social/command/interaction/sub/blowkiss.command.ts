@@ -2,7 +2,7 @@ import PairInteractionCommand from "../pair-interaction.command";
 
 export default class BlowkissCommand extends PairInteractionCommand {
   constructor() {
-    super("blowkiss", "Blow a kiss at someone");
+    super({ id: "blowkiss", displayName: "Blow a kiss at someone" });
   }
   protected readonly interactionType = "blowkiss";
   protected readonly gifCategory = "blowkiss";

@@ -1,10 +1,5 @@
-import { Cache } from "@/cache/cache";
-import { Caches } from "@/cache/index";
-import { guildKey } from "@/cache/key";
-import { db } from "@/db/index";
-import { autorolesSchema } from "@/db/schemas/autoroles";
 import type { Guild, GuildMember, Role } from "discord.js";
-import { and, eq } from "drizzle-orm";
+import { autorolesSettings } from "./autoroles-settings";
 
 /**
  * Counts from a guild-wide autorole sync. `changed` counts members who
@@ -25,29 +20,16 @@ export type AutorolesSyncProgress = (scanned: number, total: number) => Promise<
 
 export default class AutorolesService {
   /**
-   * Per-guild list of configured autorole role IDs. Authoritative: `add` and
-   * `remove` invalidate the guild's entry, and guild leave purges it through
-   * the cache registry. Role objects are resolved from the guild cache on
-   * every read, so a cached list never outlives a role's state.
-   */
-  private static readonly CACHE = Caches.register(
-    new Cache<string[]>({ name: "autoroles", mode: "authoritative", max: 5_000 })
-  );
-
-  /**
    * Add a role to the guild's autorole list. Returns `true` if the role
    * was new, `false` if it was already configured.
    */
   public async add(guildId: string, roleId: string): Promise<boolean> {
-    const result = await db
-      .insert(autorolesSchema)
-      .values({ guildId, roleId })
-      .onConflictDoNothing({ target: [autorolesSchema.guildId, autorolesSchema.roleId] })
-      .returning({ roleId: autorolesSchema.roleId });
-    if (result.length > 0) {
-      AutorolesService.CACHE.invalidate(guildKey(guildId));
+    const roleIds = await autorolesSettings.get(guildId, "roleIds");
+    if (roleIds.includes(roleId)) {
+      return false;
     }
-    return result.length > 0;
+    await autorolesSettings.set(guildId, "roleIds", [...roleIds, roleId]);
+    return true;
   }
 
   /**
@@ -55,29 +37,24 @@ export default class AutorolesService {
    * was removed, `false` if the role was not configured.
    */
   public async remove(guildId: string, roleId: string): Promise<boolean> {
-    const result = await db
-      .delete(autorolesSchema)
-      .where(and(eq(autorolesSchema.guildId, guildId), eq(autorolesSchema.roleId, roleId)))
-      .returning({ roleId: autorolesSchema.roleId });
-    if (result.length > 0) {
-      AutorolesService.CACHE.invalidate(guildKey(guildId));
+    const roleIds = await autorolesSettings.get(guildId, "roleIds");
+    if (!roleIds.includes(roleId)) {
+      return false;
     }
-    return result.length > 0;
+    await autorolesSettings.set(
+      guildId,
+      "roleIds",
+      roleIds.filter(id => id !== roleId)
+    );
+    return true;
   }
 
   /**
    * All roles configured as autoroles in a guild, with any that no longer
-   * exist in the guild cache filtered out. Reads the role ID list from the
-   * per-guild cache; role resolution and expiry filtering stay outside it.
+   * exist in the guild cache filtered out.
    */
   public async list(guild: Guild): Promise<Role[]> {
-    const roleIds = await AutorolesService.CACHE.load(guildKey(guild.id), async () => {
-      const rows = await db
-        .select({ roleId: autorolesSchema.roleId })
-        .from(autorolesSchema)
-        .where(eq(autorolesSchema.guildId, guild.id));
-      return rows.map(r => r.roleId);
-    });
+    const roleIds = await autorolesSettings.get(guild.id, "roleIds");
     return roleIds.map(id => guild.roles.cache.get(id)).filter((r): r is Role => r !== undefined);
   }
 

@@ -6,7 +6,7 @@ import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 export default class MessagesLeaderboardCommand extends LeaderboardSubCommand {
   constructor() {
-    super("messages", "Show the server's total message-count leaderboard");
+    super({ id: "messages", displayName: "Show the server's total message-count leaderboard" });
   }
 
   public override get board(): Leaderboard<LeaderboardRow> {

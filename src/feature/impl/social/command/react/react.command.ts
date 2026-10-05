@@ -14,7 +14,7 @@ import SmugCommand from "./sub/smug.command";
 
 export default class ReactCommand extends Command {
   constructor() {
-    super("react", "React with a mood");
+    super({ id: "react", displayName: "React with a mood" });
 
     this.registerSubCommand(new AngryCommand());
     this.registerSubCommand(new BlehCommand());

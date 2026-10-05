@@ -4,7 +4,7 @@ import { baseEmbed } from "@/lib/embed";
 
 export default class AvatarCommand extends Command {
   constructor() {
-    super("avatar", "Show a user's profile avatar");
+    super({ id: "avatar", displayName: "Show a user's profile avatar" });
   }
 
   public override get userInstallable(): boolean {

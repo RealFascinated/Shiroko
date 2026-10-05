@@ -15,3 +15,10 @@ export enum FeatureIds {
   Welcomer = "welcomer",
   Logging = "logs",
 }
+
+/**
+ * The enum's string values as a plain literal union, so they can key a
+ * record (`Record<FeatureId, boolean>`) and be indexed by a dotted path,
+ * which a nominal enum type cannot.
+ */
+export type FeatureId = `${FeatureIds}`;

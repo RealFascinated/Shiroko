@@ -8,7 +8,7 @@ import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 export default class InvitesLeaderboardCommand extends LeaderboardSubCommand {
   constructor() {
-    super("invites", "Show the server's invite leaderboard");
+    super({ id: "invites", displayName: "Show the server's invite leaderboard" });
   }
 
   public override get board(): Leaderboard<LeaderboardRow> {

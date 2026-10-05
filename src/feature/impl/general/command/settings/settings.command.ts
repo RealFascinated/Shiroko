@@ -12,7 +12,7 @@ import { settingsPanel } from "./settings-panel";
  */
 export default class SettingsCommand extends Command {
   constructor() {
-    super("settings", "Configure server settings");
+    super({ id: "settings", displayName: "Configure server settings" });
   }
 
   public override get requiredFlags(): bigint {

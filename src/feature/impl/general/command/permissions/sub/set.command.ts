@@ -9,7 +9,7 @@ import { parseFlags } from "./permissions-helpers";
  */
 export default class PermissionsSetCommand extends Command {
   constructor() {
-    super("set", "Set a role's permissions");
+    super({ id: "set", displayName: "Set a role's permissions" });
   }
 
   public override get options(): CommandOptionBuilder[] {

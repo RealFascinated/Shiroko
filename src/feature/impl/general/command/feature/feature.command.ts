@@ -9,7 +9,7 @@ import { PermissionFlagsBits } from "discord.js";
 
 export default class FeatureCommand extends Command {
   constructor() {
-    super("feature", "Enable or disable server features");
+    super({ id: "feature", displayName: "Enable or disable server features" });
     this.slashCommand.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
   }
 

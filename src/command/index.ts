@@ -39,8 +39,22 @@ export default class CommandManager {
     }
   }
 
-  public build(): SlashCommandBuilder[] {
-    return Array.from(CommandManager.COMMANDS.values()).map(command => command.build());
+  /** Global commands: visible in every guild the bot is installed in. */
+  public buildGlobal(): SlashCommandBuilder[] {
+    return CommandManager.all()
+      .filter(command => !command.private)
+      .map(command => command.build());
+  }
+
+  /** Private commands: guild commands scoped to `PRIVATE_COMMANDS_GUILD_ID` only. */
+  public buildPrivate(): SlashCommandBuilder[] {
+    return CommandManager.all()
+      .filter(command => command.private)
+      .map(command => command.build());
+  }
+
+  private static all(): Command[] {
+    return Array.from(CommandManager.COMMANDS.values());
   }
 
   public static registerCommand(command: Command): void {

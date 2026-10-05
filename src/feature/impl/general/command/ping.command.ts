@@ -3,7 +3,7 @@ import { baseEmbed } from "@/lib/embed";
 
 export default class PingCommand extends Command {
   constructor() {
-    super("ping", "Check bot latency");
+    super({ id: "ping", displayName: "Check bot latency" });
   }
 
   public override get userInstallable(): boolean {

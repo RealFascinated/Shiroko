@@ -9,7 +9,7 @@ import { baseEmbed } from "@/lib/embed";
  */
 export default class InfoCommand extends Command {
   constructor() {
-    super("info", "Show the server's logging configuration");
+    super({ id: "info", displayName: "Show the server's logging configuration" });
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {

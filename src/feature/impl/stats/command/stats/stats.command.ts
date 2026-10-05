@@ -8,7 +8,7 @@ import ServerCommand from "./sub/server.command";
  */
 export default class StatsCommand extends Command {
   constructor() {
-    super("stats", "Show activity stats as a card");
+    super({ id: "stats", displayName: "Show activity stats as a card" });
     this.registerSubCommand(new KindCommand("messages", "messages", "Show message stats as a card"));
     this.registerSubCommand(new KindCommand("voice", "voice", "Show voice stats as a card"));
     this.registerSubCommand(new KindCommand("overall", "overall", "Show combined activity stats as a card"));

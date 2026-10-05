@@ -6,7 +6,7 @@ import { ChannelType } from "discord.js";
 
 export default class ChannelCommand extends Command {
   constructor() {
-    super("channel", "Set the channel logs are sent to");
+    super({ id: "channel", displayName: "Set the channel logs are sent to" });
   }
 
   public override get options(): CommandOptionBuilder[] {

@@ -11,7 +11,7 @@ import SyncCommand from "./sub/sync.command";
  */
 export default class AutorolesCommand extends Command {
   constructor() {
-    super("autoroles", "Automatically grant roles to members when they join");
+    super({ id: "autoroles", displayName: "Automatically grant roles to members when they join" });
 
     this.registerSubCommand(new AddCommand());
     this.registerSubCommand(new RemoveCommand());

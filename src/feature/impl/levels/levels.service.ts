@@ -1,5 +1,4 @@
 import { db } from "@/db/index";
-import { levelRewardsSchema } from "@/db/schemas/level-rewards";
 import { userLevelsSchema } from "@/db/schemas/user-levels";
 import { EventBus } from "@/event/event-bus";
 import LevelUpEvent from "@/event/events/level-up.event";
@@ -8,7 +7,7 @@ import { LeaderboardId } from "@/leaderboard/leaderboard";
 import GuildUsersManager from "@/user/guild-users-manager";
 import type { Guild } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
-import { levelsSettings } from "./levels-settings";
+import { levelsSettings, type LevelReward } from "./levels-settings";
 import { levelForXp, progressToNext, xpForLevel } from "./xp";
 
 export interface RankState {
@@ -20,11 +19,9 @@ export interface RankState {
   progress: number;
 }
 
-export interface RewardRow {
+export interface RewardRow extends LevelReward {
   guildId: string;
   level: number;
-  type: string;
-  roleId: string | null;
 }
 
 interface UserLevelSnapshot {
@@ -148,19 +145,8 @@ export default class LevelsService {
    * line on rank cards.
    */
   public async nextReward(guildId: string, atLevel: number): Promise<RewardRow | null> {
-    const [row] = await db
-      .select()
-      .from(levelRewardsSchema)
-      .where(
-        and(
-          eq(levelRewardsSchema.guildId, guildId),
-          eq(levelRewardsSchema.type, "Role"),
-          sql`${levelRewardsSchema.level} > ${atLevel}`
-        )
-      )
-      .orderBy(levelRewardsSchema.level)
-      .limit(1);
-    return row ?? null;
+    const rewards = await this.rewards(guildId);
+    return rewards.find(reward => reward.type === "Role" && reward.level > atLevel) ?? null;
   }
 
   /**
@@ -168,50 +154,31 @@ export default class LevelsService {
    * levels below 1.
    */
   public async setRewardRole(guild: Guild, level: number, roleId: string): Promise<void> {
-    await db
-      .insert(levelRewardsSchema)
-      .values({ guildId: guild.id, level, type: "Role", roleId })
-      .onConflictDoUpdate({
-        target: [levelRewardsSchema.guildId, levelRewardsSchema.level],
-        set: { type: "Role", roleId },
-      });
+    await levelsSettings.setEntry(guild.id, "rewards", String(level), { type: "Role", roleId });
   }
 
   public async removeReward(guildId: string, level: number): Promise<void> {
-    await db
-      .delete(levelRewardsSchema)
-      .where(and(eq(levelRewardsSchema.guildId, guildId), eq(levelRewardsSchema.level, level)));
+    await levelsSettings.removeEntry(guildId, "rewards", String(level));
   }
 
   /**
-   * Every reward row for a guild, ordered by level ascending. Powers the
+   * Every reward for a guild, ordered by level ascending. Powers the
    * `/levels rewards` listing.
    */
   public async rewards(guildId: string): Promise<RewardRow[]> {
-    const rows = await db
-      .select()
-      .from(levelRewardsSchema)
-      .where(eq(levelRewardsSchema.guildId, guildId))
-      .orderBy(levelRewardsSchema.level);
-    return rows;
+    const entries = await levelsSettings.entries(guildId, "rewards");
+    return Object.entries(entries)
+      .map(([level, reward]) => ({ guildId, level: Number(level), ...reward }))
+      .sort((a, b) => a.level - b.level);
   }
 
   /**
-   * Reward rows for a guild between `fromLevel` and `toLevel` inclusive.
+   * Rewards for a guild between `fromLevel` and `toLevel` inclusive.
    * Used by the level-up reward granter.
    */
   public async rewardsBetween(guildId: string, fromLevel: number, toLevel: number): Promise<RewardRow[]> {
-    const rows = await db
-      .select()
-      .from(levelRewardsSchema)
-      .where(
-        and(
-          eq(levelRewardsSchema.guildId, guildId),
-          sql`${levelRewardsSchema.level} >= ${fromLevel}`,
-          sql`${levelRewardsSchema.level} <= ${toLevel}`
-        )
-      );
-    return rows;
+    const rewards = await this.rewards(guildId);
+    return rewards.filter(reward => reward.level >= fromLevel && reward.level <= toLevel);
   }
 
   /**

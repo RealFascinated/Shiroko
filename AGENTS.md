@@ -46,6 +46,8 @@ const target = args.user("user") ?? user.discordUser; // User | null
 
 Override `userInstallable` to return `true` so the command registers for both guild and user installs; return `false` only when it genuinely needs a guild context.
 
+A command's constructor takes a `CommandInfo` (`super({ id, displayName })`). Pass `private: true` to register it as a guild command scoped to `PRIVATE_COMMANDS_GUILD_ID` instead of globally, so it only appears in that guild (and is hidden from `/help` elsewhere).
+
 A command that registers subcommands cannot be invoked directly; Discord always sends a subcommand, so the parent's `onExecuteSlash` is never called. Leave it at its default no-op and put all logic in the subcommands.
 
 Subcommands live in their own files under a `sub/` folder next to the parent (e.g. `.../user/sub/avatar.command.ts`); never inline them into the parent, which only imports and registers them. Shared helpers go in the same folder.
@@ -65,7 +67,7 @@ Bot permissions live entirely under `src/permission/`: the logic in `src/permiss
 
 - Flags are BigInt bitfields (`1n << n`) named after the command they gate, e.g. `FEATURE_COMMAND`. Bits are permanent; never reuse a retired bit. `FLAG_DISPLAY_NAMES` maps each flag to its user-facing label and is the single source of truth for choice labels and `/permissions view` decoding.
 - Commands declare a `requiredFlags: bigint` getter (default `0n` = anyone). `CommandManager` enforces it after the feature check; the guild owner and members with Discord `Administrator` (when `ALLOW_ADMIN_BYPASS` is on) bypass all checks. A gate usually lives on the **parent** command; subcommands inherit it unless they declare their own `requiredFlags`, so a parent can stay open while a specific subcommand is gated (e.g. `/levels` open, `/level-config` admin-only). `featureId` inheritance mirrors this: the resolved subcommand's `featureId` wins, otherwise the parent's applies.
-- Config storage: each feature's settings live in a `SettingsModule<C>` (`src/settings/settings-module.ts`, e.g. `levels-settings.ts`), registered with `SettingsManager.register` in the feature constructor; keys are `<moduleId>.<key>` rows in `guild_settings`. A feature can hold a module without registering it when a panel edits it instead (`welcomer-settings.ts`).
+- Config storage: each feature's settings live in a `SettingsModule<C>` (`src/settings/settings-module.ts`, e.g. `levels-settings.ts`), registered with `SettingsManager.register` in the feature constructor; keys are `<moduleId>.<path>` rows in `guild_settings`, one row per leaf. Values are read and written with the typed `get`/`set` (dotted paths for scalars, groups, and group leaves) plus `values`/`entries`/`setEntry`/`removeEntry` (open maps). Closed records become `group` descriptors, open records become `map` descriptors. A feature can hold a module without registering it when its own panel edits it instead (`welcomer-settings.ts`).
 - Effective flags: a role's own flags OR'd with its parent's effective flags (additive inheritance, cycle-safe), then OR'd across all the member's roles.
 - Cache resolution per guild (`loadGuild`) with invalidation on role events. Mirror the existing pattern, don't add ad-hoc checks.
 

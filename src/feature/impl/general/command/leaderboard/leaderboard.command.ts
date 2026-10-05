@@ -6,7 +6,7 @@ import VoiceLeaderboardCommand from "./sub/voice.command";
 
 export default class LeaderboardCommand extends Command {
   constructor() {
-    super("leaderboard", "Show the server's leaderboards");
+    super({ id: "leaderboard", displayName: "Show the server's leaderboards" });
     this.registerSubCommand(new LevelLeaderboardCommand());
     this.registerSubCommand(new MessagesLeaderboardCommand());
     this.registerSubCommand(new InvitesLeaderboardCommand());

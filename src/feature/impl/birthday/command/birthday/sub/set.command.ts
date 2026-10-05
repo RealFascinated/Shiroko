@@ -14,7 +14,7 @@ import { MessageFlags } from "discord.js";
  */
 export default class SetCommand extends Command {
   constructor() {
-    super("set", "Save your birthday");
+    super({ id: "set", displayName: "Save your birthday" });
   }
 
   public override get options() {

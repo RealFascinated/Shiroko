@@ -16,7 +16,7 @@ const ANSWERS = [
 
 export default class EightBallCommand extends Command {
   constructor() {
-    super("8ball", "Ask the magic 8-ball a question");
+    super({ id: "8ball", displayName: "Ask the magic 8-ball a question" });
   }
 
   public override get options(): CommandOptionBuilder[] {

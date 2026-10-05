@@ -8,7 +8,7 @@ import Permissions, { flagLabels } from "@/permission/permissions";
  */
 export default class PermissionsInheritCommand extends Command {
   constructor() {
-    super("inherit", "Set or clear a role's parent for inheritance");
+    super({ id: "inherit", displayName: "Set or clear a role's parent for inheritance" });
   }
 
   public override get options(): CommandOptionBuilder[] {

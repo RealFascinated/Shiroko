@@ -18,7 +18,7 @@ import { getHeapStatistics } from "node:v8";
  */
 export default class BotStatsCommand extends Command {
   constructor() {
-    super("botstats", "Show the bot's stats: servers, users, status");
+    super({ id: "botstats", displayName: "Show the bot's stats: servers, users, status" });
   }
 
   public override get userInstallable(): boolean {

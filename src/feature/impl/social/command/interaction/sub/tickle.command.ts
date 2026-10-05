@@ -2,7 +2,7 @@ import PairInteractionCommand from "../pair-interaction.command";
 
 export default class TickleCommand extends PairInteractionCommand {
   constructor() {
-    super("tickle", "Tickle someone");
+    super({ id: "tickle", displayName: "Tickle someone" });
   }
   protected readonly interactionType = "tickle";
   protected readonly gifCategory = "tickle";
