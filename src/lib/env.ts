@@ -15,6 +15,7 @@ export const env = createEnv({
     VM_PUSH_URL: type("string | undefined"),
     VM_PUSH_INTERVAL_MS: type("string | undefined"),
     DISCORDBOTLIST_TOKEN: type("string | undefined"),
+    TOPBOT_TOKEN: type("string | undefined"),
     S3_ACCESS_KEY: type("string > 0"),
     S3_SECRET_KEY: type("string > 0"),
     S3_REGION: type("string > 0"),

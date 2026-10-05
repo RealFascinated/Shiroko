@@ -18,6 +18,7 @@ import LoggingFeature from "./feature/impl/logging";
 import FeatureManager from "./feature/index";
 import { env } from "./lib/env";
 import { DiscordBotListManager } from "./lib/misc/discordbotlist";
+import { TopbotManager } from "./lib/misc/topbot";
 import { PresenceListener } from "./lib/presence";
 import { formatDuration } from "./lib/time";
 import { VoiceKeepaliveListener } from "./lib/voice";
@@ -159,6 +160,13 @@ if (env.DISCORDBOTLIST_TOKEN) {
   console.log("Publishing commands and hourly statistics to discordbotlist.com");
 } else {
   console.log("DISCORDBOTLIST_TOKEN not set; discordbotlist.com publishing is off");
+}
+
+if (env.TOPBOT_TOKEN) {
+  new TopbotManager({ token: env.TOPBOT_TOKEN });
+  console.log("Publishing half-hourly statistics to topbot.gg");
+} else {
+  console.log("TOPBOT_TOKEN not set; topbot.gg publishing is off");
 }
 
 discordClient.login(env.DISCORD_BOT_TOKEN);
