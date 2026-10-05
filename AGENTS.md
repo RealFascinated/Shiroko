@@ -270,7 +270,9 @@ Good:
 ```ts
 class Foo {
   public counter: number = 0;
-  public compute(): number { return this.counter; }
+  public compute(): number {
+    return this.counter;
+  }
 }
 ```
 
