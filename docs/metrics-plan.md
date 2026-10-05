@@ -51,6 +51,7 @@ manager.register(gauge);
 | -------------- | ------------------------------------------------------------ |
 | `metric.ts`    | `Metric<T>` base, `MetricKind`, `MetricRegistration`         |
 | `gauge.ts`     | `GaugeMetric` (single numeric value)                         |
+| `counter.ts`   | `CounterMetric` (single monotonic total)                     |
 | `histogram.ts` | `HistogramMetric` (bucket-based), `HistogramValue`           |
 | `index.ts`     | `MetricManager` (registry + collection wiring)               |
 | `impl/`        | One metric-owning class per metric (see §6)                  |
@@ -205,6 +206,8 @@ export interface MetricSnapshot {
 | `event_loop_ms`        | histogram   | loop-slip measurement (see §6)                |
 | `discord_events_total` | counter_map | bus events (see §6)                           |
 
+The Discord REST metrics (`discord_rest_*`) are documented in §6.1.
+
 `discord_events_total` accumulates since boot with an `event` label per
 kind; the dashboard renders per-event per-second rates via PromQL
 `rate(discord_events_total{event="..."}[5m])`.
@@ -233,6 +236,7 @@ only its impl file and that one registration line.
 | `uptime-seconds.ts`    | `UptimeMetric`          | `process.uptime()`             |
 | `event-loop-delay.ts`  | `EventLoopMetric`       | loop-slip measurement          |
 | `discord-events.ts`    | `DiscordEventsMetric`   | bus events (see below)         |
+| `discord-rest.ts`      | `Rest*Metric` (12)      | `client.rest` (see §6.1)       |
 
 `DiscordEventsMetric` is event-driven: it declares a placeholder
 `collectIntervalMs` (it has nothing to self-collect) and is bumped by
@@ -241,6 +245,49 @@ on the bus to the high-volume raw gateway events only:
 `MessageCreatedEvent`, `MemberGuildJoinEvent`, `UserPresenceChangedEvent`,
 `SlashCommandReceivedEvent`, `ContextMenuReceivedEvent`, and
 `ComponentReceivedEvent`.
+
+### 6.1 Discord REST metrics
+
+`RestListeners` (in `src/metrics/rest-listeners.ts`) instruments the
+discord.js REST manager. These metrics come from `@discordjs/rest`, not
+the gateway, so the listeners attach to `client.rest` directly instead of
+going through `EventBridge`. The listener owns its metrics (they exist
+only to be fed by REST events) and exposes them as `listeners.metrics`,
+which `src/index.ts` registers in one pass.
+
+| Metric                                  | Type        | Source                         |
+| --------------------------------------- | ----------- | ------------------------------ |
+| `discord_rest_requests_total`           | counter_map | `response` event               |
+| `discord_rest_errors_total`             | counter_map | `response` (status >= 400)     |
+| `discord_rest_rate_limits_total`        | counter_map | `rateLimited` event            |
+| `discord_rest_global_rate_limits_total` | counter     | `rateLimited` (`global: true`) |
+| `discord_rest_buckets`                  | gauge       | `client.rest.handlers.size`    |
+| `discord_rest_hashes`                   | gauge       | `client.rest.hashes.size`      |
+| `discord_rest_global_remaining`         | gauge       | `client.rest.globalRemaining`  |
+| `discord_rest_bucket_remaining`         | counter_map | `x-ratelimit-remaining` header |
+| `discord_rest_bucket_limit`             | counter_map | `x-ratelimit-limit` header     |
+| `discord_rest_request_duration_ms`      | histogram   | `makeRequest` hook             |
+| `discord_rest_rate_limit_wait_ms`       | histogram   | `rateLimited.retryAfter`       |
+| `discord_rest_invalid_requests`         | gauge       | `invalidRequestWarning` event  |
+
+The route-keyed series use `request.route`, the REST layer's
+already-ID-stripped bucket route (`/channels/:id/messages`), so cardinality
+is bounded by the command surface rather than by guild or channel count.
+`discord_rest_bucket_remaining`/`_limit` are keyed the same way rather than
+by Discord's bucket hash: a hash is per route _and_ major parameter, so
+keying on it would add a series per channel and guild.
+
+Two constraints of the current subsystem shape this: a `counter_map`
+carries exactly one label (so status gets its own metric, and method is
+not dimensioned), and the exporter emits histograms unlabeled (only `le`),
+so both histograms are process-wide distributions rather than per-route.
+
+Timing REST round-trips needs the `makeRequest` hook because the `response`
+event carries no duration; `rest.options.makeRequest` is the REST layer's
+documented override point (it defaults to `fetch`). Note that attaching a
+`response` listener is also what makes the REST layer emit that event at
+all (`listenerCount("response")`), so the volume counters exist only while
+`RestListeners` is constructed.
 
 `MetricManager` (in `src/metrics/index.ts`) extends `EventListener`, the
 `SettingsManager` pattern: it subscribes to the bus in its constructor and
@@ -302,10 +349,12 @@ event_loop_ms_count{job="arona"} 4
 
 ## 10. Testing
 
-No tests ship with the metrics subsystem; it is verified by type-checking
-(`bunx tsc --noEmit`) which catches wrong metric classes at the branded-id
-call sites. If tests are added later they must run headless (no VM, no
-network); the exporter can be exercised with a `fetch` stub.
+The subsystem ships with headless tests (no VM, no network): `exporter.test.ts`
+stubs `fetch` to assert the text exposition format, `histogram.test.ts` pins
+the per-bucket counting, and `rest-listeners.test.ts` drives a stand-in REST
+emitter to check every `discord_rest_*` metric without a real client.
+Type-checking (`bunx tsc --noEmit`) still catches wrong metric classes at the
+branded-id call sites.
 
 ## 11. Rollout
 

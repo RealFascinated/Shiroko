@@ -39,6 +39,7 @@ import { ProcessRamUsedMetric } from "./metrics/impl/process-ram-used";
 import { SeenUsersMetric } from "./metrics/impl/seen-users";
 import { UptimeMetric } from "./metrics/impl/uptime-seconds";
 import { MetricManager } from "./metrics/index";
+import { RestListeners } from "./metrics/rest-listeners";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
 import SettingsManager from "./settings/index";
@@ -82,6 +83,11 @@ metricManager.register(new MediaBytesMetric());
 metricManager.register(new CommandCallsMetric());
 const discordEventsMetric = metricManager.register(new DiscordEventsMetric());
 new EventVolumeListeners(discordEventsMetric);
+
+const restListeners = new RestListeners(discordClient);
+for (const metric of restListeners.metrics) {
+  metricManager.register(metric);
+}
 
 /**
  * Guild lifecycle logging and one-time command sync on ready. Lives here

@@ -831,8 +831,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "uptime_seconds{job=\"$job\"}",
-                        "legendFormat": "uptime",
+                        "expr": "sum(rate(discord_rest_requests_total{job=\"$job\"}[5m]))",
+                        "legendFormat": "requests",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -848,7 +848,7 @@
           "description": "",
           "id": 8,
           "links": [],
-          "title": "Bot uptime",
+          "title": "Requests per second",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -901,7 +901,7 @@
                       }
                     ]
                   },
-                  "unit": "s",
+                  "unit": "ops",
                   "min": 0
                 },
                 "overrides": []
@@ -943,8 +943,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "cache_entries{job=\"$job\",cache=~\"[^:]+:size\"}",
-                        "legendFormat": "{{cache}}",
+                        "expr": "sum(rate(discord_rest_errors_total{job=\"$job\"}[5m]))",
+                        "legendFormat": "errors",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -960,7 +960,119 @@
           "description": "",
           "id": 9,
           "links": [],
-          "title": "Entries",
+          "title": "Errors per second",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-10": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "discord_rest_invalid_requests{job=\"$job\"}",
+                        "legendFormat": "invalid",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 10,
+          "links": [],
+          "title": "Invalid requests (window)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1037,119 +1149,6 @@
           }
         }
       },
-      "panel-10": {
-        "kind": "Panel",
-        "spec": {
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "${vm}"
-                      },
-                      "group": "victoriametrics-metrics-datasource",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "expr": "label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\") / (label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\") + label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\"))",
-                        "legendFormat": "{{cache}}",
-                        "queryType": "MetricsQL"
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "A"
-                  }
-                }
-              ],
-              "queryOptions": {},
-              "transformations": []
-            }
-          },
-          "description": "",
-          "id": 10,
-          "links": [],
-          "title": "Hit rate",
-          "vizConfig": {
-            "group": "timeseries",
-            "kind": "VizConfig",
-            "spec": {
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "showValues": false,
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green",
-                        "value": 0
-                      }
-                    ]
-                  },
-                  "unit": "percentunit",
-                  "min": 0,
-                  "max": 1
-                },
-                "overrides": []
-              },
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "maxHeight": 600,
-                  "mode": "multi",
-                  "sort": "desc"
-                }
-              }
-            },
-            "version": "13.2.2"
-          }
-        }
-      },
       "panel-11": {
         "kind": "Panel",
         "spec": {
@@ -1168,8 +1167,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m])",
-                        "legendFormat": "{{cache}}",
+                        "expr": "sum by (route) (rate(discord_rest_requests_total{job=\"$job\"}[5m]))",
+                        "legendFormat": "{{route}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1185,7 +1184,7 @@
           "description": "",
           "id": 11,
           "links": [],
-          "title": "Loads per second",
+          "title": "Requests per second by route",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1280,8 +1279,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "discord_cache_entries{job=\"$job\"}",
-                        "legendFormat": "{{cache}}",
+                        "expr": "rate(discord_rest_request_duration_ms_sum{job=\"$job\"}[5m]) / rate(discord_rest_request_duration_ms_count{job=\"$job\"}[5m])",
+                        "legendFormat": "average",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1297,7 +1296,7 @@
           "description": "",
           "id": 12,
           "links": [],
-          "title": "Discord cache entries",
+          "title": "REST latency (average)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1350,7 +1349,7 @@
                       }
                     ]
                   },
-                  "unit": "short",
+                  "unit": "ms",
                   "min": 0
                 },
                 "overrides": []
@@ -1392,8 +1391,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "media_files{job=\"$job\"}",
-                        "legendFormat": "{{state}}",
+                        "expr": "histogram_quantile(0.95, sum(rate(discord_rest_request_duration_ms_bucket{job=\"$job\"}[5m])) by (le))",
+                        "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1409,7 +1408,7 @@
           "description": "",
           "id": 13,
           "links": [],
-          "title": "Stored files",
+          "title": "REST latency (p95)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1462,7 +1461,7 @@
                       }
                     ]
                   },
-                  "unit": "short",
+                  "unit": "ms",
                   "min": 0
                 },
                 "overrides": []
@@ -1504,8 +1503,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "media_bytes{job=\"$job\"}",
-                        "legendFormat": "{{state}}",
+                        "expr": "sum by (route) (rate(discord_rest_errors_total{job=\"$job\"}[5m])) / sum by (route) (rate(discord_rest_requests_total{job=\"$job\"}[5m]))",
+                        "legendFormat": "{{route}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1521,7 +1520,7 @@
           "description": "",
           "id": 14,
           "links": [],
-          "title": "Stored size",
+          "title": "Error ratio by route",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1574,8 +1573,9 @@
                       }
                     ]
                   },
-                  "unit": "bytes",
-                  "min": 0
+                  "unit": "percentunit",
+                  "min": 0,
+                  "max": 1
                 },
                 "overrides": []
               },
@@ -1616,8 +1616,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"messages\"}[5m])",
-                        "legendFormat": "messages",
+                        "expr": "sum(rate(discord_rest_rate_limits_total{job=\"$job\"}[5m]))",
+                        "legendFormat": "limited",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1633,7 +1633,7 @@
           "description": "",
           "id": 15,
           "links": [],
-          "title": "Messages",
+          "title": "Rate limit hits per second",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1728,8 +1728,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"slash_commands\"}[5m])",
-                        "legendFormat": "slash",
+                        "expr": "discord_rest_global_rate_limits_total{job=\"$job\"}",
+                        "legendFormat": "global",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1745,7 +1745,7 @@
           "description": "",
           "id": 16,
           "links": [],
-          "title": "Slash commands",
+          "title": "Global rate limit hits",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1798,7 +1798,7 @@
                       }
                     ]
                   },
-                  "unit": "ops",
+                  "unit": "short",
                   "min": 0
                 },
                 "overrides": []
@@ -1840,8 +1840,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"components\"}[5m])",
-                        "legendFormat": "components",
+                        "expr": "discord_rest_buckets{job=\"$job\"}",
+                        "legendFormat": "buckets",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1857,7 +1857,7 @@
           "description": "",
           "id": 17,
           "links": [],
-          "title": "Components",
+          "title": "Buckets tracked",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1910,7 +1910,7 @@
                       }
                     ]
                   },
-                  "unit": "ops",
+                  "unit": "short",
                   "min": 0
                 },
                 "overrides": []
@@ -1952,8 +1952,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(discord_events_total{job=\"$job\",event=\"context_menus\"}[5m])",
-                        "legendFormat": "context",
+                        "expr": "sum by (route) (rate(discord_rest_rate_limits_total{job=\"$job\"}[5m]))",
+                        "legendFormat": "{{route}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -1969,7 +1969,7 @@
           "description": "",
           "id": 18,
           "links": [],
-          "title": "Context menus",
+          "title": "Rate limit hits per second by route",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -2064,6 +2064,1687 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
+                        "expr": "rate(discord_rest_rate_limit_wait_ms_sum{job=\"$job\"}[5m]) / rate(discord_rest_rate_limit_wait_ms_count{job=\"$job\"}[5m])",
+                        "legendFormat": "average",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 19,
+          "links": [],
+          "title": "Time waiting on a rate limit (average)",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ms",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-20": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "histogram_quantile(0.95, sum(rate(discord_rest_rate_limit_wait_ms_bucket{job=\"$job\"}[5m])) by (le))",
+                        "legendFormat": "p95",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 20,
+          "links": [],
+          "title": "Time waiting on a rate limit (p95)",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ms",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-21": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "discord_rest_bucket_remaining{job=\"$job\"}",
+                        "legendFormat": "{{route}}",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 21,
+          "links": [],
+          "title": "Bucket requests remaining",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-22": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "discord_rest_bucket_limit{job=\"$job\"}",
+                        "legendFormat": "{{route}}",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 22,
+          "links": [],
+          "title": "Bucket capacity",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-23": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "uptime_seconds{job=\"$job\"}",
+                        "legendFormat": "uptime",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 23,
+          "links": [],
+          "title": "Bot uptime",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "s",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-24": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "cache_entries{job=\"$job\",cache=~\"[^:]+:size\"}",
+                        "legendFormat": "{{cache}}",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 24,
+          "links": [],
+          "title": "Entries",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-25": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\") / (label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:hits\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\") + label_replace(rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\"))",
+                        "legendFormat": "{{cache}}",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 25,
+          "links": [],
+          "title": "Hit rate",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "percentunit",
+                  "min": 0,
+                  "max": 1
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-26": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(cache_entries{job=\"$job\",cache=~\"[^:]+:misses\"}[5m])",
+                        "legendFormat": "{{cache}}",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 26,
+          "links": [],
+          "title": "Loads per second",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-27": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "discord_cache_entries{job=\"$job\"}",
+                        "legendFormat": "{{cache}}",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 27,
+          "links": [],
+          "title": "Discord cache entries",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-28": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "media_files{job=\"$job\"}",
+                        "legendFormat": "{{state}}",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 28,
+          "links": [],
+          "title": "Stored files",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-29": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "media_bytes{job=\"$job\"}",
+                        "legendFormat": "{{state}}",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 29,
+          "links": [],
+          "title": "Stored size",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "bytes",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-30": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"messages\"}[5m])",
+                        "legendFormat": "messages",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 30,
+          "links": [],
+          "title": "Messages",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-31": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"slash_commands\"}[5m])",
+                        "legendFormat": "slash",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 31,
+          "links": [],
+          "title": "Slash commands",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-32": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"components\"}[5m])",
+                        "legendFormat": "components",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 32,
+          "links": [],
+          "title": "Components",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-33": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(discord_events_total{job=\"$job\",event=\"context_menus\"}[5m])",
+                        "legendFormat": "context",
+                        "queryType": "MetricsQL"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 33,
+          "links": [],
+          "title": "Context menus",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "ops",
+                  "min": 0
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "maxHeight": 600,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": "13.2.2"
+          }
+        }
+      },
+      "panel-34": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${vm}"
+                      },
+                      "group": "victoriametrics-metrics-datasource",
+                      "kind": "DataQuery",
+                      "spec": {
                         "expr": "rate(discord_events_total{job=\"$job\",event=\"member_joins\"}[5m])",
                         "legendFormat": "joins",
                         "queryType": "MetricsQL"
@@ -2079,7 +3760,7 @@
             }
           },
           "description": "",
-          "id": 19,
+          "id": 34,
           "links": [],
           "title": "Member joins",
           "vizConfig": {
@@ -2158,7 +3839,7 @@
           }
         }
       },
-      "panel-20": {
+      "panel-35": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -2191,7 +3872,7 @@
             }
           },
           "description": "",
-          "id": 20,
+          "id": 35,
           "links": [],
           "title": "Presence changes",
           "vizConfig": {
@@ -2270,7 +3951,7 @@
           }
         }
       },
-      "panel-21": {
+      "panel-36": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -2303,7 +3984,7 @@
             }
           },
           "description": "",
-          "id": 21,
+          "id": 36,
           "links": [],
           "title": "Event loop delay (average)",
           "vizConfig": {
@@ -2382,7 +4063,7 @@
           }
         }
       },
-      "panel-22": {
+      "panel-37": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -2415,7 +4096,7 @@
             }
           },
           "description": "",
-          "id": 22,
+          "id": 37,
           "links": [],
           "title": "Event loop delay (p95)",
           "vizConfig": {
@@ -2494,7 +4175,7 @@
           }
         }
       },
-      "panel-23": {
+      "panel-38": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -2527,7 +4208,7 @@
             }
           },
           "description": "",
-          "id": 23,
+          "id": 38,
           "links": [],
           "title": "Command calls (total)",
           "vizConfig": {
@@ -2606,7 +4287,7 @@
           }
         }
       },
-      "panel-24": {
+      "panel-39": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -2639,7 +4320,7 @@
             }
           },
           "description": "",
-          "id": 24,
+          "id": 39,
           "links": [],
           "title": "Command calls per second",
           "vizConfig": {
@@ -2900,25 +4581,11 @@
                           "name": "panel-8"
                         },
                         "height": 8,
-                        "width": 24,
+                        "width": 8,
                         "x": 0,
                         "y": 0
                       }
-                    }
-                  ]
-                }
-              },
-              "title": "\u23f1\ufe0f Uptime"
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "collapse": false,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
+                    },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
@@ -2927,8 +4594,8 @@
                           "name": "panel-9"
                         },
                         "height": 8,
-                        "width": 12,
-                        "x": 0,
+                        "width": 8,
+                        "x": 8,
                         "y": 0
                       }
                     },
@@ -2940,8 +4607,8 @@
                           "name": "panel-10"
                         },
                         "height": 8,
-                        "width": 12,
-                        "x": 12,
+                        "width": 8,
+                        "x": 16,
                         "y": 0
                       }
                     },
@@ -2957,21 +4624,7 @@
                         "x": 0,
                         "y": 8
                       }
-                    }
-                  ]
-                }
-              },
-              "title": "\ud83d\uddc3\ufe0f Caches"
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "collapse": false,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
+                    },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
@@ -2980,25 +4633,11 @@
                           "name": "panel-12"
                         },
                         "height": 8,
-                        "width": 24,
+                        "width": 12,
                         "x": 0,
-                        "y": 0
+                        "y": 16
                       }
-                    }
-                  ]
-                }
-              },
-              "title": "\ud83e\uddf0 Discord Caches"
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "collapse": false,
-              "layout": {
-                "kind": "GridLayout",
-                "spec": {
-                  "items": [
+                    },
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
@@ -3008,8 +4647,8 @@
                         },
                         "height": 8,
                         "width": 12,
-                        "x": 0,
-                        "y": 0
+                        "x": 12,
+                        "y": 16
                       }
                     },
                     {
@@ -3020,15 +4659,15 @@
                           "name": "panel-14"
                         },
                         "height": 8,
-                        "width": 12,
-                        "x": 12,
-                        "y": 0
+                        "width": 24,
+                        "x": 0,
+                        "y": 24
                       }
                     }
                   ]
                 }
               },
-              "title": "\ud83d\uddbc\ufe0f Media"
+              "title": "\ud83d\udd0c Discord REST"
             }
           },
           {
@@ -3086,7 +4725,7 @@
                           "name": "panel-18"
                         },
                         "height": 8,
-                        "width": 8,
+                        "width": 24,
                         "x": 0,
                         "y": 8
                       }
@@ -3099,6 +4738,271 @@
                           "name": "panel-19"
                         },
                         "height": 8,
+                        "width": 12,
+                        "x": 0,
+                        "y": 16
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-20"
+                        },
+                        "height": 8,
+                        "width": 12,
+                        "x": 12,
+                        "y": 16
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-21"
+                        },
+                        "height": 8,
+                        "width": 12,
+                        "x": 0,
+                        "y": 24
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-22"
+                        },
+                        "height": 8,
+                        "width": 12,
+                        "x": 12,
+                        "y": 24
+                      }
+                    }
+                  ]
+                }
+              },
+              "title": "\ud83d\udea6 Rate Limits"
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-23"
+                        },
+                        "height": 8,
+                        "width": 24,
+                        "x": 0,
+                        "y": 0
+                      }
+                    }
+                  ]
+                }
+              },
+              "title": "\u23f1\ufe0f Uptime"
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-24"
+                        },
+                        "height": 8,
+                        "width": 12,
+                        "x": 0,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-25"
+                        },
+                        "height": 8,
+                        "width": 12,
+                        "x": 12,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-26"
+                        },
+                        "height": 8,
+                        "width": 24,
+                        "x": 0,
+                        "y": 8
+                      }
+                    }
+                  ]
+                }
+              },
+              "title": "\ud83d\uddc3\ufe0f Caches"
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-27"
+                        },
+                        "height": 8,
+                        "width": 24,
+                        "x": 0,
+                        "y": 0
+                      }
+                    }
+                  ]
+                }
+              },
+              "title": "\ud83e\uddf0 Discord Caches"
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-28"
+                        },
+                        "height": 8,
+                        "width": 12,
+                        "x": 0,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-29"
+                        },
+                        "height": 8,
+                        "width": 12,
+                        "x": 12,
+                        "y": 0
+                      }
+                    }
+                  ]
+                }
+              },
+              "title": "\ud83d\uddbc\ufe0f Media"
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-30"
+                        },
+                        "height": 8,
+                        "width": 8,
+                        "x": 0,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-31"
+                        },
+                        "height": 8,
+                        "width": 8,
+                        "x": 8,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-32"
+                        },
+                        "height": 8,
+                        "width": 8,
+                        "x": 16,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-33"
+                        },
+                        "height": 8,
+                        "width": 8,
+                        "x": 0,
+                        "y": 8
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-34"
+                        },
+                        "height": 8,
                         "width": 8,
                         "x": 8,
                         "y": 8
@@ -3109,7 +5013,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-20"
+                          "name": "panel-35"
                         },
                         "height": 8,
                         "width": 8,
@@ -3136,7 +5040,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-21"
+                          "name": "panel-36"
                         },
                         "height": 8,
                         "width": 12,
@@ -3149,7 +5053,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-22"
+                          "name": "panel-37"
                         },
                         "height": 8,
                         "width": 12,
@@ -3176,7 +5080,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-23"
+                          "name": "panel-38"
                         },
                         "height": 8,
                         "width": 12,
@@ -3189,7 +5093,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-24"
+                          "name": "panel-39"
                         },
                         "height": 8,
                         "width": 12,

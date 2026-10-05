@@ -2,9 +2,14 @@ import type { MetricRegistration } from "./metric";
 import { Metric } from "./metric";
 
 /**
- * A histogram records observations into cumulative buckets. The buckets
- * are fixed at construction and exported as `le` label boundaries; the
- * value is a cumulative count per bucket plus the total sum and count.
+ * A histogram records observations into fixed buckets. The buckets are set
+ * at construction and exported as `le` label boundaries; the value is a
+ * count per bucket plus the total sum and count.
+ *
+ * `counts[i]` is the number of observations that fell *into* bucket `i`,
+ * not the number at or below its bound: the exporter does the cumulative
+ * sum that gives the `le` semantics, so counting cumulatively here would
+ * count every observation once per matching bucket.
  */
 export class HistogramMetric extends Metric<HistogramValue> {
   private readonly counts: number[];
@@ -27,6 +32,7 @@ export class HistogramMetric extends Metric<HistogramValue> {
     for (let i = 0; i < this.buckets.length; i++) {
       if (value <= this.buckets[i]!) {
         this.counts[i]! += 1;
+        break;
       }
     }
   }
