@@ -30,6 +30,7 @@ import { baseEmbed } from "@/lib/embed";
 import { yesNo } from "@/lib/format";
 import SettingsManager from "@/settings/index";
 import {
+  AuditLogEvent,
   ChannelType,
   EmbedBuilder,
   GuildVerificationLevel,
@@ -37,15 +38,51 @@ import {
   type Guild,
   type GuildEmoji,
   type NonThreadGuildBasedChannel,
+  type PartialUser,
   type PermissionOverwrites,
   type Role,
   type Sticker,
   type TextChannel,
+  type User,
 } from "discord.js";
+import { resolveAuditActor, type AuditActor } from "./audit-log";
 import LoggingCommand from "./command/logging/logging.command";
 import type { LogType } from "./log-type";
 import { loggingSettings } from "./logging-settings";
 import { loggingService } from "./logging.service";
+
+/**
+ * How a departure reads, keyed by the audit action behind it. A member who
+ * simply left has no entry, and a ban is logged separately, so the fallback
+ * covers both.
+ */
+const LEAVE_VERBS: Partial<Record<AuditLogEvent, string>> = {
+  [AuditLogEvent.MemberKick]: "was kicked.",
+  [AuditLogEvent.MemberPrune]: "was pruned for inactivity.",
+};
+
+/** A user mention with their id, or "Unknown" when Discord resolved no user. */
+function userLabel(user: User | PartialUser | null): string {
+  return user ? `${user} (\`${user.id}\`)` : "Unknown";
+}
+
+/**
+ * The moderator line for an audit-logged change, or no lines at all when
+ * the action left no entry, so a log line never claims an actor it could
+ * not resolve.
+ */
+function moderatorLines(actor: AuditActor | null): string[] {
+  return actor ? [`**➜** Moderator: ${userLabel(actor.executor)}`] : [];
+}
+
+/** {@link moderatorLines} plus the reason the moderator gave, when they gave one. */
+function actorLines(actor: AuditActor | null): string[] {
+  const lines = moderatorLines(actor);
+  if (actor?.reason) {
+    lines.push(`**➜** Reason: \`${actor.reason}\``);
+  }
+  return lines;
+}
 
 /** User-facing names for Discord's guild verification levels. */
 const VERIFICATION_LEVEL_NAMES: Record<number, string> = {
@@ -219,13 +256,22 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(MemberGuildLeaveEvent, "member_leave", async (event, channel) => {
+      // A ban fires both `GuildMemberRemove` and `GuildBanAdd`, and the ban
+      // log already names the moderator, so only kicks and prunes are
+      // resolved here.
+      const actor = await resolveAuditActor(
+        event.member.guild,
+        [AuditLogEvent.MemberKick, AuditLogEvent.MemberPrune],
+        event.member.id
+      );
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `${event.member} left the server.`,
+            `${event.member} ${(actor && LEAVE_VERBS[actor.action]) ?? "left the server."}`,
             "",
             `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
+            ...actorLines(actor),
           ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -297,6 +343,11 @@ export default class LoggingFeature extends Feature {
       if (event.added.size === 0) {
         return;
       }
+      const actor = await resolveAuditActor(
+        event.newMember.guild,
+        [AuditLogEvent.MemberRoleUpdate],
+        event.newMember.id
+      );
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -304,6 +355,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.added.map(role => role.toString()).join(", ")}`,
+            ...actorLines(actor),
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -313,6 +365,11 @@ export default class LoggingFeature extends Feature {
       if (event.removed.size === 0) {
         return;
       }
+      const actor = await resolveAuditActor(
+        event.newMember.guild,
+        [AuditLogEvent.MemberRoleUpdate],
+        event.newMember.id
+      );
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -320,6 +377,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
+            ...actorLines(actor),
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -353,6 +411,11 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(ChannelCreatedEvent, "channel", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.channel.guild,
+        [AuditLogEvent.ChannelCreate],
+        event.channel.id
+      );
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -363,6 +426,7 @@ export default class LoggingFeature extends Feature {
             `**➜** ID: \`${event.channel.id}\``,
             ...channelDetails(event.channel).map(([label, value]) => `**➜** ${label}: ${value}`),
             ...channelOverwriteLines(event.channel),
+            ...actorLines(actor),
           ]),
         ],
       });
@@ -373,6 +437,10 @@ export default class LoggingFeature extends Feature {
       if (changes.length === 0) {
         return;
       }
+      // Channel updates carry no attribution: `ChannelUpdate` and the three
+      // overwrite actions share the channel as their target, so the newest
+      // matching entry may belong to a different edit. A missing moderator
+      // beats naming the wrong one.
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -386,6 +454,11 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(ChannelDeletedEvent, "channel", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.channel.guild,
+        [AuditLogEvent.ChannelDelete],
+        event.channel.id
+      );
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -393,12 +466,14 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Type: \`${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}\``,
             `**➜** ID: \`${event.channel.id}\``,
+            ...actorLines(actor),
           ]),
         ],
       });
     });
 
     this.handleEvent(RoleCreatedEvent, "role", async (event, channel) => {
+      const actor = await resolveAuditActor(event.role.guild, [AuditLogEvent.RoleCreate], event.role.id);
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -408,6 +483,7 @@ export default class LoggingFeature extends Feature {
             `**➜** Color: \`${event.role.hexColor}\``,
             `**➜** Hoisted: \`${yesNo(event.role.hoist)}\``,
             `**➜** Mentionable: \`${yesNo(event.role.mentionable)}\``,
+            ...actorLines(actor),
           ]),
         ],
       });
@@ -418,6 +494,11 @@ export default class LoggingFeature extends Feature {
       if (changes.length === 0) {
         return;
       }
+      const actor = await resolveAuditActor(
+        event.newRole.guild,
+        [AuditLogEvent.RoleUpdate],
+        event.newRole.id
+      );
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -425,12 +506,14 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.newRole.id}\``,
             ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
+            ...actorLines(actor),
           ]),
         ],
       });
     });
 
     this.handleEvent(RoleDeletedEvent, "role", async (event, channel) => {
+      const actor = await resolveAuditActor(event.role.guild, [AuditLogEvent.RoleDelete], event.role.id);
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -438,6 +521,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.role.id}\``,
             `**➜** Color: \`${event.role.hexColor}\``,
+            ...actorLines(actor),
           ]),
         ],
       });
@@ -537,6 +621,7 @@ export default class LoggingFeature extends Feature {
         return;
       }
       const { ban } = event;
+      const actor = await resolveAuditActor(ban.guild, [AuditLogEvent.MemberBanAdd], ban.user.id);
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -544,7 +629,8 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${ban.user.id}\``,
             `**➜** Username: \`${ban.user.username}\``,
-            `**➜** Reason: \`${ban.reason ?? "None"}\``,
+            ...moderatorLines(actor),
+            `**➜** Reason: \`${ban.reason ?? actor?.reason ?? "None"}\``,
           ]).setThumbnail(ban.user.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -555,6 +641,7 @@ export default class LoggingFeature extends Feature {
         return;
       }
       const { ban } = event;
+      const actor = await resolveAuditActor(ban.guild, [AuditLogEvent.MemberBanRemove], ban.user.id);
       await channel.send({
         embeds: [
           this.baseLogEmbed([
@@ -562,6 +649,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${ban.user.id}\``,
             `**➜** Username: \`${ban.user.username}\``,
+            ...actorLines(actor),
           ]).setThumbnail(ban.user.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -577,18 +665,23 @@ export default class LoggingFeature extends Feature {
             `**➜** Code: \`${invite.code}\``,
             `**➜** Channel: \`${invite.channel ? `<#${invite.channel.id}>` : "unknown"}\``,
             `**➜** Expires: ${invite.expiresAt ? `<t:${Math.floor(invite.expiresAt.getTime() / 1000)}>` : "never"}`,
+            ...(invite.inviter ? [`**➜** Created By: ${userLabel(invite.inviter)}`] : []),
           ]).setThumbnail(invite.inviter?.displayAvatarURL({ size: 4096, extension: "webp" }) ?? null),
         ],
       });
     });
 
     this.handleEvent(InviteDeletedEvent, "invite", async (event, channel) => {
+      const actor = event.guild
+        ? await resolveAuditActor(event.guild, [AuditLogEvent.InviteDelete], event.invite.code)
+        : null;
       await channel.send({
         embeds: [
           this.baseLogEmbed([
             `**${event.guild!.name}** had an invite deleted.`,
             "",
             `**➜** Code: \`${event.invite.code}\``,
+            ...actorLines(actor),
           ]),
         ],
       });
