@@ -358,6 +358,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `${channelLabel(event.channel)} was created.`,
             "",
+            `**➜** Name: \`${event.channel.name}\``,
             `**➜** Type: \`${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}\``,
             `**➜** ID: \`${event.channel.id}\``,
             ...channelDetails(event.channel).map(([label, value]) => `**➜** ${label}: ${value}`),
