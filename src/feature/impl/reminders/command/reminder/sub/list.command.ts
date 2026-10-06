@@ -1,8 +1,12 @@
 import Command, { type ExecuteContext } from "@/command/command";
-import { reminderService, type Reminder } from "@/feature/impl/reminders/reminder.service";
+import {
+  reminderService,
+  REMINDER_RELATIVE_WINDOW_MS,
+  type Reminder,
+} from "@/feature/impl/reminders/reminder.service";
 import { baseEmbed } from "@/lib/embed";
 import { attachPager, type Page } from "@/lib/pagination";
-import { discordTimestamp } from "@/lib/time";
+import { timestampLabel } from "@/lib/time";
 
 /**
  * List your pending reminders, soonest first, with the button pager when
@@ -30,7 +34,7 @@ export default class ListCommand extends Command {
     const render = (page: Page<Reminder>) => {
       const lines = page.rows.map(
         reminder =>
-          `**#${reminder.id}** · ${discordTimestamp(reminder.remindAt)} · ${
+          `**#${reminder.id}** · ${timestampLabel(reminder.remindAt, REMINDER_RELATIVE_WINDOW_MS)} · ${
             reminder.dm ? "DM" : `<#${reminder.channelId}>`
           }\n${reminder.about}`
       );

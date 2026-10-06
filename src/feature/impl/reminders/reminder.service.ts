@@ -1,12 +1,23 @@
 import { db } from "@/db/index";
 import { remindersSchema, type ReminderSchema } from "@/db/schemas/reminders";
 import { loadPage, type Page } from "@/lib/pagination";
+import { TimeUnit } from "@/lib/time";
 import { and, eq, lte, sql } from "drizzle-orm";
 
 export type Reminder = ReminderSchema;
 
 /** Default rows per page for {@link ReminderService.list}. */
 export const REMINDER_PAGE_SIZE = 10;
+
+/** How many reminders one member may hold at once. */
+export const MAX_REMINDERS_PER_USER = 100;
+
+/**
+ * How far ahead a reminder's timestamp is rendered relatively. Past this,
+ * "in 3 months" says nothing about when it actually is, so the renderers
+ * switch to an absolute date; see `timestampLabel`.
+ */
+export const REMINDER_RELATIVE_WINDOW_MS = TimeUnit.toMillis(TimeUnit.Day, 1);
 
 /**
  * Reminder storage: reads and writes `reminders` and nothing else. The
@@ -18,8 +29,20 @@ export const REMINDER_PAGE_SIZE = 10;
  */
 export default class ReminderService {
   /**
-   * Store a reminder against an already-resolved delivery target. The
-   * caller has validated the delay and picked `channelId`.
+   * Store a reminder against an already-resolved delivery target, unless
+   * `userId` already holds {@link MAX_REMINDERS_PER_USER} of them. Returns
+   * `null` when the cap rejected the insert.
+   *
+   * The cap is enforced inside the insert rather than as a count followed by
+   * a write, so concurrent sets cannot both pass the check and slip past it.
+   * A plain `INSERT ... SELECT ... WHERE` (Drizzle's typed builder cannot
+   * express it, since it always names every target column) is used for the
+   * same reason `claimDue` deletes in one statement.
+   *
+   * The insert returns only the id and the row is read back through the
+   * typed builder: `db.execute` hands `timestamptz` back as a raw string,
+   * while a typed select parses it into a `Date`, and re-reading keeps this
+   * module's row shape defined in exactly one place.
    */
   public async create(
     userId: string,
@@ -27,11 +50,18 @@ export default class ReminderService {
     dm: boolean,
     about: string,
     remindAt: Date
-  ): Promise<Reminder> {
-    const [row] = await db
-      .insert(remindersSchema)
-      .values({ userId, channelId, dm, about, remindAt })
-      .returning();
+  ): Promise<Reminder | null> {
+    const result = await db.execute(sql`
+      insert into reminders (user_id, channel_id, dm, about, remind_at)
+      select ${userId}, ${channelId}, ${dm}, ${about}, ${remindAt}
+      where (select count(*) from reminders where user_id = ${userId}) < ${MAX_REMINDERS_PER_USER}
+      returning id
+    `);
+    const [inserted] = result.rows as Array<{ id: number }>;
+    if (!inserted) {
+      return null;
+    }
+    const [row] = await db.select().from(remindersSchema).where(eq(remindersSchema.id, inserted.id));
     return row!;
   }
 

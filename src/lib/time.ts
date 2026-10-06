@@ -91,6 +91,17 @@ export function discordTimestamp(date: Date, style: DiscordTimestampStyle = "R")
   return `<t:${Math.floor(date.getTime() / 1000)}:${style}>`;
 }
 
+/**
+ * Format a `Date` for display: relative ("in 2 hours") when it is close
+ * enough for that to be useful, absolute otherwise. Anything more than a
+ * day away reads as "in 3 months", which says nothing about *when* it is,
+ * so those switch to the full date and time.
+ */
+export function timestampLabel(date: Date, relativeWindowMs: number, now: Date = new Date()): string {
+  const style = date.getTime() - now.getTime() > relativeWindowMs ? "F" : "R";
+  return discordTimestamp(date, style);
+}
+
 const DURATION_UNIT_MULTIPLIERS: Record<string, number> = {
   ms: 1,
   s: TimeUnit.toMillis(TimeUnit.Second, 1),
@@ -104,25 +115,27 @@ const DURATION_UNIT_MULTIPLIERS: Record<string, number> = {
  * Parse a compact duration string like `"90s"`, `"2d"`, `"1h30m"` into
  * milliseconds. Units may repeat and may appear in any order; a bare
  * number is treated as milliseconds, matching `formatDuration`'s short
- * unit letters (`ms`, `s`, `m`, `h`, `d`, `w`). Returns `null` for empty,
- * non-negative-integer, or unknown-unit input.
+ * unit letters (`ms`, `s`, `m`, `h`, `d`, `w`). Case is ignored and
+ * whitespace may separate the units, so `"1H"`, `"2D"`, and `"1h 30m"` all
+ * parse. Returns `null` for empty, non-negative-integer, or unknown-unit
+ * input.
  */
 export function parseDuration(input: string): number | null {
-  const trimmed = input.trim();
-  if (trimmed.length === 0) {
+  const normalized = input.trim().toLowerCase().replace(/\s+/g, "");
+  if (normalized.length === 0) {
     return null;
   }
   const pattern = /(\d+)(ms|s|m|h|d|w)?/g;
   let total = 0;
   let matchedLength = 0;
   let match: RegExpExecArray | null;
-  while ((match = pattern.exec(trimmed)) !== null) {
+  while ((match = pattern.exec(normalized)) !== null) {
     const value = Number(match[1]);
     const unit = match[2] ?? "ms";
     total += value * DURATION_UNIT_MULTIPLIERS[unit]!;
     matchedLength += match[0].length;
   }
-  if (matchedLength !== trimmed.length) {
+  if (matchedLength !== normalized.length) {
     return null;
   }
   return total;

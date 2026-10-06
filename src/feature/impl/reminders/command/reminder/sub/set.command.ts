@@ -1,9 +1,13 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { booleanOption, stringOption } from "@/command/option";
-import { reminderService } from "@/feature/impl/reminders/reminder.service";
+import {
+  reminderService,
+  MAX_REMINDERS_PER_USER,
+  REMINDER_RELATIVE_WINDOW_MS,
+} from "@/feature/impl/reminders/reminder.service";
 import { openDmChannel } from "@/lib/dm";
 import { baseEmbed, errorEmbed, footerText } from "@/lib/embed";
-import { discordTimestamp, parseDuration, TimeUnit } from "@/lib/time";
+import { parseDuration, TimeUnit, timestampLabel } from "@/lib/time";
 
 const MIN_DURATION_MS = TimeUnit.toMillis(TimeUnit.Minute, 1);
 const MAX_DURATION_MS = TimeUnit.toMillis(TimeUnit.Month, 3);
@@ -82,11 +86,20 @@ export default class SetCommand extends Command {
 
     const remindAt = new Date(Date.now() + durationMs);
     const reminder = await reminderService.create(user.id, channelId, dm, about, remindAt);
+    if (!reminder) {
+      return ctx.reply({
+        embeds: [
+          errorEmbed(commandName).setDescription(
+            `You already have ${MAX_REMINDERS_PER_USER} reminders. Delete one with \`/reminder delete\` or clear them with \`/reminder clear\`.`
+          ),
+        ],
+      });
+    }
 
     const where = dm ? (inDm ? "here" : "in your DMs") : "in this channel";
     const embed = baseEmbed(commandName)
       .setTitle("⏰ Reminder Set")
-      .setDescription(`${discordTimestamp(remindAt)} · ${where}\n\`${about}\``)
+      .setDescription(`${timestampLabel(remindAt, REMINDER_RELATIVE_WINDOW_MS)} · ${where}\n\`${about}\``)
       .setFooter({ text: `${footerText(commandName)} · #${reminder.id}` });
     return ctx.reply({ embeds: [embed] });
   }

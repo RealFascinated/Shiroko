@@ -144,17 +144,36 @@ No cache; every read hits the DB, matching `LevelsService`, `InvitesService`,
 and `birthdayService`.
 
 ```ts
-create(userId, channelId, dm, about, remindAt): Promise<Reminder>  // INSERT ... RETURNING
-remove(id, userId): Promise<boolean>                              // scoped DELETE, true when a row went
-clear(userId): Promise<number>                                    // DELETE ... RETURNING, count
-list(userId): Promise<Reminder[]>                                 // ORDER BY remind_at ASC
-claimDue(now): Promise<Reminder[]>                                // DELETE ... WHERE remind_at <= now() RETURNING
+create(userId, channelId, dm, about, remindAt): Promise<Reminder | null>  // capped INSERT ... SELECT
+remove(id, userId): Promise<boolean>              // scoped DELETE, true when a row went
+clear(userId): Promise<number>                    // DELETE ... RETURNING, count
+list(userId, page, pageSize): Promise<Page<Reminder>>   // COUNT + LIMIT/OFFSET, soonest first
+claimDue(now): Promise<Reminder[]>                // DELETE ... WHERE remind_at <= now() RETURNING
 ```
 
 `remove` and `clear` put the ownership check **in the predicate**
 (`where(and(eq(id, id), eq(userId, userId)))`), so a member can never delete
 another member's reminder and a wrong id is indistinguishable from a foreign
 one: both report "not found". Nothing is read first and compared in memory.
+
+`create` enforces `MAX_REMINDERS_PER_USER` (100) inside the insert, and returns
+`null` when the cap rejects it:
+
+```sql
+INSERT INTO reminders (user_id, channel_id, dm, about, remind_at)
+SELECT $1, $2, $3, $4, $5
+WHERE (SELECT count(*) FROM reminders WHERE user_id = $1) < 100
+RETURNING id;
+```
+
+A count followed by a write would let two concurrent sets both pass the check
+and land the 101st row; folding the condition into the statement makes the cap
+exact. Drizzle's typed builder cannot express `INSERT ... SELECT ... WHERE`
+(it always names every target column, including the serial `id`), so this is one
+of the two raw statements in the module. It returns only the id and the row is
+read back through the typed builder, because `db.execute` hands `timestamptz`
+back as a raw string while a typed select parses it into a `Date`; re-reading
+keeps the row shape defined in one place.
 
 `claimDue` is the whole sweep's read _and_ its write:
 
@@ -228,7 +247,9 @@ const dm = inDm || (args.boolean("dm") ?? false);
 
 Handler:
 
-1. `const ms = parseDuration(ctx.options.getString("time", true))`.
+1. `const ms = parseDuration(ctx.options.getString("time", true))`. Unit case
+   and spacing are the helper's concern: `parseDuration` lowercases and strips
+   whitespace, so `2H`, `2d`, and `1h 30m` all parse.
 2. Reject `null` (unparseable) and anything outside `[1m, 3 months]`, expressed
    with `TimeUnit.Minute` and `TimeUnit.Month` so the bounds are written in the
    same units `parseDuration` accepts. The one-minute floor keeps the
@@ -259,17 +280,21 @@ Handler:
    only gates _receiving_ DMs.
 6. `reminderService.create(user.id, …)`. No extra `GlobalUsersManager.getUser`
    call: `CommandManager` resolves the caller before dispatch, so the
-   `global_users` row the foreign key needs already exists.
+   `global_users` row the foreign key needs already exists. A `null` result
+   means the 100-reminder cap rejected the insert, and the reply says so instead
+   of the card (§2).
 7. Reply with a card: title `⏰ Reminder Set`, a description holding the
-   relative timestamp and the destination followed by the text as inline code,
-   and the reminder id appended to the shared footer (`Arona · /reminder · #7`)
-   instead of repeated in the description. The footer is where the id belongs:
-   it is reference data the other subcommands take as input, so it stays out of
-   the way of the message itself. When `dm` came from the DM context rather than
-   the option, the wording says "here" instead of claiming a choice the user
-   never made. When `dm` was asked for and the DM could not be opened
-   (`channelId` is `null`), the command stops before the insert and replies with
-   an error embed.
+   timestamp and the destination followed by the text as inline code, and the
+   reminder id appended to the shared footer (`Arona · /reminder · #7`) instead
+   of repeated in the description. The footer is where the id belongs: it is
+   reference data the other subcommands take as input, so it stays out of the
+   way of the message itself. The timestamp goes through `timestampLabel`, so a
+   near reminder reads relatively ("in 2 hours") and one more than a day out
+   reads as a full date and time, since "in 3 months" says nothing about when it
+   actually is. When `dm` came from the DM context rather than the option, the
+   wording says "here" instead of claiming a choice the user never made. When
+   `dm` was asked for and the DM could not be opened (`channelId` is `null`),
+   the command stops before the insert and replies with an error embed.
 
 Replies are **not** ephemeral: the feature uses no `MessageFlags.Ephemeral`, so
 an error is a plain `errorEmbed` reply rather than `ephemeralErrorReply`.
@@ -317,7 +342,9 @@ count and the `LIMIT`/`OFFSET` window happen in Postgres, so a member with a
 thousand reminders still reads one page per press. The id is the first thing on
 each line because it is the only value the other subcommands need. Each `about`
 is rendered in full, which is safe because the stored value is capped at 300
-characters (§3) rather than because the render truncates it.
+characters (§3) rather than because the render truncates it. Timestamps use the
+same `timestampLabel` rule as `set`, so a reminder three weeks out shows its
+date rather than "in 21 days".
 
 ## 4. Delivery: the 30-second sweep
 
@@ -381,23 +408,35 @@ export async function runReminderSweep(client: Client, now: Date = new Date()): 
 }
 ```
 
-`deliver` fetches the stored channel and sends:
+`deliver` fetches the stored channel, falls back to the owner's DMs when that
+channel is unusable, and only drops the reminder when neither works:
 
 ```ts
-const channel = await client.channels.fetch(reminder.channelId);
-if (!channel?.isSendable()) {
-  console.warn(`Reminder #${reminder.id} target ${reminder.channelId} is gone; dropping it.`);
+const channel = await client.channels.fetch(reminder.channelId).catch(() => null);
+if (channel?.isSendable()) {
+  await sendReminder(channel, reminder, reminder.dm ? undefined : `<@${reminder.userId}>`);
   return;
 }
-await channel.send({
-  content: reminder.dm ? undefined : `<@${reminder.userId}>`,
-  embeds: [/* baseEmbed("reminder") + about + createdAt + id */],
-});
+
+const user = await client.users.fetch(reminder.userId).catch(() => null);
+const dm = user ? await openDmChannel(user) : null;
+if (!dm) {
+  console.warn(`Reminder #${reminder.id}: ${reminder.channelId} unreachable and no DM; dropping it.`);
+  return;
+}
+const note = reminder.dm ? undefined : "*(That channel is gone, so I sent this here instead.)*";
+await sendReminder(dm, reminder, undefined, note);
 ```
 
-`isSendable()` covers the deleted-channel, revoked-access, and wrong-type cases
-in one check. A channel reminder mentions the owner (that is the point of
-choosing a channel over a DM); a DM reminder does not, because a self-mention in
+`fetch` **rejects** for a channel that no longer exists instead of returning
+`null`, so the leading `.catch(() => null)` is what folds "deleted" into the same
+unreachable path as `!isSendable()` (a channel that exists but cannot be posted
+to). The fallback is the difference between a reminder that silently disappears
+and one that still reaches its owner: a deleted channel moves the delivery to
+DMs, and the owner is told why. A DM reminder whose channel failed is simply
+re-opened, with no note, since it never claimed to be a channel. A channel
+reminder mentions the owner (that is the point of choosing a channel over a DM);
+a DM reminder does not, because a self-mention in
 your own DM is noise.
 
 Never rejects. A rejected promise out of a `setInterval` callback is an
@@ -410,10 +449,9 @@ body is guarded and each row is isolated, mirroring `runBirthdaySweep`.
   `schema` object in `src/db/index.ts`; without that entry
   `drizzle-kit generate` would emit a `DROP TABLE` for it.
 - `FeatureIds.Reminders = "reminders"` is added to `src/feature/feature-ids.ts`.
-  The enum's header comment says "every toggleable feature", but `General` is
-  already in it and non-toggleable, so a second always-on id does not change the
-  enum's contract; `/feature` and the toggle UI filter on `feature.toggleable`,
-  not on membership.
+  The enum carries every feature, toggleable or not, and `General` was already
+  in it as a non-toggleable one; `/feature` and the toggle UI filter on
+  `feature.toggleable`, not on membership.
 - `new RemindersFeature()` is added to `FeatureManager` in `src/feature/index.ts`.
 - No settings module: there is nothing per-guild to configure, which is the
   point of the feature being global.
@@ -431,11 +469,12 @@ src/feature/feature-ids.ts               + Reminders = "reminders"
 src/feature/index.ts                     + new RemindersFeature() in FeatureManager
 
 src/lib/dm.ts                            openDmChannel(): DM resolve helper (§3)
+src/lib/time.ts                          parseDuration tolerates case/space; timestampLabel (§3)
 
 src/feature/impl/reminders/
 ├── index.ts                    RemindersFeature + 30s interval (§4)
-├── reminder.service.ts         DB reads/writes (§2)
-├── reminder-sweep.ts           due-row delivery (§4)
+├── reminder.service.ts         DB reads/writes + the cap and window constants (§2)
+├── reminder-sweep.ts           due-row delivery, DM fallback (§4)
 └── command/reminder/
     ├── reminder.command.ts     parent, subcommands only (§3)
     └── sub/
@@ -445,10 +484,15 @@ src/feature/impl/reminders/
         └── list.command.ts
 ```
 
-The delay parsing and the relative-timestamp rendering both reuse
-`src/lib/time.ts` (`parseDuration`, `discordTimestamp`), and opening a DM
-reuses `src/lib/dm.ts` (`openDmChannel`, which mirrors `fetchGuildMember`'s
+The delay parsing and the deadline rendering both reuse `src/lib/time.ts`
+(`parseDuration`, and `timestampLabel` built on `discordTimestamp`), and opening
+a DM reuses `src/lib/dm.ts` (`openDmChannel`, which mirrors `fetchGuildMember`'s
 resolve-or-`null` shape), so no new time or DM logic is introduced.
+
+`parseDuration` was tightened to be case-insensitive and to tolerate whitespace
+between units (`2H`, `2d`, `1h 30m`), which it already needed for the settings
+panel's duration fields. It is a shared leaf helper, so that is a change for
+every caller, not a reminder-specific shim.
 
 ## 7. Edge cases and decisions
 
@@ -460,16 +504,37 @@ resolve-or-`null` shape), so no new time or DM logic is introduced.
 - **Sweep overlap.** A slow batch can still be sending when the next 30-second
   tick fires. The claim-by-delete makes that safe rather than needing a guard:
   each row is handed to exactly one sweep.
-- **Delivery failure is terminal.** If the DM channel cannot be opened, the
-  channel is deleted, or the send is rejected, the row is already gone and the
-  reminder is dropped with a log line. A retry queue would need a status column,
-  a backoff, and a policy for a permanently un-sendable target; for a
-  self-service reminder the simple rule ("one attempt, then log") is the agreed
-  scope. See open questions.
-- **Deleting a guild channel** leaves the reminder row until it is due, at which
-  point the fetch fails and the row is dropped. The row is not cleaned up at
-  channel-delete time because no channel-delete event is wired and the stale row
-  is harmless.
+- **Delivery failure is terminal.** If neither the stored target nor a DM can be
+  reached, the row is already gone and the reminder is dropped with a log line.
+  A retry queue would need a status column, a backoff, and a policy for a
+  permanently un-sendable target; for a self-service reminder the simple rule
+  ("one attempt, then log") is the agreed scope. See open questions.
+- **Deleting a guild channel** does not lose the reminder. The row survives
+  until it is due, the fetch fails, and the delivery falls back to the owner's
+  DMs with a note saying the channel is gone; the reminder is only dropped when
+  the target is unreachable _and_ a DM cannot be opened. The row is not cleaned
+  up at channel-delete time because no channel-delete event is wired and the
+  stale row is harmless.
+- **Hitting the 100-reminder cap.** `/reminder set` replies with the cap and
+  points at `/reminder delete` and `/reminder clear` instead of the card. The
+  check is inside the insert, so the cap is exact even under concurrent sets:
+  there is no window where two requests both pass a count test and land a 101st
+  row. Delivering a reminder frees its slot, so the cap is on _pending_
+  reminders, not lifetime total.
+- **The member blocked the bot or closed their DMs** after setting a channel
+  reminder. Then both the channel (if it too is gone) and the DM fallback fail,
+  and the reminder is dropped with a log line. Only reachable when the channel
+  target is also unusable, since a plain channel delivery needs no DM at all.
+- **Distant timestamps render absolutely.** Anything more than a day out goes
+  through `timestampLabel` as a full date and time; nearer deadlines stay
+  relative ("in 2 hours"). A relative render of "in 3 months" tells the reader
+  nothing they can act on, which is why the window exists. The threshold is one
+  constant (`REMINDER_RELATIVE_WINDOW_MS`), not a per-command decision.
+- **Sloppy time input is accepted rather than rejected.** `parseDuration`
+  lowercases and strips whitespace, so `2H`, `2d`, and `1h 30m` all work; a
+  user who types `1H` gets a reminder instead of "I could not read that time".
+  Units are still single-letter (`h`, not `hr`), and a bare number is still
+  milliseconds.
 - **Target channel is a DM the user closed.** Discord DM channels are stable
   ids; a closed DM is re-openable, so a DM reminder still lands.
 - **`dm:false` (or omitted) in a DM.** Ignored: the resolved `dm` is forced
@@ -542,17 +607,26 @@ resolve-or-`null` shape), so no new time or DM logic is introduced.
 - Confirm the generated DDL declares `id serial PRIMARY KEY`,
   `remind_at timestamp with time zone NOT NULL`, and
   `CREATE INDEX "reminders_remind_at_idx" ON "reminders" ("remind_at")`.
+- Service-level: `create` past the cap returns `null` and leaves the row count
+  at exactly 100, and a concurrency probe (many parallel creates) never lands a
+  101st row. Confirm `create` hands back `Date` instances for `remindAt` and
+  `createdAt`, not the raw strings `db.execute` returns.
+- `parseDuration`: `1m`/`1M`, `1H`, `2D`, and `1h 30m` all parse to the same
+  values as their lowercase/compact forms; `1.5h` and `1y` still return `null`.
 - Manual: `/reminder set about:"test" time:2m` in a channel, confirm the
   confirmation with the id, and that the pinged delivery arrives within 30
   seconds of coming due; also confirm `time:30s` and `time:20w` are both
-  rejected; repeat with `dm:true` and confirm it arrives as a DM with
-  no mention; run it in a DM with `dm` omitted **and** with `dm:false` and
-  confirm both store `dm = true` and deliver to that DM; set `about` at 301
-  characters and confirm it is rejected, then at 300 and confirm 10 such
-  reminders on one page still render (3618 of 4096 characters); with DMs from
-  the bot disabled, confirm `dm:true` replies "I could not open a DM" and stores
-  nothing; `/reminder list` shows pending rows, their ids, and "DM" vs
-  `<#channel>`; `/reminder delete id:<n>` removes one and a second attempt
-  reports "no reminder #n"; `/reminder clear` empties the rest; stop the process
-  across a due time and confirm the reminder is delivered on the first sweep
-  after boot.
+  rejected; set a reminder months out and confirm the card and `/reminder list`
+  both show an absolute date rather than "in N months"; delete the target
+  channel and confirm the reminder still arrives, as a DM, with the "channel is
+  gone" note; repeat `dm:true` and confirm it arrives as a DM with no mention;
+  run it in a DM with `dm` omitted **and** with `dm:false` and confirm both
+  store `dm = true` and deliver to that DM; set `about` at 301 characters and
+  confirm it is rejected, then at 300 and confirm 10 such reminders on one page
+  still render (3618 of 4096 characters); with DMs from the bot disabled, confirm
+  `dm:true` replies "I could not open a DM" and stores nothing; hit the
+  100-reminder cap and confirm the reply names the cap; `/reminder list` shows
+  pending rows, their ids, and "DM" vs `<#channel>`; `/reminder delete id:<n>`
+  removes one and a second attempt reports "no reminder #n"; `/reminder clear`
+  empties the rest; stop the process across a due time and confirm the reminder
+  is delivered on the first sweep after boot.
