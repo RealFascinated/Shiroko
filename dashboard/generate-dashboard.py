@@ -495,9 +495,8 @@ CATEGORIES = [
         ],
     },
     {
-        # Persistent command tallies from Postgres. The stacked total is the
-        # all-time per-command share of traffic; the second panel is the
-        # current per-second call rate.
+        # Persistent command tallies from Postgres: the all-time counter per
+        # command, and the current per-second call rate.
         "key": "commands",
         "title": "⚡ Commands",
         "panels": [
@@ -509,7 +508,6 @@ CATEGORIES = [
                 "min": 0,
                 "width": 12,
                 "legend": "{{command}}",
-                "fillOpacity": 100,
             },
             {
                 "key": "command-calls-rate",
@@ -543,7 +541,7 @@ def panel_query(expr: str, legend: str) -> dict:
     }
 
 
-def timeseries_viz(unit: str, minv: float | None, maxv: float | None, fill_opacity: float = 10) -> dict:
+def timeseries_viz(unit: str, minv: float | None, maxv: float | None) -> dict:
     defaults: dict = {
         "color": {"mode": "palette-classic"},
         "custom": {
@@ -555,7 +553,7 @@ def timeseries_viz(unit: str, minv: float | None, maxv: float | None, fill_opaci
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": fill_opacity,
+            "fillOpacity": 10,
             "gradientMode": "none",
             "hideFrom": {"legend": False, "tooltip": False, "viz": False},
             "insertNulls": False,
@@ -598,7 +596,6 @@ def panel(
     minv: float | None,
     maxv: float | None,
     legend: str,
-    fill_opacity: float = 10,
 ) -> dict:
     return {
         "kind": "Panel",
@@ -615,7 +612,7 @@ def panel(
             "id": panel_id,
             "links": [],
             "title": title,
-            "vizConfig": timeseries_viz(unit, minv, maxv, fill_opacity),
+            "vizConfig": timeseries_viz(unit, minv, maxv),
         },
     }
 
@@ -645,14 +642,7 @@ def build() -> dict:
                 panel_id += 1
                 panel_key = f"panel-{panel_id}"
                 elements[panel_key] = panel(
-                    panel_id,
-                    p["title"],
-                    p["expr"],
-                    p["unit"],
-                    p.get("min"),
-                    p.get("max"),
-                    p["legend"],
-                    p.get("fillOpacity", 10),
+                    panel_id, p["title"], p["expr"], p["unit"], p.get("min"), p.get("max"), p["legend"]
                 )
                 row_items.append(
                     {
