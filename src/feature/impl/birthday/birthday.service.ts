@@ -30,7 +30,7 @@ export interface UpcomingBirthday {
 }
 
 /** Default rows per page for {@link BirthdayService.upcoming}. */
-export const UPCOMING_PAGE_SIZE = 10;
+export const UPCOMING_PAGE_SIZE = 20;
 
 /**
  * The next occurrence of a stored birthday on or after `today`, as a
