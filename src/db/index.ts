@@ -12,6 +12,7 @@ import { interactionsSchema } from "./schemas/interactions";
 import { inviteJoinsSchema } from "./schemas/invite-joins";
 import { mediaSchema } from "./schemas/media";
 import { messageEventsSchema } from "./schemas/message-events";
+import { remindersSchema } from "./schemas/reminders";
 import { userLevelsSchema } from "./schemas/user-levels";
 import { voiceSessionsSchema } from "./schemas/voice-sessions";
 
@@ -32,6 +33,7 @@ export const schema = {
   interactions: interactionsSchema,
   media: mediaSchema,
   messageEvents: messageEventsSchema,
+  reminders: remindersSchema,
   voiceSessions: voiceSessionsSchema,
 };
 

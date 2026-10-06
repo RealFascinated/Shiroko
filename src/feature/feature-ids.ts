@@ -11,6 +11,7 @@ export enum FeatureIds {
   Interaction = "interaction",
   Invites = "invites",
   Levels = "levels",
+  Reminders = "reminders",
   Stats = "stats",
   Welcomer = "welcomer",
   Logging = "logs",
