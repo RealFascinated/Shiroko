@@ -68,7 +68,7 @@ function formatRoleIds(roleIds: string[]): string {
   return roleIds.length > 0 ? roleIds.map(id => `<@&${id}>`).join(", ") : "None";
 }
 
-/** Render a stored asset URL as a markdown link, or "None" when absent. */
+/** Render a stored asset URL as a markdown link, or "Unknown" when it was not stored. */
 function assetLink(url: string | null, type: "before" | "after"): string {
   return url ? `[[${type}]](${url})` : "Unknown";
 }
@@ -232,29 +232,35 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(UserAvatarUpdatedEvent, "avatar_update", async (event, channel) => {
+      const hadAvatar = event.oldUser.avatar !== null;
+      const removed = hadAvatar && event.newUser.avatar === null;
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            `${event.newUser} changed their avatar.`,
+            removed ? `${event.newUser} removed their avatar.` : `${event.newUser} changed their avatar.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
-            `**➜** Avatar: ${assetLink(event.beforeAssetUrl, "before")} → ${assetLink(event.afterAssetUrl, "after")}`,
+            `**➜** Avatar: ${hadAvatar ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
+              removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
+            }`,
           ]).setThumbnail(event.afterAssetUrl),
         ],
       });
     });
     this.handleEvent(UserBannerUpdatedEvent, "banner_update", async (event, channel) => {
+      const hadBanner = event.oldUser.banner !== null;
+      const removed = hadBanner && event.newUser.banner === null;
       await channel.send({
         embeds: [
           this.baseLogEmbed([
-            event.afterAssetUrl
-              ? `${event.newUser} changed their banner.`
-              : `${event.newUser} removed their banner.`,
+            removed ? `${event.newUser} removed their banner.` : `${event.newUser} changed their banner.`,
             "",
             `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
-            `**➜** Banner: ${assetLink(event.beforeAssetUrl, "before")} → ${assetLink(event.afterAssetUrl, "after")}`,
+            `**➜** Banner: ${hadBanner ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
+              removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
+            }`,
           ]).setImage(event.afterAssetUrl),
         ],
       });
