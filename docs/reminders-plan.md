@@ -236,16 +236,18 @@ Handler:
    sweep. The ceiling is a guard against a typo like `100w` quietly booking a
    reminder for two years out; note that `TimeUnit.Month` is 30 days, so
    "3 months" is 90 days.
-3. Reject an `about` longer than 300 characters. The cap is not about the
-   option: Discord's limit for a string option is far larger, and the option
-   helpers in `src/command/option.ts` carry no `maxLength`. It is sized so a
-   **full page of `/reminder list` fits one embed**. Discord caps an embed
-   description at 4096 characters; a row's markup (`**#id** · <t:…:R> ·
-<#channel>` and the newline) is at most 61 characters, so 10 rows of 300 come
-   to 3618 and 10 rows of 350 would already be 4118. The length check is a plain
-   comparison in the handler rather than an extension to the shared option shape
-   for one command, and because the cap lives on the stored value, `list` renders
-   each `about` in full rather than truncating it.
+3. Trim `about`, then reject it when empty and when longer than 300
+   characters. The trim makes a whitespace-only reminder impossible; Discord
+   only requires one character, so `"   "` would otherwise pass and store a
+   blank reminder. The cap is not about the option: Discord's limit for a string
+   option is far larger, and the option helpers in `src/command/option.ts` carry
+   no `maxLength`. It is sized so a **full page of `/reminder list` fits one
+   embed**. Discord caps an embed description at 4096 characters; a row's markup
+   (`**#id** · <t:…:R> · <#channel>` and the newline) is at most 61 characters,
+   so 10 rows of 300 come to 3618 and 10 rows of 350 would already be 4118. The
+   check is a plain comparison in the handler rather than an extension to the
+   shared option shape for one command, and because the cap lives on the stored
+   value, `list` renders each `about` in full rather than truncating it.
 4. Resolve `dm` as above: `true` whenever the invocation is in a DM, otherwise
    whatever the option says, defaulting to `false` (this channel).
 5. Resolve the target: in a DM it is `ctx.channelId` (the DM itself); otherwise
@@ -488,6 +490,10 @@ resolve-or-`null` shape), so no new time or DM logic is introduced.
   with the page size. The check exists in the handler because the shared option
   helpers do not expose `maxLength`; raising the cap means re-checking the page
   arithmetic, since 350 already overflows a page.
+- **Whitespace-only `about`.** Trimmed before the empty and length checks, so a
+  reminder that would render as a blank card cannot be stored. Discord's own
+  minimum-length rule only requires one character, which a run of spaces
+  satisfies.
 - **The user blocks DMs from the bot.** `openDmChannel` returns `null`, so
   `/reminder set … dm:true` replies "I could not open a DM" and stores nothing.
   Only the DM path can fail this way; a channel reminder never needs a DM.

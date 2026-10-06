@@ -34,7 +34,7 @@ export default class SetCommand extends Command {
   }
 
   protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
-    const about = ctx.options.getString("about", true);
+    const about = ctx.options.getString("about", true).trim();
     const durationMs = parseDuration(ctx.options.getString("time", true));
 
     if (durationMs === null) {
@@ -49,6 +49,11 @@ export default class SetCommand extends Command {
         embeds: [
           errorEmbed(commandName).setDescription("Pick a time between 1 minute and 3 months from now."),
         ],
+      });
+    }
+    if (about.length === 0) {
+      return ctx.reply({
+        embeds: [errorEmbed(commandName).setDescription("Tell me what to remind you about.")],
       });
     }
     if (about.length > MAX_ABOUT_LENGTH) {
