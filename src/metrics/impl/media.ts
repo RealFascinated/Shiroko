@@ -37,14 +37,16 @@ async function mediaStateTotals(): Promise<MediaStateTotals> {
  * slice it exports.
  */
 abstract class MediaStateMetric extends Metric<Record<string, number>> {
-  public override readonly collectIntervalMs = 30_000;
+  public override readonly collectIntervalMs: number = 30_000;
   private current: Record<string, number> = {};
 
   protected constructor(registration: MetricRegistration) {
     super(registration);
   }
 
-  /** The slice of {@link mediaStateTotals} this metric reports. */
+  /**
+   * The slice of {@link mediaStateTotals} this metric reports.
+   */
   protected abstract extract(totals: MediaStateTotals): Record<string, number>;
 
   public override async collect(): Promise<void> {

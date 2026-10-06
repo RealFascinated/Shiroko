@@ -5,7 +5,7 @@ import { commandCallsSchema } from "./schemas/command-calls";
 import { globalUsersSchema } from "./schemas/global-users";
 import { guildBirthdaysSchema } from "./schemas/guild-birthdays";
 import { guildInvitesSchema } from "./schemas/guild-invites";
-import { permissionRolesSchema } from "./schemas/guild-permissions";
+import { permissionRolesSchema } from "./schemas/permission-roles";
 import { guildSettingsSchema } from "./schemas/guild-settings";
 import { guildUsersSchema } from "./schemas/guild-users";
 import { interactionsSchema } from "./schemas/interactions";

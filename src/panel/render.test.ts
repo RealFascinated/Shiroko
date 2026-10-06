@@ -11,8 +11,8 @@ interface DemoConfig {
 }
 
 class DemoPanel extends Panel<DemoConfig> {
-  public readonly segment = "demo";
-  public readonly title = "Demo";
+  public readonly segment: string = "demo";
+  public readonly title: string = "Demo";
 
   public async getConfig(): Promise<DemoConfig> {
     return { first: { name: "Alpha", count: "3", on: true, channel: "9" }, second: { name: "Beta" } };
@@ -62,10 +62,12 @@ const guild = { id: "1", channels: { cache: { has: () => true } } } as unknown a
 const user = { id: "7", firstSeen: new Date(0), discordUser: {} } as unknown as GlobalUser;
 const context: PanelContext = { guild, user };
 
-/** A panel whose only view is a single-mode message, for the mode test. */
+/**
+ * A panel whose only view is a single-mode message, for the mode test.
+ */
 class ModePanel extends Panel<{ mode: "embed" | "simple" }> {
-  public readonly segment = "mode";
-  public readonly title = "Mode";
+  public readonly segment: string = "mode";
+  public readonly title: string = "Mode";
   public async getConfig(): Promise<{ mode: "embed" | "simple" }> {
     return { mode: this.simple ? "simple" : "embed" };
   }
@@ -88,10 +90,12 @@ class ModePanel extends Panel<{ mode: "embed" | "simple" }> {
   }
 }
 
-/** A panel whose single view previews with a real embed. */
+/**
+ * A panel whose single view previews with a real embed.
+ */
 class EmbedPanel extends Panel<{ title: string }> {
-  public readonly segment = "embed-demo";
-  public readonly title = "Embed";
+  public readonly segment: string = "embed-demo";
+  public readonly title: string = "Embed";
   public async getConfig(): Promise<{ title: string }> {
     return { title: "Preview title" };
   }

@@ -15,8 +15,8 @@ export class DiscordEventsMetric extends Metric<Record<string, number>> {
   // Nothing to self-collect: the map is whatever events have made it so
   // far when the exporter snapshots it. The interval only exists to
   // satisfy the manager's uniform collect loop.
-  public override readonly collectIntervalMs = 60_000;
-  private readonly counts = new Map<DiscordEventName, number>();
+  public override readonly collectIntervalMs: number = 60_000;
+  private readonly counts: Map<DiscordEventName, number> = new Map<DiscordEventName, number>();
 
   public constructor() {
     super({

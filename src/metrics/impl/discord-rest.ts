@@ -14,8 +14,8 @@ abstract class RouteMapMetric extends Metric<Record<string, number>> {
   // Nothing to self-collect: the map is whatever REST events have made it
   // so far when the exporter snapshots it. The interval only exists to
   // satisfy the manager's uniform collect loop.
-  public override readonly collectIntervalMs = 60_000;
-  private readonly values = new Map<string, number>();
+  public override readonly collectIntervalMs: number = 60_000;
+  private readonly values: Map<string, number> = new Map<string, number>();
 
   protected constructor(registration: MetricRegistration) {
     super(registration);
@@ -34,14 +34,18 @@ abstract class RouteMapMetric extends Metric<Record<string, number>> {
   }
 }
 
-/** A {@link RouteMapMetric} that accumulates: each `increment` bumps one series. */
+/**
+ * A {@link RouteMapMetric} that accumulates: each `increment` bumps one series.
+ */
 abstract class RouteCounterMetric extends RouteMapMetric {
   public increment(route: string): void {
     this.set(route, this.current(route) + 1);
   }
 }
 
-/** REST requests since boot, one series per route: `rate()` per route is the call trend. */
+/**
+ * REST requests since boot, one series per route: `rate()` per route is the call trend.
+ */
 export class RestRequestsMetric extends RouteCounterMetric {
   public constructor() {
     super({
@@ -91,7 +95,7 @@ export class RestRateLimitsMetric extends RouteCounterMetric {
  * means the bot stalled every request, not just one route's.
  */
 export class RestGlobalRateLimitsMetric extends CounterMetric {
-  public override readonly collectIntervalMs = 60_000;
+  public override readonly collectIntervalMs: number = 60_000;
 
   public constructor() {
     super({
@@ -108,7 +112,7 @@ export class RestGlobalRateLimitsMetric extends CounterMetric {
  * sustained climb means buckets are being created faster than swept.
  */
 export class RestBucketsMetric extends GaugeMetric {
-  public override readonly collectIntervalMs = 30_000;
+  public override readonly collectIntervalMs: number = 30_000;
   private readonly client: Client;
 
   public constructor(client: Client) {
@@ -125,9 +129,11 @@ export class RestBucketsMetric extends GaugeMetric {
   }
 }
 
-/** Route hashes cached from past responses; the lookup table behind {@link RestBucketsMetric}. */
+/**
+ * Route hashes cached from past responses; the lookup table behind {@link RestBucketsMetric}.
+ */
 export class RestHashesMetric extends GaugeMetric {
-  public override readonly collectIntervalMs = 30_000;
+  public override readonly collectIntervalMs: number = 30_000;
   private readonly client: Client;
 
   public constructor(client: Client) {
@@ -145,7 +151,7 @@ export class RestHashesMetric extends GaugeMetric {
  * is exposed directly by the REST manager, so it needs no header parsing.
  */
 export class RestGlobalRemainingMetric extends GaugeMetric {
-  public override readonly collectIntervalMs = 5_000;
+  public override readonly collectIntervalMs: number = 5_000;
   private readonly client: Client;
 
   public constructor(client: Client) {
@@ -186,7 +192,9 @@ export class RestBucketRemainingMetric extends RouteMapMetric {
   }
 }
 
-/** Bucket capacity reported by the last response for a route (`x-ratelimit-limit`). */
+/**
+ * Bucket capacity reported by the last response for a route (`x-ratelimit-limit`).
+ */
 export class RestBucketLimitMetric extends RouteMapMetric {
   public constructor() {
     super({
@@ -208,7 +216,7 @@ export class RestBucketLimitMetric extends RouteMapMetric {
  * histogram, so this is the distribution across all routes.
  */
 export class RestRequestDurationMetric extends HistogramMetric {
-  public override readonly collectIntervalMs = 60_000;
+  public override readonly collectIntervalMs: number = 60_000;
 
   public constructor() {
     super(
@@ -231,7 +239,7 @@ export class RestRequestDurationMetric extends HistogramMetric {
  * rises before request volume itself becomes a problem.
  */
 export class RestRateLimitWaitMetric extends HistogramMetric {
-  public override readonly collectIntervalMs = 60_000;
+  public override readonly collectIntervalMs: number = 60_000;
 
   public constructor() {
     super(
@@ -253,7 +261,7 @@ export class RestRateLimitWaitMetric extends HistogramMetric {
  * payload bug rather than volume.
  */
 export class RestInvalidRequestsMetric extends GaugeMetric {
-  public override readonly collectIntervalMs = 60_000;
+  public override readonly collectIntervalMs: number = 60_000;
 
   public constructor() {
     super({

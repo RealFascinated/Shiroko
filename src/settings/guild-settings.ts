@@ -17,7 +17,7 @@ import { guildSettingsSchema, type JsonValue } from "../db/schemas/guild-setting
  * leave purges it through the cache registry.
  */
 export default class GuildSettings {
-  private static readonly CACHE = Caches.register(
+  private static readonly CACHE: Cache<Map<string, JsonValue>> = Caches.register(
     new Cache<Map<string, JsonValue>>({ name: "guild-settings", mode: "authoritative", max: 20_000 })
   );
 

@@ -46,7 +46,9 @@ export class RestListeners {
     this.attachRestEvents(client);
   }
 
-  /** Every metric this listener feeds, so registration stays a single pass. */
+  /**
+   * Every metric this listener feeds, so registration stays a single pass.
+   */
   public get metrics(): Metric<any>[] {
     return [
       this.requests,

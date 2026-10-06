@@ -17,8 +17,8 @@ import { type Metric } from "./metric";
  * the metric's own `collectIntervalMs`.
  */
 export class MetricManager extends EventListener {
-  private readonly metrics = new Map<string, Metric<any>>();
-  private readonly timers = new Set<Timer>();
+  private readonly metrics: Map<string, Metric<any>> = new Map<string, Metric<any>>();
+  private readonly timers: Set<Timer> = new Set<Timer>();
 
   constructor() {
     super();
@@ -37,12 +37,13 @@ export class MetricManager extends EventListener {
     return metric;
   }
 
-  /** All registered metrics, in registration order. */
+  /**
+   * All registered metrics, in registration order.
+   */
   public all(): Metric<any>[] {
     return Array.from(this.metrics.values());
   }
 
-  /** A snapshot of every metric's value, suitable for serialization. */
   public snapshot(): MetricSnapshot[] {
     const out: MetricSnapshot[] = [];
     for (const metric of this.metrics.values()) {
@@ -62,16 +63,15 @@ export class MetricManager extends EventListener {
       return;
     }
     for (const metric of this.all()) {
-      const collect = (): void => {
-        const result = metric.collect();
-        if (result instanceof Promise) {
-          void result.finally(() => metric.markCollected());
-        } else {
+      const collect = async (): Promise<void> => {
+        try {
+          await metric.collect();
+        } finally {
           metric.markCollected();
         }
       };
-      collect();
-      this.timers.add(setInterval(collect, metric.collectIntervalMs));
+      void collect();
+      this.timers.add(setInterval(() => void collect(), metric.collectIntervalMs));
     }
   }
 }

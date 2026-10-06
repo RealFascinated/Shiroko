@@ -26,7 +26,7 @@ export default abstract class ContextMenuCommand {
   public readonly id: string;
   public readonly displayName: string;
 
-  private readonly subCommands = new Map<string, ContextMenuCommand>();
+  private readonly subCommands: Map<string, ContextMenuCommand> = new Map<string, ContextMenuCommand>();
 
   constructor(id: string, displayName: string) {
     this.id = id;

@@ -14,7 +14,7 @@ import type Command from "./command";
 import ParsedArguments from "./parsed-arguments";
 
 export default class CommandManager {
-  private static COMMANDS = new Map<string, Command>();
+  private static COMMANDS: Map<string, Command> = new Map<string, Command>();
 
   constructor() {
     CommandManager.registerCommand(new StatsCommand());
@@ -39,14 +39,18 @@ export default class CommandManager {
     }
   }
 
-  /** Global commands: visible in every guild the bot is installed in. */
+  /**
+   * Global commands: visible in every guild the bot is installed in.
+   */
   public buildGlobal(): SlashCommandBuilder[] {
     return CommandManager.all()
       .filter(command => !command.private)
       .map(command => command.build());
   }
 
-  /** Private commands: guild commands scoped to `PRIVATE_COMMANDS_GUILD_ID` only. */
+  /**
+   * Private commands: guild commands scoped to `PRIVATE_COMMANDS_GUILD_ID` only.
+   */
   public buildPrivate(): SlashCommandBuilder[] {
     return CommandManager.all()
       .filter(command => command.private)

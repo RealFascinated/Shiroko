@@ -106,7 +106,9 @@ export class VictoriaMetricsExporter {
     this.intervalMs = options.intervalMs ?? 60_000;
   }
 
-  /** Begin pushing on an interval. Safe to call once. */
+  /**
+   * Begin pushing on an interval. Safe to call once.
+   */
   public start(): void {
     if (this.timer) {
       return;

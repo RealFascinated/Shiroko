@@ -8,7 +8,7 @@ import { GaugeMetric } from "../gauge";
  * COUNT over the whole table), so it collects on a slower interval.
  */
 export class SeenUsersMetric extends GaugeMetric {
-  public override readonly collectIntervalMs = 60_000;
+  public override readonly collectIntervalMs: number = 60_000;
 
   public constructor() {
     super({ id: "seen_users", kind: "gauge", help: "Number of distinct users ever seen" });

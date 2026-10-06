@@ -16,7 +16,7 @@ type FeatureOptions = {
  * in `@EventHandler` listeners (see `src/event/`), not here.
  */
 export default class Feature extends EventListener {
-  private static REGISTRY = new Map<FeatureIds, Feature>();
+  private static REGISTRY: Map<FeatureIds, Feature> = new Map<FeatureIds, Feature>();
 
   public readonly id: FeatureIds;
   public readonly options: Required<FeatureOptions>;
@@ -53,8 +53,9 @@ export default class Feature extends EventListener {
     this.commands.push(command);
     // Dynamic import breaks the static cycle: `command/index.ts` imports
     // feature commands, which import `GuildFeatures` → `feature.ts`.
-    void import("../command/index").then(({ default: CommandManager }) => {
+    void (async (): Promise<void> => {
+      const { default: CommandManager } = await import("../command/index");
       CommandManager.registerCommand(command);
-    });
+    })();
   }
 }

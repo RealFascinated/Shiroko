@@ -13,7 +13,7 @@ import BannerCommand from "./impl/banner.command";
  * and exposes them to the interaction listener for dispatch.
  */
 export default class ContextMenuCommandManager {
-  private static commands = new Map<string, ContextMenuCommand>();
+  private static commands: Map<string, ContextMenuCommand> = new Map<string, ContextMenuCommand>();
 
   constructor() {
     this.registerCommand(new AvatarCommand());

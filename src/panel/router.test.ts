@@ -14,12 +14,12 @@ interface DemoConfig {
  * on. The config is a plain object, so a write can be asserted directly.
  */
 class RecordingPanel extends Panel<DemoConfig> {
-  public readonly segment = "rec";
-  public readonly title = "Rec";
+  public readonly segment: string = "rec";
+  public readonly title: string = "Rec";
   public config: DemoConfig = { nested: { on: false, mode: "embed", text: "original" } };
   /** Every `[key, value]` the engine asked to persist. */
   public readonly writes: Array<[string, unknown]> = [];
-  private rejectText = false;
+  private rejectText: boolean = false;
 
   public rejectNextText(): void {
     this.rejectText = true;
@@ -77,11 +77,13 @@ class RecordingPanel extends Panel<DemoConfig> {
 
 const guild = { id: "1", channels: { cache: { has: () => false } } } as unknown as Guild;
 
-/** A panel whose one dialog transforms its text into a stored number. */
+/**
+ * A panel whose one dialog transforms its text into a stored number.
+ */
 class TransformPanel extends Panel<{ colour: number }> {
-  public readonly segment = "tf";
-  public readonly title = "TF";
-  public stored = 0;
+  public readonly segment: string = "tf";
+  public readonly title: string = "TF";
+  public stored: number = 0;
 
   public async getConfig(): Promise<{ colour: number }> {
     return { colour: this.stored };
@@ -121,8 +123,8 @@ class TransformPanel extends Panel<{ colour: number }> {
  * way the settings hub's numbers and durations do.
  */
 class ResetPanel extends Panel<{ count: number | null }> {
-  public readonly segment = "rst";
-  public readonly title = "RST";
+  public readonly segment: string = "rst";
+  public readonly title: string = "RST";
   public stored: number | null = 10;
 
   public async getConfig(): Promise<{ count: number | null }> {

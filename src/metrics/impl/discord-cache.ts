@@ -45,7 +45,7 @@ const DISCORD_CACHES: readonly DiscordCache[] = [
  * Distinct from `cache_entries` (the in-process `Cache<V>` registry).
  */
 export class DiscordCacheMetric extends Metric<Record<string, number>> {
-  public override readonly collectIntervalMs = 30_000;
+  public override readonly collectIntervalMs: number = 30_000;
   private readonly client: Client;
 
   public constructor(client: Client) {

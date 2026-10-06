@@ -8,9 +8,9 @@ import { GaugeMetric } from "../gauge";
  * fully busy.
  */
 export class ProcessCpuUsageMetric extends GaugeMetric {
-  public override readonly collectIntervalMs = 5_000;
-  private lastUsage = process.cpuUsage();
-  private lastWall = Date.now();
+  public override readonly collectIntervalMs: number = 5_000;
+  private lastUsage: NodeJS.CpuUsage = process.cpuUsage();
+  private lastWall: number = Date.now();
 
   public constructor() {
     super({

@@ -7,7 +7,7 @@ import { GaugeMetric } from "../gauge";
  * otherwise.
  */
 export class GatewayLatencyMetric extends GaugeMetric {
-  public override readonly collectIntervalMs = 5_000;
+  public override readonly collectIntervalMs: number = 5_000;
   private readonly client: Client;
 
   public constructor(client: Client) {

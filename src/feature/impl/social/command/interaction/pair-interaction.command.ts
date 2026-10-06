@@ -13,6 +13,7 @@ import {
   InteractionResponse,
   MessageFlags,
   type ButtonInteraction,
+  type EmbedBuilder,
   type MessageActionRowComponentBuilder,
   type User,
 } from "discord.js";
@@ -53,7 +54,13 @@ export default abstract class PairInteractionCommand extends Command {
    * the invoking command for the footer and `count` seeds the ordinal tally.
    * Each user is mentioned exactly once.
    */
-  private buildEmbed(commandName: string, actor: User, recipient: User, count: number, gif: AnimeGif) {
+  private buildEmbed(
+    commandName: string,
+    actor: User,
+    recipient: User,
+    count: number,
+    gif: AnimeGif
+  ): EmbedBuilder {
     const embed = baseEmbed(commandName)
       .setDescription(`${actor} ${this.verb} ${recipient} for the **${ordinal(count)}** time!`)
       .setImage(gif.url);

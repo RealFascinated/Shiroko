@@ -28,7 +28,9 @@ export default class CommandCallService {
     }
   }
 
-  /** Total invocations per top-level command, for the `command_calls_total` series. */
+  /**
+   * Total invocations per top-level command, for the `command_calls_total` series.
+   */
   public static async totals(): Promise<Record<string, number>> {
     const rows = await db
       .select({ command: commandCallsSchema.command, count: sql<number>`sum(${commandCallsSchema.count})` })
@@ -37,7 +39,9 @@ export default class CommandCallService {
     return Object.fromEntries(rows.map(row => [row.command, Number(row.count)]));
   }
 
-  /** Total invocations across every command, for `/botstats`. */
+  /**
+   * Total invocations across every command, for `/botstats`.
+   */
   public static async total(): Promise<number> {
     const [row] = await db
       .select({ count: sql<number>`sum(${commandCallsSchema.count})` })

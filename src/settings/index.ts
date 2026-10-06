@@ -11,7 +11,7 @@ import type SettingsModule from "./settings-module";
  * interactions itself.
  */
 export default class SettingsManager {
-  private static MODULES = new Map<string, SettingsModule<any>>();
+  private static MODULES: Map<string, SettingsModule<any>> = new Map<string, SettingsModule<any>>();
 
   /**
    * Register a settings module. `/settings` looks modules up by id.

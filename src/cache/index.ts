@@ -7,7 +7,7 @@ import { guildScope, userScope } from "./key";
  * permanent; a duplicate name is a programming error.
  */
 export class Caches {
-  private static readonly REGISTRY = new Map<string, Cache<unknown>>();
+  private static readonly REGISTRY: Map<string, Cache<unknown>> = new Map<string, Cache<unknown>>();
 
   public static register<V>(cache: Cache<V>): Cache<V> {
     if (Caches.REGISTRY.has(cache.name)) {

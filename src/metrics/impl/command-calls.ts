@@ -8,7 +8,7 @@ import { Metric } from "../metric";
  * restarts; `rate()` over the series is the per-command usage trend.
  */
 export class CommandCallsMetric extends Metric<Record<string, number>> {
-  public override readonly collectIntervalMs = 30_000;
+  public override readonly collectIntervalMs: number = 30_000;
   private current: Record<string, number> = {};
 
   public constructor() {

@@ -48,9 +48,9 @@ export class Cache<V> {
 
   private readonly store: LRUCache<string, { value: V; scopes: readonly ScopeTag[] }>;
   /** Bumped per scope on every mutation; in-flight loads compare against it. */
-  private readonly generations = new Map<ScopeTag, number>();
-  private hits = 0;
-  private misses = 0;
+  private readonly generations: Map<ScopeTag, number> = new Map<ScopeTag, number>();
+  private hits: number = 0;
+  private misses: number = 0;
 
   public constructor(options: CacheOptions) {
     if (options.mode === "approximate" && options.ttlMs === undefined) {
@@ -85,12 +85,16 @@ export class Cache<V> {
     return value;
   }
 
-  /** Read without counting a hit or affecting the entry's age. */
+  /**
+   * Read without counting a hit or affecting the entry's age.
+   */
   public peek(key: CacheKey): V | undefined {
     return this.store.get(key.key, { updateAgeOnGet: false })?.value;
   }
 
-  /** Store a value directly, e.g. after a successful write. */
+  /**
+   * Store a value directly, e.g. after a successful write.
+   */
   public set(key: CacheKey, value: V): void {
     this.bumpScopes(key.scopes);
     this.store.set(key.key, { value, scopes: key.scopes });

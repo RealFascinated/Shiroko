@@ -17,7 +17,7 @@ import { handlePanelInteraction } from "./router";
  * action is per-user.
  */
 export default class PanelManager extends EventListener {
-  private static PANELS = new Map<string, Panel<any>>();
+  private static PANELS: Map<string, Panel<any>> = new Map<string, Panel<any>>();
 
   constructor() {
     super();

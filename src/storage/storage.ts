@@ -7,7 +7,7 @@ export enum StorageBucket {
 }
 
 export default class StorageService {
-  private static readonly clients = new Map<StorageBucket, S3Client>(
+  private static readonly clients: Map<StorageBucket, S3Client> = new Map<StorageBucket, S3Client>(
     Object.values(StorageBucket).map(
       bucket =>
         [

@@ -36,7 +36,7 @@ export abstract class Metric<T = unknown> {
   public readonly label: string;
 
   /** Whether {@link collect} has run at least once. */
-  private collected = false;
+  private collected: boolean = false;
 
   protected constructor(registration: MetricRegistration) {
     this.id = registration.id;
@@ -46,17 +46,20 @@ export abstract class Metric<T = unknown> {
     this.label = registration.label ?? "event";
   }
 
-  /** Whether {@link collect} has run at least once. */
   public hasCollected(): boolean {
     return this.collected;
   }
 
-  /** Mark this metric as collected. Called by the manager's collect loop. */
+  /**
+   * Mark this metric as collected. Called by the manager's collect loop.
+   */
   public markCollected(): void {
     this.collected = true;
   }
 
-  /** Current value, in the shape the serializer understands. */
+  /**
+   * Current value, in the shape the serializer understands.
+   */
   public abstract value(): T;
 
   /**

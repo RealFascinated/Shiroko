@@ -14,7 +14,7 @@ import GlobalUser from "./global-user";
  * cache is authoritative, so user data deletion purges by user scope.
  */
 export default class GlobalUsersManager {
-  private static readonly CACHE = Caches.register(
+  private static readonly CACHE: Cache<GlobalUserSchema> = Caches.register(
     new Cache<GlobalUserSchema>({ name: "global-users", mode: "authoritative", max: 100_000 })
   );
 

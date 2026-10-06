@@ -20,8 +20,8 @@ import type { EmbedBuilder, Guild } from "discord.js";
  * to every other feature's.
  */
 export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
-  public readonly segment = "welcomer";
-  public readonly title = "Welcomer";
+  public readonly segment: string = "welcomer";
+  public readonly title: string = "Welcomer";
 
   /**
    * The `/welcomer` command gate only applies at open time; the router

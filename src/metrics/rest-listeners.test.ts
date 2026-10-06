@@ -11,10 +11,10 @@ type Listener = (...args: never[]) => void;
  */
 class FakeRest {
   public readonly options: { makeRequest: (url: string, init: RequestInit) => Promise<unknown> };
-  public readonly handlers = new Set<string>();
-  public readonly hashes = new Set<string>();
-  public globalRemaining = 50;
-  private readonly listeners = new Map<string, Listener[]>();
+  public readonly handlers: Set<string> = new Set<string>();
+  public readonly hashes: Set<string> = new Set<string>();
+  public globalRemaining: number = 50;
+  private readonly listeners: Map<string, Listener[]> = new Map<string, Listener[]>();
 
   public constructor() {
     this.options = { makeRequest: async () => ({ status: 200, headers: new Headers() }) };

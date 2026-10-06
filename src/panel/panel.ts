@@ -268,7 +268,7 @@ export default abstract class Panel<C extends object> {
    * (its V2 flag makes `embeds` inert), so the engine keeps it as a
    * companion.
    */
-  private readonly embedMessages = new Map<string, string>();
+  private readonly embedMessages: Map<string, string> = new Map<string, string>();
 
   public embedMessageId(guild: Guild): string | null {
     return this.embedMessages.get(guild.id) ?? null;

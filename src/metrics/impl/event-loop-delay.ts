@@ -6,8 +6,8 @@ import { HistogramMetric } from "../histogram";
  * loop slipped past its nominal interval, i.e. how long it was blocked.
  */
 export class EventLoopMetric extends HistogramMetric {
-  public override readonly collectIntervalMs = 1_000;
-  private lastTick = performance.now();
+  public override readonly collectIntervalMs: number = 1_000;
+  private lastTick: number = performance.now();
 
   public constructor() {
     super({

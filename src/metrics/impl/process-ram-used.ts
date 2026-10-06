@@ -1,7 +1,7 @@
 import { GaugeMetric } from "../gauge";
 
 export class ProcessRamUsedMetric extends GaugeMetric {
-  public override readonly collectIntervalMs = 5_000;
+  public override readonly collectIntervalMs: number = 5_000;
 
   public constructor() {
     super({

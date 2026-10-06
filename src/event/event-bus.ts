@@ -36,7 +36,7 @@ const BUS_HANDLERS = new Map<new (...args: any[]) => Event, HandlerEntry[]>();
  * state changes (e.g. derived events) happen in order.
  */
 export class EventBus {
-  private static readonly HANDLERS = BUS_HANDLERS;
+  private static readonly HANDLERS: Map<new (...args: any[]) => Event, HandlerEntry[]> = BUS_HANDLERS;
 
   /**
    * Register a listener instance: every `@EventHandler` method it owns

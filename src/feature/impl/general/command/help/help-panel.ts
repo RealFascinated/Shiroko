@@ -36,10 +36,10 @@ interface HelpConfig {
  * without a hand-maintained catalog.
  */
 export default class HelpPanel extends Panel<HelpConfig> {
-  public readonly segment = "help";
-  public readonly title = "Help";
-  public override readonly subtitle = "Browse every command by feature.";
-  public override readonly viewPlaceholder = "Select a feature";
+  public readonly segment: string = "help";
+  public readonly title: string = "Help";
+  public override readonly subtitle: string = "Browse every command by feature.";
+  public override readonly viewPlaceholder: string = "Select a feature";
 
   public async getConfig(guild: Guild): Promise<HelpConfig> {
     const categories: HelpCategory[] = [];

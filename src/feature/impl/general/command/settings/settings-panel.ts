@@ -27,8 +27,8 @@ type SettingsHubConfig = Record<string, Record<string, unknown>>;
  * shows a note pointing at the feature's own command instead of controls.
  */
 export default class SettingsPanel extends Panel<SettingsHubConfig> {
-  public readonly segment = "settings";
-  public readonly title = "Settings";
+  public readonly segment: string = "settings";
+  public readonly title: string = "Settings";
 
   public override readonly access: PanelAccess<SettingsHubConfig> = {
     authorized: async context => {

@@ -4,7 +4,7 @@ import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { guildKey } from "../cache/key";
 import { db } from "../db/index";
-import { permissionRolesSchema } from "../db/schemas/guild-permissions";
+import { permissionRolesSchema } from "../db/schemas/permission-roles";
 import { EventBus } from "../event/event-bus";
 import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
@@ -91,7 +91,7 @@ export interface PaginatedRoleConfig extends RoleConfig {
  * through the cache registry.
  */
 export default class Permissions {
-  private static readonly CACHE = Caches.register(
+  private static readonly CACHE: Cache<Map<string, RoleConfig>> = Caches.register(
     new Cache<Map<string, RoleConfig>>({ name: "permissions", mode: "authoritative", max: 5_000 })
   );
 

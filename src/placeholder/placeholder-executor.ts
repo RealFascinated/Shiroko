@@ -16,7 +16,7 @@ function render(value: PlaceholderValue): string {
  */
 export default class PlaceholderExecutor<C extends PlaceholderContext = PlaceholderContext> {
   /** `{snake_case}` tokens; anything else is left untouched. */
-  private static readonly TOKEN = /\{([a-z0-9_]+)\}/g;
+  private static readonly TOKEN: RegExp = /\{([a-z0-9_]+)\}/g;
 
   private readonly byKey: ReadonlyMap<string, Placeholder<C>>;
 
