@@ -1,5 +1,10 @@
 import type Event from "@/event/event";
 import { EventBus } from "@/event/event-bus";
+import AutoModActionExecutedEvent from "@/event/events/automod-action-executed.event";
+import AutoModRuleCreatedEvent from "@/event/events/automod-rule-created.event";
+import AutoModRuleDeletedEvent from "@/event/events/automod-rule-deleted.event";
+import AutoModRuleUpdatedEvent from "@/event/events/automod-rule-updated.event";
+import BotAddedEvent from "@/event/events/bot-added.event";
 import ChannelCreatedEvent from "@/event/events/channel-created.event";
 import ChannelDeletedEvent from "@/event/events/channel-deleted.event";
 import ChannelUpdatedEvent from "@/event/events/channel-updated.event";
@@ -10,16 +15,29 @@ import GuildUpdatedEvent from "@/event/events/guild-updated.event";
 import InviteCreatedEvent from "@/event/events/invite-created.event";
 import InviteDeletedEvent from "@/event/events/invite-deleted.event";
 import MemberBannedEvent from "@/event/events/member-banned.event";
+import MemberBoostUpdatedEvent from "@/event/events/member-boost-updated.event";
 import MemberGuildJoinEvent from "@/event/events/member-guild-join.event";
 import MemberGuildLeaveEvent from "@/event/events/member-guild-leave.event";
 import MemberNicknameUpdatedEvent from "@/event/events/member-nickname-updated.event";
 import MemberRolesUpdatedEvent from "@/event/events/member-roles-updated.event";
+import MemberTimeoutUpdatedEvent from "@/event/events/member-timeout-updated.event";
 import RoleCreatedEvent from "@/event/events/role-created.event";
 import RoleDeletedEvent from "@/event/events/role-deleted.event";
 import RoleUpdatedEvent from "@/event/events/role-updated.event";
+import ScheduledEventCreatedEvent from "@/event/events/scheduled-event-created.event";
+import ScheduledEventDeletedEvent from "@/event/events/scheduled-event-deleted.event";
+import ScheduledEventUpdatedEvent from "@/event/events/scheduled-event-updated.event";
+import ScheduledEventUserAddedEvent from "@/event/events/scheduled-event-user-added.event";
+import ScheduledEventUserRemovedEvent from "@/event/events/scheduled-event-user-removed.event";
+import StageInstanceCreatedEvent from "@/event/events/stage-instance-created.event";
+import StageInstanceDeletedEvent from "@/event/events/stage-instance-deleted.event";
+import StageInstanceUpdatedEvent from "@/event/events/stage-instance-updated.event";
 import StickerCreatedEvent from "@/event/events/sticker-created.event";
 import StickerDeletedEvent from "@/event/events/sticker-deleted.event";
 import StickerUpdatedEvent from "@/event/events/sticker-updated.event";
+import ThreadCreatedEvent from "@/event/events/thread-created.event";
+import ThreadDeletedEvent from "@/event/events/thread-deleted.event";
+import ThreadUpdatedEvent from "@/event/events/thread-updated.event";
 import UserAvatarUpdatedEvent from "@/event/events/user-avatar-updated.event";
 import UserBannerUpdatedEvent from "@/event/events/user-banner-updated.event";
 import UserDisplayNameUpdatedEvent from "@/event/events/user-display-name-updated.event";
@@ -30,242 +48,40 @@ import { FeatureIds } from "@/feature/feature-ids";
 import { baseEmbed } from "@/lib/embed";
 import { yesNo } from "@/lib/format";
 import SettingsManager from "@/settings/index";
+import { AuditLogEvent, ChannelType, EmbedBuilder, type Guild, type TextChannel } from "discord.js";
+import { actorLines, moderatorLines } from "./lib/actor-log";
+import { resolveAuditActor } from "./lib/audit-log";
 import {
-  AuditLogEvent,
-  ChannelType,
-  EmbedBuilder,
-  GuildVerificationLevel,
-  StickerFormatType,
-  type Guild,
-  type GuildEmoji,
-  type GuildMember,
-  type NonThreadGuildBasedChannel,
-  type PartialUser,
-  type PermissionOverwrites,
-  type Role,
-  type Sticker,
-  type TextChannel,
-  type User,
-} from "discord.js";
-import { resolveAuditActor, type AuditActor } from "./audit-log";
+  automodExecutionLines,
+  automodRuleDetailLines,
+  describeAutomodRuleChanges,
+  automodRuleLabel,
+} from "./lib/automod-log";
+import {
+  channelDetails,
+  channelLabel,
+  channelOverwriteLines,
+  channelTypeLabel,
+  describeChannelChanges,
+} from "./lib/channel-log";
+import { describeEmojiChanges } from "./lib/emoji-log";
+import { describeGuildChanges, PREMIUM_TIER_NAMES } from "./lib/guild-log";
+import { LEAVE_VERBS, describeVoiceChange } from "./lib/member-log";
+import { describeRoleChanges } from "./lib/role-log";
+import {
+  describeScheduledEventChanges,
+  scheduledEventDetailLines,
+  scheduledEventName,
+} from "./lib/scheduled-event-log";
+import { describeStageChanges, stageDetailLines } from "./lib/stage-log";
+import { describeStickerChanges, stickerFormatLabel } from "./lib/sticker-log";
+import { detailLine, timestamp } from "./lib/text";
+import { describeThreadChanges, threadDetailLines } from "./lib/thread-log";
+import { userLabel, assetLink } from "./lib/user-log";
 import LoggingCommand from "./command/logging/logging.command";
 import type { LogType } from "./log-type";
 import { loggingSettings } from "./logging-settings";
 import { loggingService } from "./logging.service";
-
-/**
- * How a departure reads, keyed by the audit action behind it. A member who
- * simply left has no entry, and a ban is logged separately, so the fallback
- * covers both.
- */
-const LEAVE_VERBS: Partial<Record<AuditLogEvent, string>> = {
-  [AuditLogEvent.MemberKick]: "was kicked.",
-  [AuditLogEvent.MemberPrune]: "was pruned for inactivity.",
-};
-
-/** A user mention with their id, or "Unknown" when Discord resolved no user. */
-function userLabel(user: User | PartialUser | null): string {
-  return user ? `${user} (\`${user.id}\`)` : "Unknown";
-}
-
-/**
- * The moderator line for an audit-logged change, or no lines at all when
- * the action left no entry, so a log line never claims an actor it could
- * not resolve.
- */
-function moderatorLines(actor: AuditActor | null): string[] {
-  return actor ? [`**➜** Moderator: ${userLabel(actor.executor)}`] : [];
-}
-
-/** {@link moderatorLines} plus the reason the moderator gave, when they gave one. */
-function actorLines(actor: AuditActor | null): string[] {
-  const lines = moderatorLines(actor);
-  if (actor?.reason) {
-    lines.push(`**➜** Reason: \`${actor.reason}\``);
-  }
-  return lines;
-}
-
-/** User-facing names for Discord's guild verification levels. */
-const VERIFICATION_LEVEL_NAMES: Record<number, string> = {
-  [GuildVerificationLevel.None]: "None",
-  [GuildVerificationLevel.Low]: "Low",
-  [GuildVerificationLevel.Medium]: "Medium",
-  [GuildVerificationLevel.High]: "High",
-  [GuildVerificationLevel.VeryHigh]: "Very High",
-};
-
-/** User-facing names for Discord's sticker formats. */
-const STICKER_FORMAT_NAMES: Record<number, string> = {
-  [StickerFormatType.PNG]: "PNG",
-  [StickerFormatType.APNG]: "APNG",
-  [StickerFormatType.Lottie]: "Lottie",
-  [StickerFormatType.GIF]: "GIF",
-};
-
-function formatRoleIds(roleIds: string[]): string {
-  return roleIds.length > 0 ? roleIds.map(id => `<@&${id}>`).join(", ") : "None";
-}
-
-/** Render a stored asset URL as a markdown link, or "Unknown" when it was not stored. */
-function assetLink(url: string | null, type: "before" | "after"): string {
-  return url ? `[[${type}]](${url})` : "Unknown";
-}
-
-/** User-facing names for Discord's channel types. */
-const CHANNEL_TYPE_NAMES: Record<number, string> = {
-  [ChannelType.GuildText]: "Text",
-  [ChannelType.GuildVoice]: "Voice",
-  [ChannelType.GuildCategory]: "Category",
-  [ChannelType.GuildAnnouncement]: "Announcement",
-  [ChannelType.GuildStageVoice]: "Stage",
-  [ChannelType.GuildForum]: "Forum",
-  [ChannelType.GuildMedia]: "Media",
-};
-
-/** How a channel is named in a log: its mention, or its name once deleted. */
-function channelLabel(channel: NonThreadGuildBasedChannel): string {
-  return channel.type === ChannelType.GuildCategory ? `Category \`${channel.name}\`` : `<#${channel.id}>`;
-}
-
-/**
- * One line for a voice transition: a join, a leave, or a move between
- * channels. Returns `null` for a change that stayed in the same channel
- * (mute, deafen, streaming), which is not worth logging.
- */
-function describeVoiceChange(
-  member: GuildMember,
-  oldChannelId: string | null,
-  newChannelId: string | null
-): string | null {
-  if (!oldChannelId && newChannelId) {
-    return `${member} joined voice channel <#${newChannelId}>.`;
-  }
-  if (oldChannelId && !newChannelId) {
-    return `${member} left voice channel <#${oldChannelId}>.`;
-  }
-  if (oldChannelId && newChannelId && oldChannelId !== newChannelId) {
-    return `${member} moved voice channel <#${oldChannelId}> → <#${newChannelId}>.`;
-  }
-  return null;
-}
-
-/**
- * Name the target of a channel permission overwrite, falling back to the
- * raw id when the role or member is no longer in the cache.
- */
-function formatOverwriteTarget(guild: Guild, id: string): string {
-  return guild.roles.cache.get(id)?.toString() ?? guild.members.cache.get(id)?.toString() ?? `\`${id}\``;
-}
-
-/**
- * Details worth logging on channel create: the parent and the text-only
- * fields when present (topic and slow mode). Guards on each concrete type,
- * since only text channels carry a topic.
- */
-function channelDetails(channel: NonThreadGuildBasedChannel): Array<[string, string]> {
-  const details: Array<[string, string]> = [];
-  if ("parent" in channel && channel.parent) {
-    details.push(["Category", `\`${channel.parent.name}\``]);
-  }
-  if ("topic" in channel && channel.topic) {
-    details.push(["Topic", channel.topic]);
-  }
-  if ("rateLimitPerUser" in channel && channel.rateLimitPerUser) {
-    details.push(["Slow Mode", `${channel.rateLimitPerUser}s`]);
-  }
-  return details;
-}
-
-/**
- * An overwrite as one ready-to-print line: the target followed by its
- * allowed (`✓`) and denied (`✘`) permissions. Whichever group is empty is
- * omitted, so an overwrite never pads the log with blank sections. Reports
- * "None" when the channel has no overwrites, and a target that is no longer
- * cached falls back to its id.
- */
-function channelOverwriteLines(channel: NonThreadGuildBasedChannel): string[] {
-  const targets = [...channel.permissionOverwrites.cache.entries()].sort(([a], [b]) =>
-    formatOverwriteTarget(channel.guild, a).localeCompare(formatOverwriteTarget(channel.guild, b))
-  );
-  if (targets.length === 0) {
-    return ["**➜** Permission Overwrites: None"];
-  }
-  return targets.map(([id, overwrite]) =>
-    permissionLine(
-      formatOverwriteTarget(channel.guild, id),
-      overwrite.allow.toArray(),
-      overwrite.deny.toArray()
-    )
-  );
-}
-
-/**
- * A permission target and its allow/deny names as a single line, e.g.
- * `**➜** @everyone ✘ View Channel`. An empty group contributes nothing.
- */
-function permissionLine(target: string, allow: string[], deny: string[]): string {
-  let line = `**➜** ${target}`;
-  if (allow.length > 0) {
-    line += ` ✓ ${formatPermissionList(allow)}`;
-  }
-  if (deny.length > 0) {
-    line += ` ✘ ${formatPermissionList(deny)}`;
-  }
-  return line;
-}
-
-/** Sorted, comma-separated permission labels for a list of bit names. */
-function formatPermissionList(names: string[]): string {
-  return names.map(permissionLabel).sort().join(", ");
-}
-
-/**
- * Render a permission overwrite's tri-state transition. Every permission is
- * neutral (in neither field), allowed, or denied, so a change is a set of
- * entries that moved between those states. Diffing only the allow field
- * would miss neutral-to-deny and deny-to-neutral moves entirely, and would
- * mislabel the other transitions.
- */
-function formatOverwriteTransitions(
-  before: PermissionOverwrites,
-  after: PermissionOverwrites
-): Array<[string, string, string]> {
-  const beforeStates = overwriteStates(before);
-  const afterStates = overwriteStates(after);
-  const rows: Array<[string, string, string]> = [];
-  const names = [...new Set([...beforeStates.keys(), ...afterStates.keys()])].sort((a, b) =>
-    permissionLabel(a).localeCompare(permissionLabel(b))
-  );
-  for (const name of names) {
-    const from = beforeStates.get(name) ?? "neutral";
-    const to = afterStates.get(name) ?? "neutral";
-    if (from !== to) {
-      rows.push([permissionLabel(name), from, to]);
-    }
-  }
-  return rows;
-}
-
-/**
- * Map every permission named in an overwrite's allow or deny to its state,
- * `allowed` or `denied`. Absence from the map means neutral.
- */
-function overwriteStates(overwrite: PermissionOverwrites): Map<string, string> {
-  const states = new Map<string, string>();
-  for (const name of overwrite.allow.toArray()) {
-    states.set(name, "allowed");
-  }
-  for (const name of overwrite.deny.toArray()) {
-    states.set(name, "denied");
-  }
-  return states;
-}
-
-/** Split the camelCase Discord uses in a permission name: `ManageGuild` -> `Manage Guild`. */
-function permissionLabel(name: string): string {
-  return name.replace(/([a-z])([A-Z])/g, "$1 $2");
-}
 
 export default class LoggingFeature extends Feature {
   constructor() {
@@ -282,7 +98,22 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
-            `**➜** Account Created: <t:${Math.floor(event.member.user.createdAt.getTime() / 1000)}>`,
+            detailLine("Account Created", timestamp(event.member.user.createdAt)),
+          ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(BotAddedEvent, "bot_add", async (event, channel) => {
+      const actor = await resolveAuditActor(event.member.guild, [AuditLogEvent.BotAdd], event.member.id);
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `${event.member} was added to the server.`,
+            "",
+            `**➜** ID: \`${event.member.id}\``,
+            `**➜** Username: \`${event.member.user.username}\``,
+            ...actorLines(actor),
           ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -451,16 +282,53 @@ export default class LoggingFeature extends Feature {
       });
     });
 
+    this.handleEvent(MemberTimeoutUpdatedEvent, "member_timeout", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.newMember.guild,
+        [AuditLogEvent.MemberUpdate],
+        event.newMember.id
+      );
+      const until = event.timeoutUntil;
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            until
+              ? `${event.newMember} was timed out until ${timestamp(until)}.`
+              : `${event.newMember} is no longer timed out.`,
+            "",
+            `**➜** ID: \`${event.newMember.id}\``,
+            `**➜** Username: \`${event.newMember.user.username}\``,
+            ...actorLines(actor),
+          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(MemberBoostUpdatedEvent, "boost", async (event, channel) => {
+      const count = event.newMember.guild.premiumSubscriptionCount ?? 0;
+      const tier = event.newMember.guild.premiumTier;
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            event.boosted
+              ? `${event.newMember} started boosting the server!`
+              : `${event.newMember} stopped boosting the server.`,
+            "",
+            `**➜** ID: \`${event.newMember.id}\``,
+            `**➜** Username: \`${event.newMember.user.username}\``,
+            `**➜** Boosts: ${count}`,
+            `**➜** Tier: ${PREMIUM_TIER_NAMES[tier] ?? String(tier)}`,
+          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
     this.handleEvent(GuildUpdatedEvent, "server_update", async (event, channel) => {
-      const changes = this.describeGuildChanges(event.oldGuild, event.guildData);
+      const changes = describeGuildChanges(event.oldGuild, event.guildData);
       if (changes.length === 0) {
         return;
       }
-      const embed = this.baseLogEmbed([
-        `Server **${event.guildData.name}** was updated.`,
-        "",
-        ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
-      ]);
+      const embed = this.baseLogEmbed([`Server **${event.guildData.name}** was updated.`, "", ...changes]);
       await channel.send({ embeds: [embed] });
     });
 
@@ -476,9 +344,9 @@ export default class LoggingFeature extends Feature {
             `${channelLabel(event.channel)} was created.`,
             "",
             `**➜** Name: \`${event.channel.name}\``,
-            `**➜** Type: \`${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}\``,
+            `**➜** Type: \`${channelTypeLabel(event.channel.type)}\``,
             `**➜** ID: \`${event.channel.id}\``,
-            ...channelDetails(event.channel).map(([label, value]) => `**➜** ${label}: ${value}`),
+            ...channelDetails(event.channel),
             ...channelOverwriteLines(event.channel),
             ...actorLines(actor),
           ]),
@@ -487,7 +355,7 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(ChannelUpdatedEvent, "channel", async (event, channel) => {
-      const changes = this.describeChannelChanges(event.oldChannel, event.newChannel);
+      const changes = describeChannelChanges(event.oldChannel, event.newChannel);
       if (changes.length === 0) {
         return;
       }
@@ -518,9 +386,286 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed([
             `Channel \`${event.channel.name}\` was deleted.`,
             "",
-            `**➜** Type: \`${CHANNEL_TYPE_NAMES[event.channel.type] ?? "Unknown"}\``,
+            `**➜** Type: \`${channelTypeLabel(event.channel.type)}\``,
             `**➜** ID: \`${event.channel.id}\``,
             ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ThreadCreatedEvent, "thread", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.thread.guild,
+        [AuditLogEvent.ThreadCreate],
+        event.thread.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Thread <#${event.thread.id}> was created.`,
+            "",
+            ...threadDetailLines(event.thread),
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ThreadUpdatedEvent, "thread", async (event, channel) => {
+      const changes = describeThreadChanges(event.oldThread, event.newThread);
+      if (changes.length === 0) {
+        return;
+      }
+      // Unlike a channel update, a thread's audit target is the thread
+      // itself, so the newest matching entry is this event's.
+      const actor = await resolveAuditActor(
+        event.newThread.guild,
+        [AuditLogEvent.ThreadUpdate],
+        event.newThread.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Thread <#${event.newThread.id}> was updated.`,
+            "",
+            `**➜** Name: \`${event.newThread.name}\``,
+            ...changes,
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ThreadDeletedEvent, "thread", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.thread.guild,
+        [AuditLogEvent.ThreadDelete],
+        event.thread.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Thread \`${event.thread.name}\` was deleted.`,
+            "",
+            `**➜** Parent: ${event.thread.parentId ? `<#${event.thread.parentId}>` : "None"}`,
+            `**➜** ID: \`${event.thread.id}\``,
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(StageInstanceCreatedEvent, "stage", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.instance.guild!,
+        [AuditLogEvent.StageInstanceCreate],
+        event.instance.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Stage instance started in <#${event.instance.channelId}>.`,
+            "",
+            ...stageDetailLines(event.instance),
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(StageInstanceUpdatedEvent, "stage", async (event, channel) => {
+      const changes = describeStageChanges(event.oldInstance, event.newInstance);
+      if (changes.length === 0) {
+        return;
+      }
+      const actor = await resolveAuditActor(
+        event.newInstance.guild!,
+        [AuditLogEvent.StageInstanceUpdate],
+        event.newInstance.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Stage instance in <#${event.newInstance.channelId}> was updated.`,
+            "",
+            ...changes,
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(StageInstanceDeletedEvent, "stage", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.instance.guild!,
+        [AuditLogEvent.StageInstanceDelete],
+        event.instance.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Stage instance ended in <#${event.instance.channelId}>.`,
+            "",
+            `**➜** Topic: \`${event.instance.topic}\``,
+            `**➜** ID: \`${event.instance.id}\``,
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ScheduledEventCreatedEvent, "scheduled_event", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.guild!,
+        [AuditLogEvent.GuildScheduledEventCreate],
+        event.scheduledEvent.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Scheduled event ${scheduledEventName(event.scheduledEvent)} was created.`,
+            "",
+            ...scheduledEventDetailLines(event.scheduledEvent),
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ScheduledEventUpdatedEvent, "scheduled_event", async (event, channel) => {
+      const changes = describeScheduledEventChanges(event.oldEvent, event.newEvent);
+      if (changes.length === 0) {
+        return;
+      }
+      const actor = await resolveAuditActor(
+        event.guild!,
+        [AuditLogEvent.GuildScheduledEventUpdate],
+        event.newEvent.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Scheduled event ${scheduledEventName(event.newEvent)} was updated.`,
+            "",
+            ...changes,
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ScheduledEventDeletedEvent, "scheduled_event", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.guild!,
+        [AuditLogEvent.GuildScheduledEventDelete],
+        event.scheduledEvent.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `Scheduled event ${scheduledEventName(event.scheduledEvent)} was deleted.`,
+            "",
+            ...scheduledEventDetailLines(event.scheduledEvent),
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(ScheduledEventUserAddedEvent, "scheduled_event", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `${event.user} is interested in ${scheduledEventName(event.scheduledEvent)}.`,
+            "",
+            `**➜** ID: \`${event.user.id}\``,
+            `**➜** Interested: ${event.scheduledEvent.userCount ?? "Unknown"}`,
+          ]).setThumbnail(event.user.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(ScheduledEventUserRemovedEvent, "scheduled_event", async (event, channel) => {
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `${event.user} is no longer interested in ${scheduledEventName(event.scheduledEvent)}.`,
+            "",
+            `**➜** ID: \`${event.user.id}\``,
+            `**➜** Interested: ${event.scheduledEvent.userCount ?? "Unknown"}`,
+          ]).setThumbnail(event.user.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(AutoModRuleCreatedEvent, "automod", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.rule.guild,
+        [AuditLogEvent.AutoModerationRuleCreate],
+        event.rule.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `AutoMod rule \`${event.rule.name}\` was created.`,
+            "",
+            ...automodRuleDetailLines(event.rule),
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(AutoModRuleUpdatedEvent, "automod", async (event, channel) => {
+      const changes = describeAutomodRuleChanges(event.oldRule, event.newRule);
+      if (changes.length === 0) {
+        return;
+      }
+      const actor = await resolveAuditActor(
+        event.newRule.guild,
+        [AuditLogEvent.AutoModerationRuleUpdate],
+        event.newRule.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `AutoMod rule \`${event.newRule.name}\` was updated.`,
+            "",
+            `**➜** ID: \`${event.newRule.id}\``,
+            ...changes,
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(AutoModRuleDeletedEvent, "automod", async (event, channel) => {
+      const actor = await resolveAuditActor(
+        event.rule.guild,
+        [AuditLogEvent.AutoModerationRuleDelete],
+        event.rule.id
+      );
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `AutoMod rule \`${event.rule.name}\` was deleted.`,
+            "",
+            `**➜** ID: \`${event.rule.id}\``,
+            ...actorLines(actor),
+          ]),
+        ],
+      });
+    });
+
+    this.handleEvent(AutoModActionExecutedEvent, "automod", async (event, channel) => {
+      const { execution } = event;
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            `AutoMod rule ${automodRuleLabel(execution.autoModerationRule, execution.ruleId)} took action.`,
+            "",
+            ...automodExecutionLines(execution),
           ]),
         ],
       });
@@ -544,7 +689,7 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(RoleUpdatedEvent, "role", async (event, channel) => {
-      const changes = this.describeRoleChanges(event.oldRole, event.newRole);
+      const changes = describeRoleChanges(event.oldRole, event.newRole);
       if (changes.length === 0) {
         return;
       }
@@ -596,7 +741,7 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(EmojiUpdatedEvent, "emoji", async (event, channel) => {
-      const changes = this.describeEmojiChanges(event.oldEmoji, event.newEmoji);
+      const changes = describeEmojiChanges(event.oldEmoji, event.newEmoji);
       if (changes.length === 0) {
         return;
       }
@@ -606,7 +751,7 @@ export default class LoggingFeature extends Feature {
             `Emoji ${event.newEmoji} was updated.`,
             "",
             `**➜** ID: \`${event.newEmoji.id}\``,
-            ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
+            ...changes,
           ]).setThumbnail(event.newEmoji.imageURL({ size: 4096 })),
         ],
       });
@@ -633,7 +778,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** ID: \`${event.sticker.id}\``,
             `**➜** Description: \`${event.sticker.description ?? "None"}\``,
-            `**➜** Format: \`${STICKER_FORMAT_NAMES[event.sticker.format] ?? "Unknown"}\``,
+            `**➜** Format: \`${stickerFormatLabel(event.sticker.format)}\``,
             `**➜** Tags: \`${event.sticker.tags ?? "None"}\``,
           ]).setImage(event.sticker.url),
         ],
@@ -641,7 +786,7 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(StickerUpdatedEvent, "sticker", async (event, channel) => {
-      const changes = this.describeStickerChanges(event.oldSticker, event.newSticker);
+      const changes = describeStickerChanges(event.oldSticker, event.newSticker);
       if (changes.length === 0) {
         return;
       }
@@ -651,7 +796,7 @@ export default class LoggingFeature extends Feature {
             `Sticker **${event.newSticker.name}** was updated.`,
             "",
             `**➜** ID: \`${event.newSticker.id}\``,
-            ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
+            ...changes,
           ]).setImage(event.newSticker.url),
         ],
       });
@@ -664,7 +809,7 @@ export default class LoggingFeature extends Feature {
             `Sticker **${event.sticker.name}** was deleted.`,
             "",
             `**➜** ID: \`${event.sticker.id}\``,
-            `**➜** Format: \`${STICKER_FORMAT_NAMES[event.sticker.format] ?? "Unknown"}\``,
+            `**➜** Format: \`${stickerFormatLabel(event.sticker.format)}\``,
           ]).setImage(event.sticker.url),
         ],
       });
@@ -718,7 +863,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Code: \`${invite.code}\``,
             `**➜** Channel: \`${invite.channel ? `<#${invite.channel.id}>` : "unknown"}\``,
-            `**➜** Expires: ${invite.expiresAt ? `<t:${Math.floor(invite.expiresAt.getTime() / 1000)}>` : "never"}`,
+            detailLine("Expires", invite.expiresAt ? timestamp(invite.expiresAt) : "never"),
             ...(invite.inviter ? [`**➜** Created By: ${userLabel(invite.inviter)}`] : []),
           ]).setThumbnail(invite.inviter?.displayAvatarURL({ size: 4096, extension: "webp" }) ?? null),
         ],
@@ -763,166 +908,10 @@ export default class LoggingFeature extends Feature {
   }
 
   /**
-   * The fields of a sticker update that changed, as `[label, before, after]`
-   * rows.
+   * Register one handler for `eventClass` behind the `logType` gate: when
+   * the type is disabled, or the guild has no usable log channel, the
+   * callback never runs.
    */
-  private describeStickerChanges(oldSticker: Sticker, newSticker: Sticker): Array<[string, string, string]> {
-    const changes: Array<[string, string, string]> = [];
-    if (oldSticker.name !== newSticker.name) {
-      changes.push(["**➜** Name", oldSticker.name, newSticker.name]);
-    }
-    if (oldSticker.description !== newSticker.description) {
-      changes.push(["**➜** Description", oldSticker.description ?? "None", newSticker.description ?? "None"]);
-    }
-    if (oldSticker.tags !== newSticker.tags) {
-      changes.push(["**➜** Tags", oldSticker.tags ?? "None", newSticker.tags ?? "None"]);
-    }
-    return changes;
-  }
-
-  /**
-   * The fields of an emoji update that changed, as `[label, before, after]`
-   * rows.
-   */
-  private describeEmojiChanges(oldEmoji: GuildEmoji, newEmoji: GuildEmoji): Array<[string, string, string]> {
-    const changes: Array<[string, string, string]> = [];
-    if (oldEmoji.name !== newEmoji.name) {
-      changes.push(["**➜** Name", oldEmoji.name ?? "None", newEmoji.name ?? "None"]);
-    }
-    if (oldEmoji.animated !== newEmoji.animated) {
-      changes.push(["**➜** Animated", yesNo(oldEmoji.animated), yesNo(newEmoji.animated)]);
-    }
-    const oldRoles = formatRoleIds([...oldEmoji.roles.cache.keys()]);
-    const newRoles = formatRoleIds([...newEmoji.roles.cache.keys()]);
-    if (oldRoles !== newRoles) {
-      changes.push(["**➜** Role Restriction", oldRoles, newRoles]);
-    }
-    return changes;
-  }
-
-  /**
-   * The fields of a channel update that changed, as `[label, before, after]`
-   * rows. Fields are read through `in` guards because they only exist on
-   * some channel types.
-   *
-   * This reports what the channel payload itself changed, not anyone's
-   * resulting access: a role edit, a category overwrite edit propagating to
-   * children, or a position change that reorders the hierarchy each alter
-   * effective permissions without producing a diff here.
-   */
-  private describeChannelChanges(
-    oldChannel: NonThreadGuildBasedChannel,
-    newChannel: NonThreadGuildBasedChannel
-  ): string[] {
-    const lines: string[] = [];
-    if (oldChannel.name !== newChannel.name) {
-      lines.push(`**➜** Name: \`${oldChannel.name}\` → \`${newChannel.name}\``);
-    }
-    if (oldChannel.type !== newChannel.type) {
-      lines.push(
-        `**➜** Type: ${CHANNEL_TYPE_NAMES[oldChannel.type] ?? String(oldChannel.type)} → ${
-          CHANNEL_TYPE_NAMES[newChannel.type] ?? String(newChannel.type)
-        }`
-      );
-    }
-    const oldParent = "parent" in oldChannel ? oldChannel.parent : null;
-    const newParent = "parent" in newChannel ? newChannel.parent : null;
-    if (oldParent?.id !== newParent?.id) {
-      lines.push(
-        `**➜** Category: ${oldParent ? `\`${oldParent.name}\`` : "None"} → ${
-          newParent ? `\`${newParent.name}\`` : "None"
-        }`
-      );
-    }
-    if ("topic" in oldChannel && "topic" in newChannel && oldChannel.topic !== newChannel.topic) {
-      lines.push(`**➜** Topic: ${oldChannel.topic ?? "None"} → ${newChannel.topic ?? "None"}`);
-    }
-    if ("rateLimitPerUser" in oldChannel && "rateLimitPerUser" in newChannel) {
-      const oldSlowMode = oldChannel.rateLimitPerUser ?? 0;
-      const newSlowMode = newChannel.rateLimitPerUser ?? 0;
-      if (oldSlowMode !== newSlowMode) {
-        lines.push(`**➜** Slow Mode: ${oldSlowMode}s → ${newSlowMode}s`);
-      }
-    }
-    if ("nsfw" in oldChannel && "nsfw" in newChannel && oldChannel.nsfw !== newChannel.nsfw) {
-      lines.push(`**➜** NSFW: ${yesNo(oldChannel.nsfw)} → ${yesNo(newChannel.nsfw)}`);
-    }
-    lines.push(...describeOverwriteBlocks(oldChannel, newChannel));
-    return lines;
-  }
-
-  /**
-   * The fields of a role update that changed, as ready-to-print lines.
-   */
-  private describeRoleChanges(oldRole: Role, newRole: Role): string[] {
-    const lines: string[] = [];
-    if (oldRole.name !== newRole.name) {
-      lines.push(`**➜** Name: ${oldRole.name} → ${newRole.name}`);
-    }
-    if (oldRole.hexColor !== newRole.hexColor) {
-      lines.push(`**➜** Color: ${oldRole.hexColor} → ${newRole.hexColor}`);
-    }
-    if (oldRole.hoist !== newRole.hoist) {
-      lines.push(`**➜** Hoisted: ${yesNo(oldRole.hoist)} → ${yesNo(newRole.hoist)}`);
-    }
-    if (oldRole.mentionable !== newRole.mentionable) {
-      lines.push(`**➜** Mentionable: ${yesNo(oldRole.mentionable)} → ${yesNo(newRole.mentionable)}`);
-    }
-    if (oldRole.permissions.bitfield !== newRole.permissions.bitfield) {
-      // `missing` returns the bit names present in its argument but absent
-      // from the receiver, so the old field's missing bits are what the new
-      // one gained, and vice versa. `checkAdmin: false` keeps Administrator
-      // a normal bit so it can be reported like any other.
-      const granted = oldRole.permissions.missing(newRole.permissions.bitfield, false);
-      const revoked = newRole.permissions.missing(oldRole.permissions.bitfield, false);
-      if (granted.length > 0 || revoked.length > 0) {
-        lines.push(permissionLine("Permissions", granted, revoked));
-      }
-    }
-    return lines;
-  }
-
-  /**
-   * The fields of a guild update that changed, as `[label, before, after]`
-   * rows. Asset fields compare their hashes and render as links; a removed
-   * asset shows "None".
-   */
-  private describeGuildChanges(oldGuild: Guild, newGuild: Guild): Array<[string, string, string]> {
-    const changes: Array<[string, string, string]> = [];
-    if (oldGuild.name !== newGuild.name) {
-      changes.push(["**➜** Name", oldGuild.name, newGuild.name]);
-    }
-    if (oldGuild.icon !== newGuild.icon) {
-      changes.push([
-        "**➜** Icon",
-        oldGuild.iconURL({ extension: "webp" }) ?? "None",
-        newGuild.iconURL({ extension: "webp" }) ?? "None",
-      ]);
-    }
-    if (oldGuild.banner !== newGuild.banner) {
-      changes.push([
-        "**➜** Banner",
-        oldGuild.bannerURL({ extension: "webp" }) ?? "None",
-        newGuild.bannerURL({ extension: "webp" }) ?? "None",
-      ]);
-    }
-    if (oldGuild.splash !== newGuild.splash) {
-      changes.push([
-        "**➜** Invite Splash",
-        oldGuild.splashURL({ extension: "webp" }) ?? "None",
-        newGuild.splashURL({ extension: "webp" }) ?? "None",
-      ]);
-    }
-    if (oldGuild.verificationLevel !== newGuild.verificationLevel) {
-      changes.push([
-        "**➜** Verification Level",
-        VERIFICATION_LEVEL_NAMES[oldGuild.verificationLevel] ?? String(oldGuild.verificationLevel),
-        VERIFICATION_LEVEL_NAMES[newGuild.verificationLevel] ?? String(newGuild.verificationLevel),
-      ]);
-    }
-    return changes;
-  }
-
   public handleEvent<T extends Event>(
     eventClass: new (...args: any[]) => T,
     logType: LogType,
@@ -946,54 +935,4 @@ export default class LoggingFeature extends Feature {
       { featureId: FeatureIds.Logging }
     );
   }
-}
-
-/**
- * Permission overwrite changes as one line per target: the target followed
- * by its resulting allowed (`✓`) and denied (`✘`) permissions. A target with
- * nothing to report produces no lines at all, so unchanged overwrites never
- * appear, and an empty group is omitted rather than printed as "none".
- */
-function describeOverwriteBlocks(
-  oldChannel: NonThreadGuildBasedChannel,
-  newChannel: NonThreadGuildBasedChannel
-): string[] {
-  const lines: string[] = [];
-  const oldOverwrites = oldChannel.permissionOverwrites.cache;
-  const newOverwrites = newChannel.permissionOverwrites.cache;
-  const ids = [...new Set([...oldOverwrites.keys(), ...newOverwrites.keys()])].sort((a, b) =>
-    formatOverwriteTarget(newChannel.guild, a).localeCompare(formatOverwriteTarget(newChannel.guild, b))
-  );
-  for (const id of ids) {
-    const before = oldOverwrites.get(id);
-    const after = newOverwrites.get(id);
-    const target = formatOverwriteTarget(newChannel.guild, id);
-    if (!before && after) {
-      lines.push(
-        permissionLine(`Added permissions for ${target}`, after.allow.toArray(), after.deny.toArray())
-      );
-      continue;
-    }
-    if (before && !after) {
-      lines.push(
-        permissionLine(`Removed permissions for ${target}`, before.allow.toArray(), before.deny.toArray())
-      );
-      continue;
-    }
-    if (!before || !after) {
-      continue;
-    }
-    const transitions = formatOverwriteTransitions(before, after);
-    if (transitions.length === 0) {
-      continue;
-    }
-    lines.push(
-      permissionLine(
-        `Updated permissions for ${target}`,
-        transitions.filter(([, , to]) => to === "allowed").map(([name]) => name),
-        transitions.filter(([, , to]) => to === "denied").map(([name]) => name)
-      )
-    );
-  }
-  return lines;
 }

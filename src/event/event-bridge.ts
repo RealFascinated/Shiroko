@@ -3,6 +3,11 @@ import { MediaKind } from "@/storage/media-key";
 import MediaService from "@/storage/media.service";
 import { Events, type Client, type DMChannel, type Guild, type NonThreadGuildBasedChannel } from "discord.js";
 import { EventBus } from "./event-bus";
+import AutoModActionExecutedEvent from "./events/automod-action-executed.event";
+import AutoModRuleCreatedEvent from "./events/automod-rule-created.event";
+import AutoModRuleDeletedEvent from "./events/automod-rule-deleted.event";
+import AutoModRuleUpdatedEvent from "./events/automod-rule-updated.event";
+import BotAddedEvent from "./events/bot-added.event";
 import BotReadyEvent from "./events/bot-ready.event";
 import ChannelCreatedEvent from "./events/channel-created.event";
 import ChannelDeletedEvent from "./events/channel-deleted.event";
@@ -18,18 +23,31 @@ import GuildUpdatedEvent from "./events/guild-updated.event";
 import InviteCreatedEvent from "./events/invite-created.event";
 import InviteDeletedEvent from "./events/invite-deleted.event";
 import MemberBannedEvent from "./events/member-banned.event";
+import MemberBoostUpdatedEvent from "./events/member-boost-updated.event";
 import MemberGuildJoinEvent from "./events/member-guild-join.event";
 import MemberGuildLeaveEvent from "./events/member-guild-leave.event";
 import MemberNicknameUpdatedEvent from "./events/member-nickname-updated.event";
 import MemberRolesUpdatedEvent from "./events/member-roles-updated.event";
+import MemberTimeoutUpdatedEvent from "./events/member-timeout-updated.event";
 import MessageCreatedEvent from "./events/message-created.event";
 import RoleCreatedEvent from "./events/role-created.event";
 import RoleDeletedEvent from "./events/role-deleted.event";
 import RoleUpdatedEvent from "./events/role-updated.event";
+import ScheduledEventCreatedEvent from "./events/scheduled-event-created.event";
+import ScheduledEventDeletedEvent from "./events/scheduled-event-deleted.event";
+import ScheduledEventUpdatedEvent from "./events/scheduled-event-updated.event";
+import ScheduledEventUserAddedEvent from "./events/scheduled-event-user-added.event";
+import ScheduledEventUserRemovedEvent from "./events/scheduled-event-user-removed.event";
 import SlashCommandReceivedEvent from "./events/slash-command-received.event";
+import StageInstanceCreatedEvent from "./events/stage-instance-created.event";
+import StageInstanceDeletedEvent from "./events/stage-instance-deleted.event";
+import StageInstanceUpdatedEvent from "./events/stage-instance-updated.event";
 import StickerCreatedEvent from "./events/sticker-created.event";
 import StickerDeletedEvent from "./events/sticker-deleted.event";
 import StickerUpdatedEvent from "./events/sticker-updated.event";
+import ThreadCreatedEvent from "./events/thread-created.event";
+import ThreadDeletedEvent from "./events/thread-deleted.event";
+import ThreadUpdatedEvent from "./events/thread-updated.event";
 import UserAvatarUpdatedEvent from "./events/user-avatar-updated.event";
 import UserBannerUpdatedEvent from "./events/user-banner-updated.event";
 import UserDisplayNameUpdatedEvent from "./events/user-display-name-updated.event";
@@ -129,6 +147,99 @@ export default class EventBridge {
       void EventBus.post(new ChannelDeletedEvent(guildChannel));
     });
 
+    client.on(Events.ThreadCreate, (thread, newlyCreated) => {
+      if (!newlyCreated) {
+        return;
+      }
+      void EventBus.post(new ThreadCreatedEvent(thread));
+    });
+
+    client.on(Events.ThreadUpdate, (oldThread, newThread) => {
+      void EventBus.post(new ThreadUpdatedEvent(oldThread, newThread));
+    });
+
+    client.on(Events.ThreadDelete, thread => {
+      void EventBus.post(new ThreadDeletedEvent(thread));
+    });
+
+    client.on(Events.StageInstanceCreate, stageInstance => {
+      void EventBus.post(new StageInstanceCreatedEvent(stageInstance));
+    });
+
+    client.on(Events.StageInstanceUpdate, (oldStageInstance, newStageInstance) => {
+      // The previous state is absent when the instance was not cached, and
+      // the log is a diff, so there is nothing to report.
+      if (!oldStageInstance) {
+        return;
+      }
+      void EventBus.post(new StageInstanceUpdatedEvent(oldStageInstance, newStageInstance));
+    });
+
+    client.on(Events.StageInstanceDelete, stageInstance => {
+      void EventBus.post(new StageInstanceDeletedEvent(stageInstance));
+    });
+
+    client.on(Events.GuildScheduledEventCreate, scheduledEvent => {
+      const guild = scheduledEvent.guild;
+      if (!guild) {
+        return;
+      }
+      void EventBus.post(new ScheduledEventCreatedEvent(scheduledEvent, guild));
+    });
+
+    client.on(Events.GuildScheduledEventUpdate, (oldScheduledEvent, newScheduledEvent) => {
+      const guild = newScheduledEvent.guild;
+      if (!guild) {
+        return;
+      }
+      void EventBus.post(new ScheduledEventUpdatedEvent(oldScheduledEvent, newScheduledEvent, guild));
+    });
+
+    client.on(Events.GuildScheduledEventDelete, scheduledEvent => {
+      const guild = scheduledEvent.guild;
+      if (!guild) {
+        return;
+      }
+      void EventBus.post(new ScheduledEventDeletedEvent(scheduledEvent, guild));
+    });
+
+    client.on(Events.GuildScheduledEventUserAdd, (scheduledEvent, user) => {
+      const guild = scheduledEvent.guild;
+      if (!guild || user.bot) {
+        return;
+      }
+      void EventBus.post(new ScheduledEventUserAddedEvent(scheduledEvent, user, guild));
+    });
+
+    client.on(Events.GuildScheduledEventUserRemove, (scheduledEvent, user) => {
+      const guild = scheduledEvent.guild;
+      if (!guild || user.bot) {
+        return;
+      }
+      void EventBus.post(new ScheduledEventUserRemovedEvent(scheduledEvent, user, guild));
+    });
+
+    client.on(Events.AutoModerationRuleCreate, rule => {
+      void EventBus.post(new AutoModRuleCreatedEvent(rule));
+    });
+
+    client.on(Events.AutoModerationRuleUpdate, (oldRule, newRule) => {
+      // The previous state is absent when the rule was not cached, and the
+      // log is a diff, so there is nothing to report.
+      if (!oldRule) {
+        return;
+      }
+      void EventBus.post(new AutoModRuleUpdatedEvent(oldRule, newRule));
+    });
+
+    client.on(Events.AutoModerationRuleDelete, rule => {
+      void EventBus.post(new AutoModRuleDeletedEvent(rule));
+    });
+
+    client.on(Events.AutoModerationActionExecution, execution => {
+      void EventBus.post(new AutoModActionExecutedEvent(execution));
+    });
+
     client.on(Events.InviteCreate, invite => {
       const guild = invite.guild ? (client.guilds.cache.get(invite.guild.id) ?? null) : null;
       void EventBus.post(new InviteCreatedEvent(invite, guild));
@@ -141,6 +252,7 @@ export default class EventBridge {
 
     client.on(Events.GuildMemberAdd, member => {
       if (member.user.bot) {
+        void EventBus.post(new BotAddedEvent(member));
         return;
       }
       void EventBus.post(new MemberGuildJoinEvent(member));
@@ -220,6 +332,12 @@ export default class EventBridge {
       }
       if (oldMember.nickname !== newMember.nickname) {
         void EventBus.post(new MemberNicknameUpdatedEvent(oldMember, newMember));
+      }
+      if (oldMember.communicationDisabledUntilTimestamp !== newMember.communicationDisabledUntilTimestamp) {
+        void EventBus.post(new MemberTimeoutUpdatedEvent(oldMember, newMember));
+      }
+      if (oldMember.premiumSinceTimestamp !== newMember.premiumSinceTimestamp) {
+        void EventBus.post(new MemberBoostUpdatedEvent(oldMember, newMember));
       }
     });
 

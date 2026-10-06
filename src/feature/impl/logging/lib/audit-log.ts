@@ -43,28 +43,34 @@ export async function resolveAuditActor(
 /**
  * Fetch the guild's recent entries, filtered server-side by the action when
  * the caller expects exactly one, so the target cannot be pushed out of the
- * window by unrelated activity.
+ * window by unrelated activity. A missing permission or a failed request
+ * yields no entries.
  */
-async function fetchEntry(
+async function fetchEntries(
   guild: Guild,
-  actions: readonly AuditLogEvent[],
-  targetId: string
-): Promise<GuildAuditLogsEntry<AuditLogEvent> | null> {
+  actions: readonly AuditLogEvent[]
+): Promise<GuildAuditLogsEntry<AuditLogEvent>[]> {
   try {
     const { entries } = await guild.fetchAuditLogs({
       limit: FETCH_LIMIT,
       type: actions.length === 1 ? actions[0] : null,
     });
-    return (
-      entries.find(
-        entry =>
-          actions.includes(entry.action) &&
-          entry.targetId === targetId &&
-          Date.now() - entry.createdTimestamp < MATCH_WINDOW_MS
-      ) ?? null
-    );
+    return [...entries.values()].filter(entry => actions.includes(entry.action));
   } catch {
-    // A missing permission or a failed request must not drop the log line.
-    return null;
+    return [];
   }
+}
+
+/** The single entry in {@link fetchEntries} whose target is `targetId`. */
+async function fetchEntry(
+  guild: Guild,
+  actions: readonly AuditLogEvent[],
+  targetId: string
+): Promise<GuildAuditLogsEntry<AuditLogEvent> | null> {
+  const entries = await fetchEntries(guild, actions);
+  return (
+    entries.find(
+      entry => entry.targetId === targetId && Date.now() - entry.createdTimestamp < MATCH_WINDOW_MS
+    ) ?? null
+  );
 }
