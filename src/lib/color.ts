@@ -16,5 +16,5 @@ export function parseColor(input: string): number | null {
  * accepts back.
  */
 export function formatColor(color: number): string {
-  return `#${color.toString(16).padStart(6, "0")}`;
+  return Bun.color(color, "hex") ?? "#000000";
 }
