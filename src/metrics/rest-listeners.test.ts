@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, setSystemTime, test } from "bun:test";
 import { RESTEvents, type Client } from "discord.js";
 import { RestListeners } from "./rest-listeners";
 
@@ -91,6 +91,52 @@ describe("RestListeners", () => {
     );
 
     expect(listeners.bucketRemaining.value()).toEqual({});
+  });
+
+  test("drops a bucket reading once the route has been quiet for the stale window", () => {
+    const { rest, listeners } = harness();
+    rest.emit(
+      RESTEvents.Response,
+      { route: "/channels/:id/messages" },
+      response(200, { "x-ratelimit-remaining": "3", "x-ratelimit-limit": "5" })
+    );
+
+    try {
+      setSystemTime(Date.now() + 6 * 60_000);
+      listeners.bucketRemaining.collect();
+      listeners.bucketLimit.collect();
+
+      expect(listeners.bucketRemaining.value()).toEqual({});
+      expect(listeners.bucketLimit.value()).toEqual({});
+    } finally {
+      setSystemTime();
+    }
+  });
+
+  test("keeps a refreshed bucket reading, and keeps route counters, past the stale window", () => {
+    const { rest, listeners } = harness();
+    rest.emit(
+      RESTEvents.Response,
+      { route: "/channels/:id/messages" },
+      response(200, { "x-ratelimit-remaining": "3", "x-ratelimit-limit": "5" })
+    );
+
+    try {
+      setSystemTime(Date.now() + 4 * 60_000);
+      rest.emit(
+        RESTEvents.Response,
+        { route: "/channels/:id/messages" },
+        response(200, { "x-ratelimit-remaining": "4", "x-ratelimit-limit": "5" })
+      );
+
+      setSystemTime(Date.now() + 4 * 60_000);
+      listeners.bucketRemaining.collect();
+
+      expect(listeners.bucketRemaining.value()).toEqual({ "/channels/:id/messages": 4 });
+      expect(listeners.requests.value()).toEqual({ "/channels/:id/messages": 2 });
+    } finally {
+      setSystemTime();
+    }
   });
 
   test("counts rate limit hits, global hits separately, and waits", () => {

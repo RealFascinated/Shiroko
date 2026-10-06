@@ -275,7 +275,11 @@ already-ID-stripped bucket route (`/channels/:id/messages`), so cardinality
 is bounded by the command surface rather than by guild or channel count.
 `discord_rest_bucket_remaining`/`_limit` are keyed the same way rather than
 by Discord's bucket hash: a hash is per route _and_ major parameter, so
-keying on it would add a series per channel and guild.
+keying on it would add a series per channel and guild. Because those two
+carry the last reading rather than a total, a route that goes 5 minutes
+without a call is dropped from the map on the next collect, so the exporter
+stops pushing a frozen value for a route that is no longer being called.
+The route counters keep their keys: pruning one would read as a reset.
 
 Two constraints of the current subsystem shape this: a `counter_map`
 carries exactly one label (so status gets its own metric, and method is

@@ -5,28 +5,55 @@ import { HistogramMetric } from "../histogram";
 import { Metric, type MetricRegistration } from "../metric";
 
 /**
+ * How long a last-observed bucket reading stays in the route map. Such a
+ * value is only meaningful as of the response that carried it, so once a
+ * route has been quiet for longer than any Discord rate limit window the
+ * reading is dropped: the exporter then stops pushing that series instead of
+ * freezing a drained-looking value on a route nothing is calling.
+ */
+const BUCKET_STALE_AFTER_MS = 300_000;
+
+/**
  * A map metric keyed by a generalized Discord route such as
  * `/channels/:id/messages`. `request.route` is already ID-stripped by the
  * REST layer, so cardinality is bounded by the bot's command surface
  * rather than by guild or channel count.
+ *
+ * With `staleAfterMs` the map holds last-observed readings and a key is
+ * pruned once it goes that long without a write; without it the map holds
+ * totals, where a pruned key would look like a counter reset.
  */
 abstract class RouteMapMetric extends Metric<Record<string, number>> {
-  // Nothing to self-collect: the map is whatever REST events have made it
-  // so far when the exporter snapshots it. The interval only exists to
-  // satisfy the manager's uniform collect loop.
   public override readonly collectIntervalMs: number = 60_000;
   private readonly values: Map<string, number> = new Map<string, number>();
+  private readonly lastSeen: Map<string, number> = new Map<string, number>();
+  private readonly staleAfterMs: number | undefined;
 
-  protected constructor(registration: MetricRegistration) {
+  protected constructor(registration: MetricRegistration, staleAfterMs?: number) {
     super(registration);
+    this.staleAfterMs = staleAfterMs;
   }
 
   protected set(route: string, value: number): void {
     this.values.set(route, value);
+    this.lastSeen.set(route, Date.now());
   }
 
   protected current(route: string): number {
     return this.values.get(route) ?? 0;
+  }
+
+  public override collect(): void {
+    if (this.staleAfterMs === undefined) {
+      return;
+    }
+    const cutoff = Date.now() - this.staleAfterMs;
+    for (const [route, seenAt] of this.lastSeen) {
+      if (seenAt < cutoff) {
+        this.values.delete(route);
+        this.lastSeen.delete(route);
+      }
+    }
   }
 
   public value(): Record<string, number> {
@@ -179,12 +206,15 @@ export class RestGlobalRemainingMetric extends GaugeMetric {
  */
 export class RestBucketRemainingMetric extends RouteMapMetric {
   public constructor() {
-    super({
-      id: "discord_rest_bucket_remaining",
-      kind: "counter_map",
-      label: "route",
-      help: "Requests remaining in the route's rate limit bucket, as of its last response",
-    });
+    super(
+      {
+        id: "discord_rest_bucket_remaining",
+        kind: "counter_map",
+        label: "route",
+        help: "Requests remaining in the route's rate limit bucket, as of its last response",
+      },
+      BUCKET_STALE_AFTER_MS
+    );
   }
 
   public record(route: string, remaining: number): void {
@@ -197,12 +227,15 @@ export class RestBucketRemainingMetric extends RouteMapMetric {
  */
 export class RestBucketLimitMetric extends RouteMapMetric {
   public constructor() {
-    super({
-      id: "discord_rest_bucket_limit",
-      kind: "counter_map",
-      label: "route",
-      help: "Capacity of the route's rate limit bucket, as of its last response",
-    });
+    super(
+      {
+        id: "discord_rest_bucket_limit",
+        kind: "counter_map",
+        label: "route",
+        help: "Capacity of the route's rate limit bucket, as of its last response",
+      },
+      BUCKET_STALE_AFTER_MS
+    );
   }
 
   public record(route: string, limit: number): void {
