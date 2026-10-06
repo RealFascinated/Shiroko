@@ -182,7 +182,7 @@ Use `bun test` to run tests. Import `test`/`expect` from `bun:test`; the Bun API
 
 ## Database
 
-Postgres runs via Docker Compose (`docker-compose.yml`, `postgres:18-alpine`, plus MinIO for the S3 storage layer); start it with `docker compose up -d`. Connection config lives in `.env` (`DATABASE_URL`).
+Postgres runs via Docker Compose (`docker-compose.yml`, `postgres:18-alpine`); start it with `docker compose up -d`. Connection config lives in `.env` (`DATABASE_URL`).
 
 Drizzle ORM wraps the `pg` driver (`drizzle-orm/node-postgres`). `db` is exported from `src/db/index.ts`; tables live in `src/db/schemas/`, one file per table named after it (`guild-settings.ts`, ...), and the schema must stay registered in the aggregate object in `src/db/index.ts` or `drizzle-kit generate` will emit a `DROP TABLE` for it.
 
