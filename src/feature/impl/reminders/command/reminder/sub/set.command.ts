@@ -2,7 +2,7 @@ import Command, { type ExecuteContext } from "@/command/command";
 import { booleanOption, stringOption } from "@/command/option";
 import { reminderService } from "@/feature/impl/reminders/reminder.service";
 import { openDmChannel } from "@/lib/dm";
-import { baseEmbed, errorEmbed } from "@/lib/embed";
+import { baseEmbed, errorEmbed, footerText } from "@/lib/embed";
 import { discordTimestamp, parseDuration, TimeUnit } from "@/lib/time";
 
 const MIN_DURATION_MS = TimeUnit.toMillis(TimeUnit.Minute, 1);
@@ -86,7 +86,8 @@ export default class SetCommand extends Command {
     const where = dm ? (inDm ? "here" : "in your DMs") : "in this channel";
     const embed = baseEmbed(commandName)
       .setTitle("⏰ Reminder Set")
-      .setDescription(`**#${reminder.id}** · ${discordTimestamp(remindAt)} · ${where}\n${about}`);
+      .setDescription(`${discordTimestamp(remindAt)} · ${where}\n\`${about}\``)
+      .setFooter({ text: `${footerText(commandName)} · #${reminder.id}` });
     return ctx.reply({ embeds: [embed] });
   }
 }

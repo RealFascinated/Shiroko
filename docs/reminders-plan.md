@@ -260,10 +260,14 @@ Handler:
 6. `reminderService.create(user.id, …)`. No extra `GlobalUsersManager.getUser`
    call: `CommandManager` resolves the caller before dispatch, so the
    `global_users` row the foreign key needs already exists.
-7. Reply with the id and `<t:…:R>` relative timestamp, e.g. "Reminder **#7**
-   set for in 2 hours (in this channel)." When `dm` came from the DM context
-   rather than the option, the wording says "here" instead of claiming a choice
-   the user never made. When `dm` was asked for and the DM could not be opened
+7. Reply with a card: title `⏰ Reminder Set`, a description holding the
+   relative timestamp and the destination followed by the text as inline code,
+   and the reminder id appended to the shared footer (`Arona · /reminder · #7`)
+   instead of repeated in the description. The footer is where the id belongs:
+   it is reference data the other subcommands take as input, so it stays out of
+   the way of the message itself. When `dm` came from the DM context rather than
+   the option, the wording says "here" instead of claiming a choice the user
+   never made. When `dm` was asked for and the DM could not be opened
    (`channelId` is `null`), the command stops before the insert and replies with
    an error embed.
 
