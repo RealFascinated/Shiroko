@@ -18,10 +18,11 @@ import {
   type User,
 } from "discord.js";
 
-/** Discriminator for this test command, e.g. `interaction-back:hug`. */
 const BACK_BUTTON_PREFIX = "interaction-back";
 
-/** Format a dynamic custom id we can parse back on press: `interaction-back:<type>`. */
+/**
+ * Format a dynamic custom id we can parse back on press: `interaction-back:<type>`.
+ */
 function backButtonId(interactionType: InteractionType): string {
   return `${BACK_BUTTON_PREFIX}:${interactionType}`;
 }

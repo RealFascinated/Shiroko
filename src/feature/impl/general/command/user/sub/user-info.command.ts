@@ -20,11 +20,6 @@ import {
   type User,
 } from "discord.js";
 
-/**
- * Show a user's info: first seen, ids, avatar, banner, and when in a guild
- * server roles plus the level and birthday sections if those features are
- * enabled.
- */
 export default class UserInfoCommand extends Command {
   constructor() {
     super({ id: "info", displayName: "Show a user's info" });

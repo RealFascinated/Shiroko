@@ -6,10 +6,8 @@ import { and, eq, lte, sql } from "drizzle-orm";
 
 export type Reminder = ReminderSchema;
 
-/** Default rows per page for {@link ReminderService.list}. */
 export const REMINDER_PAGE_SIZE = 10;
 
-/** How many reminders one member may hold at once. */
 export const MAX_REMINDERS_PER_USER = 100;
 
 /**
@@ -78,9 +76,6 @@ export default class ReminderService {
     return rows.length > 0;
   }
 
-  /**
-   * Delete every reminder `userId` has. Returns how many rows went.
-   */
   public async clear(userId: string): Promise<number> {
     const rows = await db
       .delete(remindersSchema)

@@ -8,10 +8,6 @@ import { baseEmbed } from "@/lib/embed";
 import { attachPager, type Page } from "@/lib/pagination";
 import { timestampLabel } from "@/lib/time";
 
-/**
- * List your pending reminders, soonest first, with the button pager when
- * they span more than one page.
- */
 export default class ListCommand extends Command {
   constructor() {
     super({ id: "list", displayName: "List your reminders" });

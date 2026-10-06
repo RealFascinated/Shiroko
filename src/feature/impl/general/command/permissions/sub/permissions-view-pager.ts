@@ -18,10 +18,6 @@ const PAGE_COUNTER = "perm-view-counter";
 
 const PAGE_WINDOW_MS = TimeUnit.toMillis(TimeUnit.Hour, 3);
 
-/**
- * Build a standard prev/next page-nav action row. Pages are 1-indexed;
- * `page` is 1..pageCount. Disabled states reflect position.
- */
 function pageRow(page: number, pageCount: number): ActionRowBuilder<MessageActionRowComponentBuilder> {
   return new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
     new ButtonBuilder()
@@ -58,11 +54,6 @@ function pageRow(page: number, pageCount: number): ActionRowBuilder<MessageActio
  * `pageCount` is the total number of pages; `render(page)` returns the embed
  * for the 1-indexed page. Only `userId` may page; the buttons disable at the
  * ends and are stripped when the window elapses. No-op for a single page.
- *
- * @param response - The live reply to attach the pager to (an `InteractionResponse`).
- * @param userId - Only this user may page.
- * @param pageCount - Total pages.
- * @param render - Build the page embed for the given 1-indexed page.
  */
 export async function attachPager(
   response: InteractionResponse,

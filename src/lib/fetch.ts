@@ -2,7 +2,6 @@
  * Options for {@link fetchJson}.
  */
 export interface FetchJsonOptions {
-  /** HTTP headers to send. */
   headers?: Bun.HeadersInit;
   /** Base URL to prefix `path` with. */
   baseUrl?: string;
@@ -15,8 +14,6 @@ export interface FetchJsonOptions {
  * callers get a debuggable failure without handling HTTP codes themselves.
  *
  * @param path - URL path (or absolute URL when `baseUrl` is omitted).
- * @param options - Optional headers and base URL.
- * @returns The parsed JSON body, typed as `T`.
  */
 export async function fetchJson<T>(path: string, options: FetchJsonOptions = {}): Promise<T> {
   const url = `${options.baseUrl ?? ""}${path}`;

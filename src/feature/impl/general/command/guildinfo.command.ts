@@ -2,10 +2,6 @@ import Command, { type ExecuteContext } from "@/command/command";
 import { baseEmbed } from "@/lib/embed";
 import { ChannelType } from "discord.js";
 
-/**
- * Show the current server's info: channel counts, roles, boosts, member
- * statuses, and history. Guild-only.
- */
 export default class GuildInfoCommand extends Command {
   constructor() {
     super({ id: "guildinfo", displayName: "Show the current server's info" });

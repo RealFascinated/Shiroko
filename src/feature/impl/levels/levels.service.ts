@@ -117,11 +117,6 @@ export default class LevelsService {
     };
   }
 
-  /**
-   * A user's rank card data: level/xp plus the guild's leaderboard
-   * standing, the XP required for the next level, and progress toward
-   * it.
-   */
   public async getRankState(guildId: string, userId: string): Promise<RankState> {
     const position = await LeaderboardManager.getLeaderboard(LeaderboardId.Level).getPosition(
       guildId,
@@ -149,10 +144,6 @@ export default class LevelsService {
     return rewards.find(reward => reward.type === "Role" && reward.level > atLevel) ?? null;
   }
 
-  /**
-   * Upsert a level reward (role type for now) for a guild level. Rejects
-   * levels below 1.
-   */
   public async setRewardRole(guild: Guild, level: number, roleId: string): Promise<void> {
     await levelsSettings.setEntry(guild.id, "rewards", String(level), { type: "Role", roleId });
   }
@@ -161,10 +152,6 @@ export default class LevelsService {
     await levelsSettings.removeEntry(guildId, "rewards", String(level));
   }
 
-  /**
-   * Every reward for a guild, ordered by level ascending. Powers the
-   * `/levels rewards` listing.
-   */
   public async rewards(guildId: string): Promise<RewardRow[]> {
     const entries = await levelsSettings.entries(guildId, "rewards");
     return Object.entries(entries)
@@ -172,10 +159,6 @@ export default class LevelsService {
       .sort((a, b) => a.level - b.level);
   }
 
-  /**
-   * Rewards for a guild between `fromLevel` and `toLevel` inclusive.
-   * Used by the level-up reward granter.
-   */
   public async rewardsBetween(guildId: string, fromLevel: number, toLevel: number): Promise<RewardRow[]> {
     const rewards = await this.rewards(guildId);
     return rewards.filter(reward => reward.level >= fromLevel && reward.level <= toLevel);

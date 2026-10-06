@@ -17,9 +17,6 @@ export class Caches {
     return cache;
   }
 
-  /**
-   * Purge one scope from every cache. Returns the total entries dropped.
-   */
   public static purgeScope(scope: string): number {
     let purged = 0;
     for (const cache of Caches.REGISTRY.values()) {

@@ -29,7 +29,6 @@ export interface UpcomingBirthday {
   age: number;
 }
 
-/** Default rows per page for {@link BirthdayService.upcoming}. */
 export const UPCOMING_PAGE_SIZE = 20;
 
 /**
@@ -83,9 +82,6 @@ export default class BirthdayService {
       });
   }
 
-  /**
-   * Delete a member's stored birthday. Returns whether a row was removed.
-   */
   public async removeBirthday(guildId: string, userId: string): Promise<boolean> {
     const rows = await db
       .delete(guildBirthdaysSchema)
@@ -94,9 +90,6 @@ export default class BirthdayService {
     return rows.length > 0;
   }
 
-  /**
-   * A member's stored birthday in a guild, or `null` when unset.
-   */
   public async getBirthday(guildId: string, userId: string): Promise<BirthdayRow | null> {
     const [row] = await db
       .select({

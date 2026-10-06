@@ -11,7 +11,6 @@ export interface PanelContext {
   readonly user: GlobalUser;
 }
 
-/** Renders one configured value as display text. */
 export type PanelFormatter<C, V = unknown> = (value: V, config: C, context: PanelContext) => string;
 
 export interface ToggleControl<C> {
@@ -20,7 +19,9 @@ export interface ToggleControl<C> {
   label: string;
   /** A short explanation shown under the field line. */
   description?: string;
-  /** The state suffix on the button, e.g. `(v) => (v ? "On" : "Off")`. */
+  /**
+   * The state suffix on the button, e.g. `(v) => (v ? "On" : "Off")`.
+   */
   state(value: boolean, config: C, context: PanelContext): string;
   /**
    * Validate the finalized value before it is stored; return an error
@@ -73,11 +74,15 @@ export interface DialogControl<C> {
   hint?: string;
   /** The modal's title, when it should differ from the label. */
   modalTitle?: string;
-  /** The button's caption, e.g. `(v) => \`✏️ ${v}\``. */
+  /**
+   * The button's caption, e.g. `(v) => \`✏️ ${v}\``.
+   */
   button?(value: unknown, config: C, context: PanelContext): string;
   /** Current value formatting for the field list; the raw string by default. */
   format?: PanelFormatter<C>;
-  /** Validate the input; return an error message, or `null` when valid. */
+  /**
+   * Validate the input; return an error message, or `null` when valid.
+   */
   validate?(input: string, config: C, context: PanelContext): string | null;
   /**
    * Validate the finalized value before it is stored; return an error
@@ -137,7 +142,9 @@ export interface PanelView<C> {
   segment: string;
   controls(config: C, context: PanelContext): readonly PanelControl<C>[];
   sections?(config: C, context: PanelContext): readonly PanelSection<C>[];
-  /** Extra field lines for the current view, e.g. which view is active. */
+  /**
+   * Extra field lines for the current view, e.g. which view is active.
+   */
   summary?(config: C, context: PanelContext): readonly string[];
 }
 
@@ -147,7 +154,9 @@ export interface PanelView<C> {
  */
 export interface PanelAccess<C> {
   authorized(context: PanelContext, config: C): Promise<boolean>;
-  /** The ephemeral reply a non-author gets. */
+  /**
+   * The ephemeral reply a non-author gets.
+   */
   denied(): string;
 }
 
@@ -156,7 +165,6 @@ export interface PanelAccess<C> {
  */
 export const PANEL_PREFIX = "panel";
 
-/** The decoded parts of a panel custom id. */
 export interface PanelCustomId {
   segment: string;
   viewSegment: string;

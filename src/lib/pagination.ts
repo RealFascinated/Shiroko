@@ -19,7 +19,6 @@ const PAGE_WINDOW_MS = TimeUnit.toMillis(TimeUnit.Hour, 3);
 export interface Page<T> {
   /** 1-based page number, clamped into range. */
   page: number;
-  /** The page size that was used. */
   pageSize: number;
   /** Total pages; 1 for an empty list. */
   pageCount: number;
@@ -83,9 +82,6 @@ export interface PagerOptions<T> {
    * query or a leaderboard's `getPage`.
    */
   fetchPage(page: number): Promise<Page<T>>;
-  /**
-   * Build the message content for a page.
-   */
   render(page: Page<T>): MessageEditOptions | Promise<MessageEditOptions>;
 }
 

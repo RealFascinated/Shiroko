@@ -32,9 +32,6 @@ export default class InvitesFeature extends Feature {
     await this.seedAllGuilds(event.client);
   }
 
-  /**
-   * Seed a new guild's baseline when the bot joins it.
-   */
   @EventHandler(GuildJoinedEvent)
   public async onGuildJoined(event: GuildJoinedEvent): Promise<void> {
     await invitesService.refreshGuild(event.guildData);
@@ -50,10 +47,6 @@ export default class InvitesFeature extends Feature {
     await invitesService.handleInviteDelete(event.invite);
   }
 
-  /**
-   * Attribute a join by diffing the current baseline against a fresh
-   * invite fetch, then record it (even when unknown).
-   */
   @EventHandler(MemberGuildJoinEvent)
   public async onMemberGuildJoin(event: MemberGuildJoinEvent): Promise<void> {
     const guild = event.member.guild;

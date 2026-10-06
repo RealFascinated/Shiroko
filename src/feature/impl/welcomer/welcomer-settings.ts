@@ -2,10 +2,8 @@ import { Constants } from "@/constants";
 import { FeatureIds } from "@/feature/feature-ids";
 import SettingsModule from "@/settings/settings-module";
 
-/** How the welcome message is rendered. */
 export type WelcomerMode = "embed" | "simple";
 
-/** The welcomer's settings: the message sent when a member joins. */
 export interface WelcomerSettingsData {
   channelId: string | null;
   mode: WelcomerMode;
@@ -17,7 +15,6 @@ export interface WelcomerSettingsData {
   simpleDescription: string;
   /** Embed accent colour; unused in simple mode. */
   color: number;
-  /** Whether the message pings the joining member. */
   ping: boolean;
 }
 

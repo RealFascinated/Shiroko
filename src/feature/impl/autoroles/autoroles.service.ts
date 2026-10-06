@@ -49,10 +49,6 @@ export default class AutorolesService {
     return true;
   }
 
-  /**
-   * All roles configured as autoroles in a guild, with any that no longer
-   * exist in the guild cache filtered out.
-   */
   public async list(guild: Guild): Promise<Role[]> {
     const roleIds = await autorolesSettings.get(guild.id, "roleIds");
     return roleIds.map(id => guild.roles.cache.get(id)).filter((r): r is Role => r !== undefined);
@@ -93,11 +89,6 @@ export default class AutorolesService {
     return result;
   }
 
-  /**
-   * Grant every valid autorole to a newly joined member. Roles that sit
-   * above the bot's highest role are skipped. Grant failures are logged,
-   * never fatal.
-   */
   public async applyToMember(guild: Guild, member: GuildMember): Promise<void> {
     const roles = (await this.list(guild)).filter(this.isAssignable);
     if (roles.length === 0) {

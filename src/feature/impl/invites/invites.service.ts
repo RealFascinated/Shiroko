@@ -58,9 +58,6 @@ export default class InvitesService {
     return true;
   }
 
-  /**
-   * Record a newly created invite in the snapshot and DB.
-   */
   public async handleInviteCreate(invite: Invite): Promise<void> {
     const guild = invite.guild;
     if (!guild) {
@@ -134,9 +131,6 @@ export default class InvitesService {
     return { code: used.code, inviterId };
   }
 
-  /**
-   * Record a member join, attributed or not.
-   */
   public async recordJoin(
     guildId: string,
     memberId: string,
@@ -152,9 +146,6 @@ export default class InvitesService {
     });
   }
 
-  /**
-   * Snapshot state for one guild, creating an empty map on first use.
-   */
   private guildState(guildId: string): Map<string, number> {
     let state = this.cache.get(guildId);
     if (!state) {
@@ -164,9 +155,6 @@ export default class InvitesService {
     return state;
   }
 
-  /**
-   * Current cached baseline for one guild (empty when not yet seeded).
-   */
   public snapshot(guildId: string): Map<string, number> {
     return this.guildState(guildId);
   }

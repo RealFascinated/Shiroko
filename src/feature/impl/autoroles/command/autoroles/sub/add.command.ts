@@ -3,11 +3,6 @@ import { roleOption, type CommandOptionBuilder } from "@/command/option";
 import { autorolesService } from "@/feature/impl/autoroles/autoroles.service";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
-/**
- * Add a role to the server's autorole list. The role must exist, not be
- * @everyone, and sit at or below the bot's highest role so it is
- * assignable.
- */
 export default class AddCommand extends Command {
   constructor() {
     super({ id: "add", displayName: "Add a role to be granted automatically on join" });

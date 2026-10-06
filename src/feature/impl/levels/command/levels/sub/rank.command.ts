@@ -9,11 +9,6 @@ const PODIUM_COLORS = {
   3: 0xcd7f32,
 };
 
-/**
- * Show a user's rank card: level, XP, progress as a bar with the matching
- * percentage, their position among everyone the server tracks, and the
- * next reward role when one is configured.
- */
 export default class RankCommand extends Command {
   constructor() {
     super({ id: "rank", displayName: "Show your (or another user's) level and XP" });

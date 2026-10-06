@@ -1,21 +1,12 @@
 /** Ordinal suffixes indexed by last digit: 0th, 1st, 2nd, 3rd, 4th-9th. */
 const ORDINAL_SUFFIXES = ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"];
 
-/**
- * Return `n` as an ordinal string: `1st`, `2nd`, `3rd`, `4th`, ….
- * Examples: `ordinal(1)` -> "1st", `ordinal(22)` -> "22nd".
- */
 export function ordinal(n: number): string {
   const mod100 = n % 100;
   const suffix = mod100 >= 11 && mod100 <= 13 ? "th" : ORDINAL_SUFFIXES[mod100 % 10]!;
   return `${n}${suffix}`;
 }
 
-/**
- * Pluralise `word` for `count`: singular when `count` is 1, otherwise
- * `word` with an "s" appended.
- * Examples: `pluralise(1, "invite")` -> "invite", `pluralise(3, "invite")` -> "invites".
- */
 export function pluralise(count: number, word: string): string {
   return count === 1 ? word : `${word}s`;
 }
@@ -28,10 +19,6 @@ export function titleCase(word: string): string {
   return word ? word[0]!.toUpperCase() + word.slice(1) : word;
 }
 
-/**
- * Render a boolean as its user-facing label.
- * Examples: `yesNo(true)` -> "Yes", `yesNo(false)` -> "No".
- */
 export function yesNo(value: boolean): string {
   return value ? "Yes" : "No";
 }

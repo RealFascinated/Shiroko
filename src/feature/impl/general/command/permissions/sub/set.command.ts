@@ -4,9 +4,6 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import Permissions, { flagLabels } from "@/permission/permissions";
 import { parseFlags } from "./permissions-helpers";
 
-/**
- * Set a role's own permissions, replacing previous. Optional parent for inheritance.
- */
 export default class PermissionsSetCommand extends Command {
   constructor() {
     super({ id: "set", displayName: "Set a role's permissions" });

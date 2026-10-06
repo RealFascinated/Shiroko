@@ -38,10 +38,6 @@ const BUS_HANDLERS = new Map<new (...args: any[]) => Event, HandlerEntry[]>();
 export class EventBus {
   private static readonly HANDLERS: Map<new (...args: any[]) => Event, HandlerEntry[]> = BUS_HANDLERS;
 
-  /**
-   * Register a listener instance: every `@EventHandler` method it owns
-   * becomes a handler on the bus.
-   */
   public static subscribe(listener: EventListener): void {
     for (const metadata of EventBus.listenerHandlers(listener)) {
       const method = listener[metadata.method as keyof EventListener] as

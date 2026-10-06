@@ -110,10 +110,6 @@ export default class PermissionsViewCommand extends Command {
     return response;
   }
 
-  /**
-   * View the whole guild: every configured role and its effective flags, one
-   * database-selected page at a time.
-   */
   private async showGuild(
     ctx: ChatInputCommandInteraction,
     commandName: string,

@@ -170,10 +170,6 @@ export default class Permissions {
     Permissions.invalidateGuild(guildId);
   }
 
-  /**
-   * Effective flags for a member: the OR over their roles' effective flags,
-   * with owner and (when enabled) `Administrator` bypasses.
-   */
   public static async memberFlags(guild: Guild, member: GuildMember): Promise<bigint> {
     if (guild.ownerId === member.id) {
       return ALL_FLAGS;
@@ -189,9 +185,6 @@ export default class Permissions {
     return flags;
   }
 
-  /**
-   * Whether `member` holds every flag in `required`.
-   */
   public static async memberHas(guild: Guild, member: GuildMember, required: bigint): Promise<boolean> {
     if (required === 0n) {
       return true;
@@ -199,9 +192,6 @@ export default class Permissions {
     return hasFlags(await Permissions.memberFlags(guild, member), required);
   }
 
-  /**
-   * Effective flags for one role (own | ancestors), with cycle safety.
-   */
   public static async roleEffectiveFlags(guildId: string, roleId: string): Promise<bigint> {
     const configs = await Permissions.loadGuild(guildId);
     return Permissions.resolveEffective(configs, roleId);
@@ -290,9 +280,6 @@ export default class Permissions {
     return configs.get(roleId)?.own ?? 0n;
   }
 
-  /**
-   * Load the whole guild's permission rows, through the cache.
-   */
   public static async loadGuild(guildId: string): Promise<Map<string, RoleConfig>> {
     return Permissions.CACHE.load(guildKey(guildId), async () => {
       const rows = await db

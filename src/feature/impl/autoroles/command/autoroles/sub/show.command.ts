@@ -2,9 +2,6 @@ import Command, { type ExecuteContext } from "@/command/command";
 import { autorolesService } from "@/feature/impl/autoroles/autoroles.service";
 import { baseEmbed } from "@/lib/embed";
 
-/**
- * List the roles configured to be granted automatically on join.
- */
 export default class ShowCommand extends Command {
   constructor() {
     super({ id: "show", displayName: "List the server's autoroles" });

@@ -1,4 +1,3 @@
-/** An immutable read of a dotted path into a nested object. */
 export function getPath(root: unknown, path: string): unknown {
   let current = root;
   for (const key of path.split(".")) {

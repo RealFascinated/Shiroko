@@ -77,7 +77,6 @@ export function displayValue<C>(
   return option?.label ?? "*(none)*";
 }
 
-/** The view switcher, present only when a panel declares several views. */
 function viewSelectRow<C extends object>(
   panel: Panel<C>,
   view: PanelView<C>,
@@ -214,10 +213,6 @@ function choiceRow<C extends object>(
   );
 }
 
-/**
- * The fields block: the subtitle, the panel's intro, the view's summary,
- * and one line per control showing its label and current value.
- */
 function fieldLines<C extends object>(
   panel: Panel<C>,
   view: PanelView<C>,
@@ -251,10 +246,6 @@ function fieldLines<C extends object>(
   return lines;
 }
 
-/**
- * Render one panel view: the heading, the fields, the controls, and any
- * read-only sections below them.
- */
 export async function renderPanel<C extends object>(
   panel: Panel<C>,
   context: PanelContext,
@@ -444,7 +435,6 @@ function channelPicker(guild: Guild, current: unknown): ChannelSelectMenuBuilder
   return picker;
 }
 
-/** A single role picker: the current role preselected when it still exists. */
 function rolePicker(guild: Guild, current: unknown): RoleSelectMenuBuilder {
   const picker = new RoleSelectMenuBuilder()
     .setCustomId(DIALOG_VALUE)

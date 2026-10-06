@@ -70,10 +70,6 @@ export default class CommandManager {
   }
 }
 
-/**
- * Dispatches chat-input (slash) command interactions to their handlers,
- * applying the feature gate and permission checks.
- */
 export class SlashCommandListener extends EventListener {
   constructor() {
     super();

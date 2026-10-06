@@ -8,10 +8,6 @@ import type ContextMenuCommand from "./context-menu-command";
 import AvatarCommand from "./impl/avatar.command";
 import BannerCommand from "./impl/banner.command";
 
-/**
- * Manages context menu application commands: builds them for registration
- * and exposes them to the interaction listener for dispatch.
- */
 export default class ContextMenuCommandManager {
   private static commands: Map<string, ContextMenuCommand> = new Map<string, ContextMenuCommand>();
 
@@ -39,9 +35,6 @@ export default class ContextMenuCommandManager {
   }
 }
 
-/**
- * Dispatches user/message context-menu interactions to their handlers.
- */
 export class ContextMenuCommandListener extends EventListener {
   constructor() {
     super();

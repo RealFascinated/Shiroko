@@ -9,10 +9,6 @@ import BirthdayCommand from "./command/birthday/birthday.command";
 
 const CRON = "1 0 * * *"; // 00:01 daily
 
-/**
- * The birthday feature: `/birthday` plus the nightly sweep that swaps the
- * birthday role and announces the day's celebrants.
- */
 export default class BirthdayFeature extends Feature {
   private job: Bun.CronJob | undefined;
 

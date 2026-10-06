@@ -1,6 +1,5 @@
 import type { Placeholder, PlaceholderContext, PlaceholderValue } from "./placeholder";
 
-/** Converts a resolved value to text; absent values render as "". */
 function render(value: PlaceholderValue): string {
   return value === null || value === undefined ? "" : String(value);
 }

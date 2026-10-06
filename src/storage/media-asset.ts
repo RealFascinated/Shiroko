@@ -15,10 +15,6 @@ const ASSET: Record<MediaKind, (user: User | PartialUser) => AssetChange> = {
  * The caller that owns a change event uses this to describe both sides to
  * `MediaService.capture`, so the event carries resolved URLs rather than
  * making each listener reach into storage.
- *
- * @param kind - the media kind.
- * @param user - the user whose asset is read.
- * @returns the asset's hash and source URL.
  */
 export function assetChange(kind: MediaKind, user: User | PartialUser): AssetChange {
   return ASSET[kind](user);

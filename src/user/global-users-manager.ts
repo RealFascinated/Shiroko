@@ -18,9 +18,6 @@ export default class GlobalUsersManager {
     new Cache<GlobalUserSchema>({ name: "global-users", mode: "authoritative", max: 100_000 })
   );
 
-  /**
-   * Get (creating if needed) the global user for `user`.
-   */
   public static async getUser(user: User): Promise<GlobalUser> {
     const row = await GlobalUsersManager.CACHE.load(userKey(user.id), async () => {
       const [existing] = await db.select().from(globalUsersSchema).where(eq(globalUsersSchema.id, user.id));

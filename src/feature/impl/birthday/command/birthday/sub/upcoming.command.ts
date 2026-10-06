@@ -9,11 +9,6 @@ import { baseEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
 import { attachPager, type Page } from "@/lib/pagination";
 
-/**
- * List the server's saved birthdays, soonest first, with today's
- * celebrations called out and the button pager when they span more than
- * one page. Each page is fetched from the database by the service.
- */
 export default class UpcomingCommand extends Command {
   constructor() {
     super({ id: "upcoming", displayName: "Show upcoming birthdays in this server" });

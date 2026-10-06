@@ -13,9 +13,6 @@ import {
 import { sql } from "drizzle-orm";
 import { getHeapStatistics } from "node:v8";
 
-/**
- * Show the bot's own stats: servers it is in, users it has seen, latency, RAM and uptime.
- */
 export default class BotStatsCommand extends Command {
   constructor() {
     super({ id: "botstats", displayName: "Show the bot's stats: servers, users, status" });

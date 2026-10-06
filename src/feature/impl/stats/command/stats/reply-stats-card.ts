@@ -3,10 +3,6 @@ import { statsService } from "@/feature/impl/stats/stats.service";
 import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { type ChatInputCommandInteraction, type User } from "discord.js";
 
-/**
- * Fetch `target`'s card data, render the PNG, and reply with it. Stats are
- * guild-scoped, so a missing guild is an error.
- */
 export async function replyStatsCard(
   ctx: ChatInputCommandInteraction,
   commandName: string,

@@ -24,7 +24,6 @@ import type GlobalUser from "../user/global-user";
 import type { CommandOptionBuilder } from "./option";
 import type ParsedArguments from "./parsed-arguments";
 
-/** Identity and registration scope of a command. */
 export interface CommandInfo {
   id: string;
   displayName: string;
@@ -283,18 +282,10 @@ export default abstract class Command {
   }
 }
 
-/**
- * Return a plain `ctx.reply(...)` result untouched, or hand `{ value, type }`
- * follow-ups off to `finishFollowUp` so the command's reply is still sent.
- */
 function isFollowUp(reply: FollowUpReturn): reply is FollowUp {
   return typeof reply === "object" && "type" in reply;
 }
 
-/**
- * Send a follow-up: a plain string, a styled embed, or an error embed.
- * Error follow-ups are always ephemeral. See DESIGN.md.
- */
 async function finishFollowUp(
   context: ExecuteContext,
   reply: FollowUp

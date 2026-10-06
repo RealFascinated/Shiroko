@@ -3,9 +3,6 @@ import { roleOption, type CommandOptionBuilder } from "@/command/option";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import Permissions from "@/permission/permissions";
 
-/**
- * Delete a role's permission row entirely; it then resolves to no permissions.
- */
 export default class PermissionsClearCommand extends Command {
   constructor() {
     super({ id: "clear", displayName: "Remove a role's permission configuration" });

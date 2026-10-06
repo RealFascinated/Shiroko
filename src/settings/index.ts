@@ -13,9 +13,6 @@ import type SettingsModule from "./settings-module";
 export default class SettingsManager {
   private static MODULES: Map<string, SettingsModule<any>> = new Map<string, SettingsModule<any>>();
 
-  /**
-   * Register a settings module. `/settings` looks modules up by id.
-   */
   public static register(module: SettingsModule<any>): void {
     SettingsManager.MODULES.set(module.id, module);
     console.log(`Registered settings module: ${module.id} - ${module.displayName}`);

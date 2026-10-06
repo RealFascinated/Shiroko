@@ -10,9 +10,6 @@ import type { DaySeries, StatsSummary, VoiceSummary } from "./stats.service";
  */
 export type StatsCardKind = "messages" | "voice" | "overall";
 
-/**
- * Whose activity a card covers: one user or the whole server.
- */
 export type StatsCardScope = "user" | "server";
 
 /**

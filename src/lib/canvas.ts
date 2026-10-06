@@ -16,9 +16,6 @@ export const CANVAS_FONT = "Geist";
 
 let fontsRegistered = false;
 
-/**
- * Register bundled fonts once per process.
- */
 function ensureFonts(): void {
   if (fontsRegistered) {
     return;

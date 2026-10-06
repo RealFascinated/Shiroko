@@ -44,7 +44,6 @@ type IsMap<V> =
 
 type Groupable<V> = IsGroup<V> extends true ? V : never;
 
-/** The entry value of an open record map. */
 type MapEntry<V> = V extends { [k: number]: infer E } ? E : V extends { [k: string]: infer E } ? E : never;
 
 type ScalarSpec<V, T extends ScalarSettingType> = V extends SettingValueMap[T]
@@ -57,9 +56,13 @@ type ScalarSpec<V, T extends ScalarSettingType> = V extends SettingValueMap[T]
       choices?: Record<string, string>;
       min?: number;
       max?: number;
-      /** Return an error message, or null when the value is valid. */
+      /**
+       * Return an error message, or null when the value is valid.
+       */
       validate?(value: V): string | null;
-      /** Display formatting for the panel. */
+      /**
+       * Display formatting for the panel.
+       */
       format?(value: V): string;
     }
   : never;
@@ -102,7 +105,6 @@ export type Paths<T> = T extends readonly unknown[]
           }[keyof T & string]
     : never;
 
-/** The value at a dotted path. */
 export type PathValue<T, P extends string> = P extends `${infer K}.${infer R}`
   ? K extends keyof T
     ? PathValue<T[K], R>
@@ -123,7 +125,6 @@ export type WritablePaths<T> = {
       : K;
 }[keyof T & string];
 
-/** The config keys whose value is an open record map. */
 export type MapKeys<C> = { [K in keyof C]: IsMap<C[K]> extends true ? K : never }[keyof C];
 
 export interface SettingsModuleConfig<C> {

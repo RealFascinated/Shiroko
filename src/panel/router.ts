@@ -25,7 +25,6 @@ import {
   renderPanelViewSection,
 } from "./render";
 
-/** A component press the engine can act on. */
 type PanelInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
 
 /**

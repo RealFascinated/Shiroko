@@ -5,10 +5,6 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
 import { MessageFlags } from "discord.js";
 
-/**
- * Clear your stored birthday for this server, and drop the birthday role
- * immediately if you currently hold it.
- */
 export default class RemoveCommand extends Command {
   constructor() {
     super({ id: "remove", displayName: "Remove your saved birthday" });

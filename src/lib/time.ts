@@ -37,12 +37,8 @@ export namespace TimeUnit {
 }
 
 /**
- * Formats a duration in the format "Xd, Xh, Xm, Xs"
- * showing at most two units for simplicity.
- *
  * @param ms - Duration in milliseconds
  * @param long - Use long unit names ("Days" instead of "d")
- * @returns The formatted duration
  */
 export function formatDuration(ms: number, long: boolean = false): string {
   let remaining = Math.floor(Math.abs(ms));

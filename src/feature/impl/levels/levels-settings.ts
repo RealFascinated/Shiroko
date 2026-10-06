@@ -1,7 +1,6 @@
 import { FeatureIds } from "@/feature/feature-ids";
 import SettingsModule from "@/settings/settings-module";
 
-/** A reward granted on reaching a level. */
 export interface LevelReward {
   type: string;
   roleId: string | null;

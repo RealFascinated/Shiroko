@@ -48,9 +48,6 @@ export interface VoiceWindow {
   seconds: number;
 }
 
-/**
- * Voice activity across every display window.
- */
 export interface VoiceSummary {
   today: VoiceWindow;
   last7days: VoiceWindow;
@@ -67,10 +64,6 @@ export interface DaySeries {
   dayLabels: string[];
 }
 
-/**
- * Everything `/stats` paints for one card: both windowed summaries plus
- * the charted kind's daily series.
- */
 export interface CardStats {
   messages: StatsSummary;
   voice: VoiceSummary;
@@ -150,9 +143,6 @@ interface OpenSession {
 export default class StatsService {
   private openSessions: Map<string, OpenSession> = new Map<string, OpenSession>();
 
-  /**
-   * Record one guild message. Redelivered events dedupe on the message id.
-   */
   public async recordMessage(record: MessageRecord): Promise<void> {
     await this.ensureUser(record.userId);
     await db
@@ -191,9 +181,6 @@ export default class StatsService {
     }
   }
 
-  /**
-   * Close every session left open by a previous process. Returns the count.
-   */
   public async closeStaleSessions(now: Date = new Date()): Promise<number> {
     const stale = await db.select().from(voiceSessionsSchema).where(isNull(voiceSessionsSchema.leftAt));
     for (const row of stale) {
@@ -221,9 +208,6 @@ export default class StatsService {
     }
   }
 
-  /**
-   * Message counts in every display window, from a single aggregate query.
-   */
   public async getMessageWindows(
     userId: string,
     guildId: string,
@@ -336,10 +320,6 @@ export default class StatsService {
     };
   }
 
-  /**
-   * Per-day message counts for the chart, oldest first, from one grouped
-   * query over the chart range.
-   */
   public async getMessageSeries(
     userId: string,
     guildId: string,
@@ -521,9 +501,6 @@ export default class StatsService {
     };
   }
 
-  /**
-   * Guild-wide per-day message counts for the chart, oldest first.
-   */
   public async getGuildMessageSeries(guildId: string, days = 7, now: Date = new Date()): Promise<DaySeries> {
     const windows = statsWindows(now, days);
     const day = sql<string>`to_char(${messageEventsSchema.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
@@ -567,9 +544,6 @@ export default class StatsService {
     return series;
   }
 
-  /**
-   * Message counts keyed by UTC day (`YYYY-MM-DD`) since `start`.
-   */
   private async messageBuckets(userId: string, guildId: string, start: Date): Promise<Map<string, number>> {
     const day = sql<string>`to_char(${messageEventsSchema.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`;
     const rows = await db
@@ -586,9 +560,6 @@ export default class StatsService {
     return new Map(rows.map(row => [row.day, row.count]));
   }
 
-  /**
-   * Voice seconds keyed by UTC join day (`YYYY-MM-DD`) since `start`.
-   */
   private async voiceBuckets(userId: string, guildId: string, start: Date): Promise<Map<string, number>> {
     const day = sql<string>`to_char(${voiceSessionsSchema.joinedAt} at time zone 'UTC', 'YYYY-MM-DD')`;
     const rows = await db
@@ -624,9 +595,6 @@ export default class StatsService {
     }
   }
 
-  /**
-   * Key for the in-memory open session of one guild user.
-   */
   private sessionKey(guildId: string, userId: string): string {
     return `${guildId}:${userId}`;
   }
@@ -679,9 +647,6 @@ export default class StatsService {
       .onConflictDoNothing({ target: globalUsersSchema.id });
   }
 
-  /**
-   * Open a voice session, closing a duplicate open first.
-   */
   private async openSession(guild: Guild, userId: string, channelId: string, now: Date): Promise<void> {
     const guildId = guild.id;
     if (this.openSessions.has(this.sessionKey(guildId, userId))) {
@@ -746,8 +711,4 @@ export default class StatsService {
   }
 }
 
-/**
- * App-wide singleton for stats tracking, created once at startup and shared
- * by every event listener.
- */
 export const statsService = new StatsService();

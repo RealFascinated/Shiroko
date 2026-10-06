@@ -16,9 +16,6 @@ export default class WelcomerFeature extends Feature {
     this.registerCommand(new WelcomerCommand());
   }
 
-  /**
-   * Send the welcome message to a member who just joined.
-   */
   @EventHandler(MemberGuildJoinEvent, { featureId: FeatureIds.Welcomer })
   public async onMemberGuildJoin(event: MemberGuildJoinEvent): Promise<void> {
     const globalUser = await GlobalUsersManager.getUser(event.member.user);

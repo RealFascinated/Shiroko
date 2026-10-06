@@ -62,9 +62,6 @@ export default class MediaService {
   /**
    * Store the asset at `sourceUrl` as the user's current asset of its kind,
    * superseding whatever was current before.
-   *
-   * @param options - the asset to store.
-   * @returns `true` when the asset was stored.
    */
   public static async store(options: StoreMediaOptions): Promise<boolean> {
     const { userId, kind, hash } = options;
@@ -114,9 +111,6 @@ export default class MediaService {
    *
    * A hash already in storage is left alone, which keeps a duplicate event
    * (two guilds fanning out the same change, or a retry) from re-fetching.
-   *
-   * @param options - the historical asset to store.
-   * @returns `true` when the asset was stored or already present.
    */
   public static async backfill(options: StoreMediaOptions): Promise<boolean> {
     const [existing] = await db
@@ -147,9 +141,6 @@ export default class MediaService {
    * Mark the user's live asset of a kind as superseded. Used when an asset
    * is removed: there is nothing new to store, but the previous one should
    * start its TTL.
-   *
-   * @param userId - the Discord user id.
-   * @param kind - the media kind.
    */
   public static async supersede(userId: string, kind: MediaKind): Promise<void> {
     await db
@@ -172,13 +163,6 @@ export default class MediaService {
    * legitimately fail (Discord has usually invalidated the old hash by the
    * time the change is observed), so the URL is only valid once the bytes
    * were written.
-   *
-   * @param userId - the Discord user id.
-   * @param kind - the media kind.
-   * @param previous - the asset before the change.
-   * @param current - the asset after the change.
-   * @returns the stored URLs of the previous and current assets, each null
-   * when it is not in storage.
    */
   public static async capture(
     userId: string,
@@ -209,11 +193,6 @@ export default class MediaService {
    * legitimately fail (Discord has usually invalidated the old hash by the
    * time the change is observed), so a computed URL alone would point at an
    * object that was never written.
-   *
-   * @param kind - the media kind.
-   * @param userId - the Discord user id.
-   * @param hash - Discord's asset hash.
-   * @returns the asset's public URL, or null when it is not stored.
    */
   private static async storedUrl(kind: MediaKind, userId: string, hash: string): Promise<string | null> {
     const [row] = await db
@@ -230,7 +209,6 @@ export default class MediaService {
    * orphaning the bytes.
    *
    * @param now - the reference time; overridable for tests.
-   * @returns the number of assets removed.
    */
   public static async expireSuperseded(now: Date = new Date()): Promise<number> {
     const cutoff = new Date(now.getTime() - MEDIA_TTL_MS);
@@ -250,12 +228,6 @@ export default class MediaService {
     return expired.length;
   }
 
-  /**
-   * Fetch an asset from its source URL and upload it to storage.
-   *
-   * @param options - the asset to upload.
-   * @returns the asset's byte size, or `null` when the fetch or upload failed.
-   */
   private static async upload(options: StoreMediaOptions): Promise<number | null> {
     const filename = mediaKey(options.kind, options.userId, options.hash);
     try {
@@ -278,14 +250,6 @@ export default class MediaService {
     }
   }
 
-  /**
-   * The insert row for an uploaded asset.
-   *
-   * @param options - the asset being stored.
-   * @param size - the uploaded byte size.
-   * @param supersededAt - the row's superseded time, or null for current.
-   * @returns the row to insert.
-   */
   private static row(
     options: StoreMediaOptions,
     size: number,
@@ -302,14 +266,6 @@ export default class MediaService {
     };
   }
 
-  /**
-   * The hash of the user's current asset of a kind, or null when there is
-   * none.
-   *
-   * @param userId - the Discord user id.
-   * @param kind - the media kind.
-   * @returns the current asset's hash, or null.
-   */
   private static async liveHash(userId: string, kind: MediaKind): Promise<string | null> {
     const [row] = await db
       .select({ hash: mediaSchema.hash })

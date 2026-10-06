@@ -20,9 +20,6 @@ export default class AutorolesFeature extends Feature {
     this.registerCommand(new AutorolesCommand());
   }
 
-  /**
-   * Grant every configured autorole to a newly joined member.
-   */
   @EventHandler(MemberGuildJoinEvent, { featureId: FeatureIds.Autoroles })
   public async onMemberGuildJoin(event: MemberGuildJoinEvent): Promise<void> {
     await autorolesService.applyToMember(event.member.guild, event.member);

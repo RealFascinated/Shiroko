@@ -20,17 +20,10 @@ export function isValidCalendarDate(year: number, month: number, day: number): b
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
-/**
- * Whether `year` is plausible: not in the future and not before `minYear`,
- * using the current UTC year as the ceiling.
- */
 export function isValidYear(year: number, now: Date = new Date(), minYear: number = MIN_YEAR): boolean {
   return Number.isInteger(year) && year >= minYear && year <= now.getUTCFullYear();
 }
 
-/**
- * Today's 1-based month and day in UTC.
- */
 export function todayUtc(now: Date = new Date()): { month: number; day: number } {
   return { month: now.getUTCMonth() + 1, day: now.getUTCDate() };
 }

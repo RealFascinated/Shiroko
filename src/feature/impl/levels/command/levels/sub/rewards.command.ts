@@ -2,10 +2,6 @@ import Command, { type ExecuteContext } from "@/command/command";
 import { levelsService } from "@/feature/impl/levels/levels.service";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
-/**
- * Show every level-up reward the server has configured, one line per
- * milestone level, ordered by level.
- */
 export default class RewardsCommand extends Command {
   constructor() {
     super({ id: "rewards", displayName: "Show the server's level-up rewards" });

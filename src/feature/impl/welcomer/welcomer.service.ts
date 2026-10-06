@@ -60,9 +60,6 @@ export default class WelcomerService {
     return { title, description };
   }
 
-  /**
-   * Resolve the simple message's own body against one user.
-   */
   public async resolveSimple(
     guild: Guild,
     message: WelcomerSettingsData,
@@ -71,10 +68,6 @@ export default class WelcomerService {
     return placeholders.replace({ globalUser, guild }, message.simpleDescription);
   }
 
-  /**
-   * The full payload for a join: the embed in embed mode, the simple body
-   * in simple mode, plus the mention restrictions.
-   */
   public async render(
     guild: Guild,
     message: WelcomerSettingsData,

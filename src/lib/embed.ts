@@ -39,9 +39,6 @@ export function ephemeralErrorReply(command: string | null, embed: EmbedBuilder)
   return { embeds: [embed ?? errorEmbed(command)], flags: MessageFlags.Ephemeral };
 }
 
-/**
- * Compose the shared footer: bot name, then `/command` when known.
- */
 export function footerText(command: string | null = null): string {
   const botName = discordClient.user?.displayName;
   return command ? `${botName} · /${command}` : `${botName}`;
@@ -82,7 +79,6 @@ export interface WatchButtonOptions {
  * elapses so the message doesn't keep dead buttons around.
  *
  * @param response - The reply to watch, e.g. from `ctx.reply({ ..., components })`.
- * @param options - Which button to accept and what to do on a valid press.
  */
 export async function watchButtonPress(
   response: InteractionResponse,

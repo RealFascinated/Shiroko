@@ -12,11 +12,6 @@ import PingCommand from "./command/ping.command";
 import SettingsCommand from "./command/settings/settings.command";
 import UserCommand from "./command/user/user.command";
 
-/**
- * The general feature: the core commands (ping, help, user info,
- * leaderboards, bot and guild info) plus the framework commands (feature,
- * permissions, settings). Always on and not toggleable.
- */
 export default class GeneralFeature extends Feature {
   constructor() {
     super(FeatureIds.General, { toggleable: false, name: "General", emoji: "🧰" });

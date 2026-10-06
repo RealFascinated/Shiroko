@@ -85,16 +85,10 @@ export class Cache<V> {
     return value;
   }
 
-  /**
-   * Read without counting a hit or affecting the entry's age.
-   */
   public peek(key: CacheKey): V | undefined {
     return this.store.get(key.key, { updateAgeOnGet: false })?.value;
   }
 
-  /**
-   * Store a value directly, e.g. after a successful write.
-   */
   public set(key: CacheKey, value: V): void {
     this.bumpScopes(key.scopes);
     this.store.set(key.key, { value, scopes: key.scopes });
