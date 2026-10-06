@@ -154,10 +154,11 @@ function channelDetails(channel: NonThreadGuildBasedChannel): Array<[string, str
 }
 
 /**
- * The channel's permission overwrites as ready-to-print embed lines: one
- * header per target followed by its allowed and denied permissions, nested
- * like the update log's diff. Reports "None" when the channel has no
- * overwrites, and a target that is no longer cached falls back to its id.
+ * An overwrite as one ready-to-print line: the target followed by its
+ * allowed (`✓`) and denied (`✘`) permissions. Whichever group is empty is
+ * omitted, so an overwrite never pads the log with blank sections. Reports
+ * "None" when the channel has no overwrites, and a target that is no longer
+ * cached falls back to its id.
  */
 function channelOverwriteLines(channel: NonThreadGuildBasedChannel): string[] {
   const targets = [...channel.permissionOverwrites.cache.entries()].sort(([a], [b]) =>
@@ -166,17 +167,33 @@ function channelOverwriteLines(channel: NonThreadGuildBasedChannel): string[] {
   if (targets.length === 0) {
     return ["**➜** Permission Overwrites: None"];
   }
-  const lines: string[] = [];
-  for (const [id, overwrite] of targets) {
-    if (lines.length > 0) {
-      lines.push("");
-    }
-    lines.push(
-      `**➜** Added permissions for ${formatOverwriteTarget(channel.guild, id)}`,
-      ...overwriteBlock(overwrite)
-    );
+  return targets.map(([id, overwrite]) =>
+    permissionLine(
+      formatOverwriteTarget(channel.guild, id),
+      overwrite.allow.toArray(),
+      overwrite.deny.toArray()
+    )
+  );
+}
+
+/**
+ * A permission target and its allow/deny names as a single line, e.g.
+ * `**➜** @everyone ✘ View Channel`. An empty group contributes nothing.
+ */
+function permissionLine(target: string, allow: string[], deny: string[]): string {
+  let line = `**➜** ${target}`;
+  if (allow.length > 0) {
+    line += ` ✓ ${formatPermissionList(allow)}`;
   }
-  return lines;
+  if (deny.length > 0) {
+    line += ` ✘ ${formatPermissionList(deny)}`;
+  }
+  return line;
+}
+
+/** Sorted, comma-separated permission labels for a list of bit names. */
+function formatPermissionList(names: string[]): string {
+  return names.map(permissionLabel).sort().join(", ");
 }
 
 /**
@@ -224,14 +241,6 @@ function overwriteStates(overwrite: PermissionOverwrites): Map<string, string> {
 /** Split the camelCase Discord uses in a permission name: `ManageGuild` -> `Manage Guild`. */
 function permissionLabel(name: string): string {
   return name.replace(/([a-z])([A-Z])/g, "$1 $2");
-}
-
-/**
- * Render permission bit names as friendly labels, splitting the camelCase
- * Discord uses (`ManageGuild` becomes `Manage Guild`).
- */
-function formatPermissionNames(names: string[]): string {
-  return names.map(permissionLabel).join(", ");
 }
 
 export default class LoggingFeature extends Feature {
@@ -505,7 +514,7 @@ export default class LoggingFeature extends Feature {
             `${event.newRole} was updated.`,
             "",
             `**➜** ID: \`${event.newRole.id}\``,
-            ...changes.map(([label, before, after]) => `${label}: ${before} → ${after}`),
+            ...changes,
             ...actorLines(actor),
           ]),
         ],
@@ -798,22 +807,21 @@ export default class LoggingFeature extends Feature {
   }
 
   /**
-   * The fields of a role update that changed, as `[label, before, after]`
-   * rows.
+   * The fields of a role update that changed, as ready-to-print lines.
    */
-  private describeRoleChanges(oldRole: Role, newRole: Role): Array<[string, string, string]> {
-    const changes: Array<[string, string, string]> = [];
+  private describeRoleChanges(oldRole: Role, newRole: Role): string[] {
+    const lines: string[] = [];
     if (oldRole.name !== newRole.name) {
-      changes.push(["**➜** Name", oldRole.name, newRole.name]);
+      lines.push(`**➜** Name: ${oldRole.name} → ${newRole.name}`);
     }
     if (oldRole.hexColor !== newRole.hexColor) {
-      changes.push(["**➜** Color", oldRole.hexColor, newRole.hexColor]);
+      lines.push(`**➜** Color: ${oldRole.hexColor} → ${newRole.hexColor}`);
     }
     if (oldRole.hoist !== newRole.hoist) {
-      changes.push(["**➜** Hoisted", yesNo(oldRole.hoist), yesNo(newRole.hoist)]);
+      lines.push(`**➜** Hoisted: ${yesNo(oldRole.hoist)} → ${yesNo(newRole.hoist)}`);
     }
     if (oldRole.mentionable !== newRole.mentionable) {
-      changes.push(["**➜** Mentionable", yesNo(oldRole.mentionable), yesNo(newRole.mentionable)]);
+      lines.push(`**➜** Mentionable: ${yesNo(oldRole.mentionable)} → ${yesNo(newRole.mentionable)}`);
     }
     if (oldRole.permissions.bitfield !== newRole.permissions.bitfield) {
       // `missing` returns the bit names present in its argument but absent
@@ -822,14 +830,11 @@ export default class LoggingFeature extends Feature {
       // a normal bit so it can be reported like any other.
       const granted = oldRole.permissions.missing(newRole.permissions.bitfield, false);
       const revoked = newRole.permissions.missing(oldRole.permissions.bitfield, false);
-      if (granted.length > 0) {
-        changes.push(["**➜** Permissions Granted", "None", formatPermissionNames(granted)]);
-      }
-      if (revoked.length > 0) {
-        changes.push(["**➜** Permissions Revoked", formatPermissionNames(revoked), "None"]);
+      if (granted.length > 0 || revoked.length > 0) {
+        lines.push(permissionLine("Permissions", granted, revoked));
       }
     }
-    return changes;
+    return lines;
   }
 
   /**
@@ -899,10 +904,10 @@ export default class LoggingFeature extends Feature {
 }
 
 /**
- * Permission overwrite changes as embed lines, one block per target: the
- * verb that applies (added, removed, updated) and the resulting allowed and
- * denied permissions. A target with nothing to report produces no lines at
- * all, so unchanged overwrites never appear.
+ * Permission overwrite changes as one line per target: the target followed
+ * by its resulting allowed (`✓`) and denied (`✘`) permissions. A target with
+ * nothing to report produces no lines at all, so unchanged overwrites never
+ * appear, and an empty group is omitted rather than printed as "none".
  */
 function describeOverwriteBlocks(
   oldChannel: NonThreadGuildBasedChannel,
@@ -919,17 +924,15 @@ function describeOverwriteBlocks(
     const after = newOverwrites.get(id);
     const target = formatOverwriteTarget(newChannel.guild, id);
     if (!before && after) {
-      if (lines.length > 0) {
-        lines.push("");
-      }
-      lines.push(`**➜** Added permissions for ${target}`, ...overwriteBlock(after));
+      lines.push(
+        permissionLine(`Added permissions for ${target}`, after.allow.toArray(), after.deny.toArray())
+      );
       continue;
     }
     if (before && !after) {
-      if (lines.length > 0) {
-        lines.push("");
-      }
-      lines.push(`**➜** Removed permissions for ${target}`, ...overwriteBlock(before));
+      lines.push(
+        permissionLine(`Removed permissions for ${target}`, before.allow.toArray(), before.deny.toArray())
+      );
       continue;
     }
     if (!before || !after) {
@@ -939,30 +942,13 @@ function describeOverwriteBlocks(
     if (transitions.length === 0) {
       continue;
     }
-    if (lines.length > 0) {
-      lines.push("");
-    }
     lines.push(
-      `**➜** Updated permissions for ${target}`,
-      "**✓** Allowed permissions",
-      formatPermissionLabels(transitions.filter(([, , to]) => to === "allowed").map(([name]) => name)),
-      "**✘** Denied permissions",
-      formatPermissionLabels(transitions.filter(([, , to]) => to === "denied").map(([name]) => name))
+      permissionLine(
+        `Updated permissions for ${target}`,
+        transitions.filter(([, , to]) => to === "allowed").map(([name]) => name),
+        transitions.filter(([, , to]) => to === "denied").map(([name]) => name)
+      )
     );
   }
   return lines;
-}
-
-function overwriteBlock(overwrite: PermissionOverwrites): string[] {
-  return [
-    "**✓** Allowed permissions",
-    formatPermissionLabels(overwrite.allow.toArray()),
-    "**✘** Denied permissions",
-    formatPermissionLabels(overwrite.deny.toArray()),
-  ];
-}
-
-function formatPermissionLabels(names: string[]): string {
-  return names.length > 0 ? names.map(permissionLabel).sort().join(", ") : "none";
-  return names.length > 0 ? names.map(permissionLabel).sort().join(", ") : "none";
 }
