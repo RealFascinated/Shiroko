@@ -4,7 +4,7 @@ import ContextMenuCommand, { type ContextMenuExecuteContext } from "../context-m
 
 export default class AvatarCommand extends ContextMenuCommand {
   constructor() {
-    super("avatar", "Show avatar");
+    super("avatar", "Show Avatar");
   }
 
   protected override get commandType(): ApplicationCommandType.User {

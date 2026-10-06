@@ -43,9 +43,14 @@ export default abstract class ContextMenuCommand {
 
   protected abstract get commandType(): ApplicationCommandType.User | ApplicationCommandType.Message;
 
+  /**
+   * Discord has no separate description for user/message commands: `name` is
+   * the label rendered in the context menu, so `displayName` is sent as-is
+   * (`id` stays the internal identifier, e.g. for logging).
+   */
   public build(): UserApplicationCommandData | MessageApplicationCommandData {
     const base: UserApplicationCommandData | MessageApplicationCommandData = {
-      name: this.id,
+      name: this.displayName,
       type: this.commandType,
     };
 

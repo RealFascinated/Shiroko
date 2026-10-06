@@ -4,7 +4,7 @@ import ContextMenuCommand, { type ContextMenuExecuteContext } from "../context-m
 
 export default class BannerCommand extends ContextMenuCommand {
   constructor() {
-    super("banner", "Show banner");
+    super("banner", "Show Banner");
   }
 
   protected override get commandType(): ApplicationCommandType.User {

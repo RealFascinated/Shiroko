@@ -21,6 +21,10 @@ export default class ContextMenuCommandManager {
     console.log(`Context menu commands registered: ${ContextMenuCommandManager.commands.size}`);
   }
 
+  /**
+   * Commands are keyed by the name Discord sent with the interaction, which
+   * for user/message commands is the display name (see `build`).
+   */
   public static getCommand(commandName: string): ContextMenuCommand | undefined {
     return ContextMenuCommandManager.commands.get(commandName);
   }
@@ -30,7 +34,7 @@ export default class ContextMenuCommandManager {
   }
 
   private registerCommand(command: ContextMenuCommand): void {
-    ContextMenuCommandManager.commands.set(command.id, command);
+    ContextMenuCommandManager.commands.set(command.displayName, command);
     console.log(`Registered context menu command: ${command.id} - ${command.displayName}`);
   }
 }
