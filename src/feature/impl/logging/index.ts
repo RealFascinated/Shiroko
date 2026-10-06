@@ -24,6 +24,7 @@ import UserAvatarUpdatedEvent from "@/event/events/user-avatar-updated.event";
 import UserBannerUpdatedEvent from "@/event/events/user-banner-updated.event";
 import UserDisplayNameUpdatedEvent from "@/event/events/user-display-name-updated.event";
 import UserUsernameUpdatedEvent from "@/event/events/user-username-updated.event";
+import VoiceStateChangedEvent from "@/event/events/voice-state-changed.event";
 import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import { baseEmbed } from "@/lib/embed";
@@ -37,6 +38,7 @@ import {
   StickerFormatType,
   type Guild,
   type GuildEmoji,
+  type GuildMember,
   type NonThreadGuildBasedChannel,
   type PartialUser,
   type PermissionOverwrites,
@@ -124,6 +126,28 @@ const CHANNEL_TYPE_NAMES: Record<number, string> = {
 /** How a channel is named in a log: its mention, or its name once deleted. */
 function channelLabel(channel: NonThreadGuildBasedChannel): string {
   return channel.type === ChannelType.GuildCategory ? `Category \`${channel.name}\`` : `<#${channel.id}>`;
+}
+
+/**
+ * One line for a voice transition: a join, a leave, or a move between
+ * channels. Returns `null` for a change that stayed in the same channel
+ * (mute, deafen, streaming), which is not worth logging.
+ */
+function describeVoiceChange(
+  member: GuildMember,
+  oldChannelId: string | null,
+  newChannelId: string | null
+): string | null {
+  if (!oldChannelId && newChannelId) {
+    return `${member} joined voice channel <#${newChannelId}>.`;
+  }
+  if (oldChannelId && !newChannelId) {
+    return `${member} left voice channel <#${oldChannelId}>.`;
+  }
+  if (oldChannelId && newChannelId && oldChannelId !== newChannelId) {
+    return `${member} moved voice channel <#${oldChannelId}> → <#${newChannelId}>.`;
+  }
+  return null;
 }
 
 /**
@@ -282,6 +306,27 @@ export default class LoggingFeature extends Feature {
             `**➜** Username: \`${event.member.user.username}\``,
             ...actorLines(actor),
           ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
+        ],
+      });
+    });
+
+    this.handleEvent(VoiceStateChangedEvent, "voice", async (event, channel) => {
+      const member = event.newState.member ?? event.oldState?.member ?? null;
+      if (!member) {
+        return;
+      }
+      const line = describeVoiceChange(member, event.oldState?.channelId ?? null, event.newState.channelId);
+      if (!line) {
+        return;
+      }
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed([
+            line,
+            "",
+            `**➜** ID: \`${member.id}\``,
+            `**➜** Username: \`${member.user.username}\``,
+          ]).setThumbnail(member.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
     });
