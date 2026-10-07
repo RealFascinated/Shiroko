@@ -73,16 +73,26 @@ function formatPermissionList(names: string[]): string {
 }
 
 /**
- * A permission target and its allow/deny names as a single line, e.g.
- * `**➜** @everyone ✘ View Channel`. An empty group contributes nothing.
+ * A permission target and its names as a single line, e.g.
+ * `**➜** @everyone ✘ View Channel`. Marks each name with the state it holds:
+ * `✓` allowed, `✘` denied, `⬤` neutral (in neither list, so the overwrite
+ * no longer sets it). An empty group contributes nothing.
  */
-export function permissionLine(target: string, allow: string[], deny: string[]): string {
+export function permissionLine(
+  target: string,
+  allow: string[],
+  deny: string[],
+  neutral: string[] = []
+): string {
   let line = `${BULLET} ${target}`;
   if (allow.length > 0) {
     line += ` ✓ ${formatPermissionList(allow)}`;
   }
   if (deny.length > 0) {
     line += ` ✘ ${formatPermissionList(deny)}`;
+  }
+  if (neutral.length > 0) {
+    line += ` ⬤ ${formatPermissionList(neutral)}`;
   }
   return line;
 }

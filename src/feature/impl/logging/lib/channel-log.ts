@@ -140,7 +140,8 @@ function formatOverwriteTransitions(
 
 /**
  * Permission overwrite changes as one line per target: the target followed
- * by its resulting allowed (`✓`) and denied (`✘`) permissions. A target with
+ * by the state each changed permission now holds, `✓` allowed, `✘` denied,
+ * or `⬤` neutral when the overwrite stopped setting it. A target with
  * nothing to report produces no lines at all, so unchanged overwrites never
  * appear, and an empty group is omitted rather than printed as "none".
  */
@@ -181,7 +182,8 @@ function describeOverwriteBlocks(
       permissionLine(
         `Updated permissions for ${target}`,
         transitions.filter(([, to]) => to === "allowed").map(([name]) => name),
-        transitions.filter(([, to]) => to === "denied").map(([name]) => name)
+        transitions.filter(([, to]) => to === "denied").map(([name]) => name),
+        transitions.filter(([, to]) => to === "neutral").map(([name]) => name)
       )
     );
   }
