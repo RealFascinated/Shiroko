@@ -73,7 +73,7 @@ export default class AutorolesService {
         const missing = roles.filter(role => !member.roles.cache.has(role.id));
         if (missing.length > 0) {
           try {
-            await member.roles.add(missing);
+            await member.roles.add(missing, "Autorole");
             result.changed++;
             result.granted += missing.length;
           } catch (error) {
@@ -95,7 +95,7 @@ export default class AutorolesService {
       return;
     }
     try {
-      await member.roles.add(roles);
+      await member.roles.add(roles, "Autorole");
     } catch (error) {
       console.error(`Failed to grant autoroles to ${member.id} in ${guild.id}:`, error);
     }
