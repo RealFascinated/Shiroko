@@ -1,7 +1,5 @@
 import type { SystemChannelFlagsBitField } from "discord.js";
-
-/** The bullet every detail line in a log embed starts with. */
-export const BULLET = "**➜**";
+import { Constants } from "@/constants";
 
 /** One value as inline code. */
 export function code(value: string): string {
@@ -10,17 +8,17 @@ export function code(value: string): string {
 
 /** A labelled value line, e.g. `**➜** Type: \`Voice\``. */
 export function detailLine(label: string, value: string): string {
-  return `${BULLET} ${label}: ${value}`;
+  return `${Constants.bullet} ${label}: ${value}`;
 }
 
-/** An `ID` line, the one detail every log type shares. */
-export function idLine(id: string): string {
-  return detailLine("ID", code(id));
+/** A before/after pair on its own, e.g. `` `a` → `b` ``. */
+export function changeDetail(before: string, after: string): string {
+  return `${before} → ${after}`;
 }
 
 /** A labelled before/after line, e.g. `**➜** Name: \`a\` → \`b\``. */
 export function changeLine(label: string, before: string, after: string): string {
-  return detailLine(label, `${before} → ${after}`);
+  return detailLine(label, changeDetail(before, after));
 }
 
 /** A comma-separated list of values as inline code, or "None" when empty. */
@@ -73,28 +71,38 @@ function formatPermissionList(names: string[]): string {
 }
 
 /**
- * A permission target and its names as a single line, e.g.
- * `**➜** @everyone ✘ View Channel`. Marks each name with the state it holds:
+ * A permission target and its names on their own, e.g.
+ * `@everyone ✘ View Channel`. Marks each name with the state it holds:
  * `✓` allowed, `✘` denied, `⬤` neutral (in neither list, so the overwrite
  * no longer sets it). An empty group contributes nothing.
  */
+export function permissionContent(
+  target: string,
+  allow: string[],
+  deny: string[],
+  neutral: string[] = []
+): string {
+  let content = target;
+  if (allow.length > 0) {
+    content += ` ✓ ${formatPermissionList(allow)}`;
+  }
+  if (deny.length > 0) {
+    content += ` ✘ ${formatPermissionList(deny)}`;
+  }
+  if (neutral.length > 0) {
+    content += ` ⬤ ${formatPermissionList(neutral)}`;
+  }
+  return content;
+}
+
+/** A permission target as a bulleted line, e.g. `**➜** @everyone ✘ View Channel`. */
 export function permissionLine(
   target: string,
   allow: string[],
   deny: string[],
   neutral: string[] = []
 ): string {
-  let line = `${BULLET} ${target}`;
-  if (allow.length > 0) {
-    line += ` ✓ ${formatPermissionList(allow)}`;
-  }
-  if (deny.length > 0) {
-    line += ` ✘ ${formatPermissionList(deny)}`;
-  }
-  if (neutral.length > 0) {
-    line += ` ⬤ ${formatPermissionList(neutral)}`;
-  }
-  return line;
+  return `${Constants.bullet} ${permissionContent(target, allow, deny, neutral)}`;
 }
 
 /**

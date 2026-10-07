@@ -99,6 +99,9 @@ The bot name is Discord's default look, so it stays; the command name is the
 useful part. Never repurpose the footer for other data; put that in fields
 (e.g. avatar's user ID) or in layer 3 (e.g. the anime title).
 
+Log cards are the exception: they identify their subject in the footer as
+**`ID: <id>`**, so the id costs a body line nowhere.
+
 ## Errors and cooldowns
 
 Errors and failed actions use `errorEmbed()`: same shape rules, but with

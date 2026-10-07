@@ -8,7 +8,7 @@ import {
   type AutoModerationActionExecution,
   type AutoModerationRule,
 } from "discord.js";
-import { boldNameOrId, changeLine, code, codeList, detailLine, enumLabel, idLine, mentionList } from "./text";
+import { boldNameOrId, changeLine, code, codeList, detailLine, enumLabel, mentionList } from "./text";
 
 /** User-facing names for what fires a rule. */
 const TRIGGER_NAMES: Record<number, string> = {
@@ -96,7 +96,6 @@ export function automodRuleDetailLines(rule: AutoModerationRule): string[] {
     detailLine("Enabled", code(yesNo(rule.enabled))),
     ...triggerLines(rule),
     ...exemptionLines(rule),
-    idLine(rule.id),
   ];
 }
 

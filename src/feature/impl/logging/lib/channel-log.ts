@@ -1,3 +1,4 @@
+import { Constants } from "@/constants";
 import { yesNo } from "@/lib/format";
 import {
   ChannelType,
@@ -6,11 +7,13 @@ import {
   type PermissionOverwrites,
 } from "discord.js";
 import {
+  changeDetail,
   changeLine,
   channelMention,
   code,
   detailLine,
   enumLabel,
+  permissionContent,
   permissionLabel,
   permissionLine,
 } from "./text";
@@ -25,6 +28,62 @@ const CHANNEL_TYPE_NAMES: Record<number, string> = {
   [ChannelType.GuildForum]: "Forum",
   [ChannelType.GuildMedia]: "Media",
 };
+
+/**
+ * One changed channel field. `summary` and `detail` render the focused
+ * embed used when this is the only change; `line` is the labelled form used
+ * when several fields changed at once.
+ */
+export interface ChannelChange {
+  /** The change phrased to follow the channel name, e.g. "name was updated". */
+  summary: string;
+  /** The change on its own, e.g. "`a` → `b`". */
+  detail: string;
+  /** The change as a labelled line, e.g. "**➜** Name: `a` → `b`". */
+  line: string;
+}
+
+/** A before/after field change, e.g. a renamed channel. */
+function fieldChange(summary: string, label: string, before: string, after: string): ChannelChange {
+  return { summary, detail: changeDetail(before, after), line: changeLine(label, before, after) };
+}
+
+/**
+ * A channel update split by how it renders: field changes first, then
+ * permission overwrites, which trail the others under their own header.
+ */
+export interface ChannelChanges {
+  /** Name, type, category, topic, slow mode, and NSFW changes. */
+  fields: ChannelChange[];
+  /** Permission overwrite changes, rendered after the fields. */
+  permissions: ChannelChange[];
+}
+
+/** Introduces the overwrite lines when the log also reports other fields. */
+const PERMISSION_CHANGES_LINE = `${Constants.bullet} Permission Changes:`;
+
+/**
+ * A permission overwrite change. The focused form names the target once, so
+ * the summary carries only the action while `detail` carries the target and
+ * its new states.
+ */
+function permissionChange(
+  verb: "Added" | "Removed" | "Updated",
+  target: string,
+  allow: string[],
+  deny: string[],
+  neutral: string[] = []
+): ChannelChange {
+  // An update's states already read as the change on their own. Added and
+  // removed overwrites do not: their states are the new or former access,
+  // so the verb is what says which way the access moved.
+  const lineTarget = verb === "Updated" ? target : `${verb} permissions for ${target}`;
+  return {
+    summary: `permissions were ${verb.toLowerCase()}`,
+    detail: permissionContent(target, allow, deny, neutral),
+    line: permissionLine(lineTarget, allow, deny, neutral),
+  };
+}
 
 /** How a channel is named in a log: its mention, or its name once deleted. */
 export function channelLabel(channel: NonThreadGuildBasedChannel): string {
@@ -139,17 +198,17 @@ function formatOverwriteTransitions(
 }
 
 /**
- * Permission overwrite changes as one line per target: the target followed
- * by the state each changed permission now holds, `✓` allowed, `✘` denied,
- * or `⬤` neutral when the overwrite stopped setting it. A target with
- * nothing to report produces no lines at all, so unchanged overwrites never
- * appear, and an empty group is omitted rather than printed as "none".
+ * Permission overwrite changes, one per target: the target followed by the
+ * state each changed permission now holds, `✓` allowed, `✘` denied, or `⬤`
+ * neutral when the overwrite stopped setting it. A target with nothing to
+ * report produces no entry at all, so unchanged overwrites never appear, and
+ * an empty group is omitted rather than printed as "none".
  */
 function describeOverwriteBlocks(
   oldChannel: NonThreadGuildBasedChannel,
   newChannel: NonThreadGuildBasedChannel
-): string[] {
-  const lines: string[] = [];
+): ChannelChange[] {
+  const changes: ChannelChange[] = [];
   const oldOverwrites = oldChannel.permissionOverwrites.cache;
   const newOverwrites = newChannel.permissionOverwrites.cache;
   const ids = [...new Set([...oldOverwrites.keys(), ...newOverwrites.keys()])].sort(
@@ -160,15 +219,11 @@ function describeOverwriteBlocks(
     const after = newOverwrites.get(id);
     const target = formatOverwriteTarget(newChannel.guild, id);
     if (!before && after) {
-      lines.push(
-        permissionLine(`Added permissions for ${target}`, after.allow.toArray(), after.deny.toArray())
-      );
+      changes.push(permissionChange("Added", target, after.allow.toArray(), after.deny.toArray()));
       continue;
     }
     if (before && !after) {
-      lines.push(
-        permissionLine(`Removed permissions for ${target}`, before.allow.toArray(), before.deny.toArray())
-      );
+      changes.push(permissionChange("Removed", target, before.allow.toArray(), before.deny.toArray()));
       continue;
     }
     if (!before || !after) {
@@ -178,22 +233,23 @@ function describeOverwriteBlocks(
     if (transitions.length === 0) {
       continue;
     }
-    lines.push(
-      permissionLine(
-        `Updated permissions for ${target}`,
+    changes.push(
+      permissionChange(
+        "Updated",
+        target,
         transitions.filter(([, to]) => to === "allowed").map(([name]) => name),
         transitions.filter(([, to]) => to === "denied").map(([name]) => name),
         transitions.filter(([, to]) => to === "neutral").map(([name]) => name)
       )
     );
   }
-  return lines;
+  return changes;
 }
 
 /**
- * The fields of a channel update that changed, as ready-to-print lines.
- * Fields are read through `in` guards because they only exist on some
- * channel types.
+ * The fields of a channel update that changed, split into field changes and
+ * permission overwrites. Fields are read through `in` guards because they
+ * only exist on some channel types.
  *
  * This reports what the channel payload itself changed, not anyone's
  * resulting access: a role edit, a category overwrite edit propagating to
@@ -203,19 +259,27 @@ function describeOverwriteBlocks(
 export function describeChannelChanges(
   oldChannel: NonThreadGuildBasedChannel,
   newChannel: NonThreadGuildBasedChannel
-): string[] {
-  const lines: string[] = [];
+): ChannelChanges {
+  const fields: ChannelChange[] = [];
   if (oldChannel.name !== newChannel.name) {
-    lines.push(changeLine("Name", code(oldChannel.name), code(newChannel.name)));
+    fields.push(fieldChange("name was updated", "Name", code(oldChannel.name), code(newChannel.name)));
   }
   if (oldChannel.type !== newChannel.type) {
-    lines.push(changeLine("Type", channelTypeLabel(oldChannel.type), channelTypeLabel(newChannel.type)));
+    fields.push(
+      fieldChange(
+        "type was updated",
+        "Type",
+        channelTypeLabel(oldChannel.type),
+        channelTypeLabel(newChannel.type)
+      )
+    );
   }
   const oldParent = "parent" in oldChannel ? oldChannel.parent : null;
   const newParent = "parent" in newChannel ? newChannel.parent : null;
   if (oldParent?.id !== newParent?.id) {
-    lines.push(
-      changeLine(
+    fields.push(
+      fieldChange(
+        "category was updated",
         "Category",
         oldParent ? code(oldParent.name) : "None",
         newParent ? code(newParent.name) : "None"
@@ -223,18 +287,47 @@ export function describeChannelChanges(
     );
   }
   if ("topic" in oldChannel && "topic" in newChannel && oldChannel.topic !== newChannel.topic) {
-    lines.push(changeLine("Topic", oldChannel.topic ?? "None", newChannel.topic ?? "None"));
+    fields.push(
+      fieldChange("topic was updated", "Topic", oldChannel.topic ?? "None", newChannel.topic ?? "None")
+    );
   }
   if ("rateLimitPerUser" in oldChannel && "rateLimitPerUser" in newChannel) {
     const oldSlowMode = oldChannel.rateLimitPerUser ?? 0;
     const newSlowMode = newChannel.rateLimitPerUser ?? 0;
     if (oldSlowMode !== newSlowMode) {
-      lines.push(changeLine("Slow Mode", `${oldSlowMode}s`, `${newSlowMode}s`));
+      fields.push(fieldChange("slow mode was updated", "Slow Mode", `${oldSlowMode}s`, `${newSlowMode}s`));
     }
   }
   if ("nsfw" in oldChannel && "nsfw" in newChannel && oldChannel.nsfw !== newChannel.nsfw) {
-    lines.push(changeLine("NSFW", yesNo(oldChannel.nsfw), yesNo(newChannel.nsfw)));
+    fields.push(
+      fieldChange("NSFW setting was updated", "NSFW", yesNo(oldChannel.nsfw), yesNo(newChannel.nsfw))
+    );
   }
-  lines.push(...describeOverwriteBlocks(oldChannel, newChannel));
+  return { fields, permissions: describeOverwriteBlocks(oldChannel, newChannel) };
+}
+
+/**
+ * The description lines for a channel-update log. A single change is named
+ * directly (`<channel>'s name was updated`) with its before/after beneath.
+ * Several changes share the generic header, with the overwrites trailing
+ * under a `Permission Changes:` line. An unchanged channel yields no lines.
+ */
+export function channelUpdateLines(channel: NonThreadGuildBasedChannel, changes: ChannelChanges): string[] {
+  const all = [...changes.fields, ...changes.permissions];
+  if (all.length === 0) {
+    return [];
+  }
+  const label = channelLabel(channel);
+  if (all.length === 1) {
+    const change = all[0]!;
+    return [`${label}'s ${change.summary}`, "", change.detail];
+  }
+  const lines = [`${label} was updated.`, "", ...changes.fields.map(change => change.line)];
+  if (changes.permissions.length > 0) {
+    if (changes.fields.length > 0) {
+      lines.push(PERMISSION_CHANGES_LINE);
+    }
+    lines.push(...changes.permissions.map(change => change.line));
+  }
   return lines;
 }

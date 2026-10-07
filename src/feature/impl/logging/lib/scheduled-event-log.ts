@@ -6,16 +6,7 @@ import {
   type GuildScheduledEvent,
   type PartialGuildScheduledEvent,
 } from "discord.js";
-import {
-  boldNameOrId,
-  changeLine,
-  channelMention,
-  code,
-  detailLine,
-  enumLabel,
-  idLine,
-  timestamp,
-} from "./text";
+import { boldNameOrId, changeLine, channelMention, code, detailLine, enumLabel, timestamp } from "./text";
 
 /**
  * A scheduled event as Discord sends it: fully cached for create, but a
@@ -62,7 +53,6 @@ export function scheduledEventDetailLines(scheduledEvent: ScheduledEvent): strin
     detailLine("Type", code(nullableEnumLabel(ENTITY_NAMES, scheduledEvent.entityType))),
     detailLine("Location", location(scheduledEvent)),
     detailLine("Starts", timestamp(scheduledEvent.scheduledStartTimestamp)),
-    idLine(scheduledEvent.id),
   ];
   if (scheduledEvent.scheduledEndTimestamp) {
     lines.push(detailLine("Ends", timestamp(scheduledEvent.scheduledEndTimestamp)));

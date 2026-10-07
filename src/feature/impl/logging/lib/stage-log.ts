@@ -1,5 +1,5 @@
 import { StageInstancePrivacyLevel, type StageInstance } from "discord.js";
-import { changeLine, channelMention, code, detailLine, enumLabel, idLine } from "./text";
+import { changeLine, channelMention, code, detailLine, enumLabel } from "./text";
 
 /** User-facing names for a stage instance's privacy level. */
 const PRIVACY_NAMES: Record<number, string> = {
@@ -13,7 +13,6 @@ export function stageDetailLines(instance: StageInstance): string[] {
     detailLine("Topic", code(instance.topic)),
     detailLine("Channel", channelMention(instance.channelId)),
     detailLine("Privacy", code(enumLabel(PRIVACY_NAMES, instance.privacyLevel))),
-    idLine(instance.id),
   ];
 }
 

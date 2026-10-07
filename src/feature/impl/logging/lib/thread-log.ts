@@ -1,6 +1,6 @@
 import { yesNo } from "@/lib/format";
 import { ChannelType, type AnyThreadChannel } from "discord.js";
-import { changeLine, channelMention, code, detailLine, enumLabel, idLine, userMention } from "./text";
+import { changeLine, channelMention, code, detailLine, enumLabel, userMention } from "./text";
 
 /** User-facing names for the thread channel types. */
 const THREAD_TYPE_NAMES: Record<number, string> = {
@@ -24,7 +24,6 @@ export function threadDetailLines(thread: AnyThreadChannel): string[] {
     detailLine("Type", code(enumLabel(THREAD_TYPE_NAMES, thread.type))),
     detailLine("Parent", channelMention(thread.parentId)),
     detailLine("Owner", userMention(thread.ownerId)),
-    idLine(thread.id),
   ];
 }
 

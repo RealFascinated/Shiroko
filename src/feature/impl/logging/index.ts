@@ -62,6 +62,7 @@ import {
   channelLabel,
   channelOverwriteLines,
   channelTypeLabel,
+  channelUpdateLines,
   describeChannelChanges,
 } from "./lib/channel-log";
 import { describeEmojiChanges } from "./lib/emoji-log";
@@ -93,10 +94,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(MemberGuildJoinEvent, "member_join", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.member.id, [
             `${event.member} joined the server.`,
             "",
-            `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
             detailLine("Account Created", timestamp(event.member.user.createdAt)),
           ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -108,10 +108,9 @@ export default class LoggingFeature extends Feature {
       const actor = await resolveAuditActor(event.member.guild, [AuditLogEvent.BotAdd], event.member.id);
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.member.id, [
             `${event.member} was added to the server.`,
             "",
-            `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
             ...actorLines(actor),
           ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -130,10 +129,9 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.member.id, [
             `${event.member} ${(actor && LEAVE_VERBS[actor.action]) ?? "left the server."}`,
             "",
-            `**➜** ID: \`${event.member.id}\``,
             `**➜** Username: \`${event.member.user.username}\``,
             ...actorLines(actor),
           ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -152,10 +150,9 @@ export default class LoggingFeature extends Feature {
       }
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(member.id, [
             line,
             "",
-            `**➜** ID: \`${member.id}\``,
             `**➜** Username: \`${member.user.username}\``,
           ]).setThumbnail(member.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
@@ -167,10 +164,9 @@ export default class LoggingFeature extends Feature {
       const removed = hadAvatar && event.newUser.avatar === null;
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newUser.id, [
             removed ? `${event.newUser} removed their avatar.` : `${event.newUser} changed their avatar.`,
             "",
-            `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
             `**➜** Avatar: ${hadAvatar ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
               removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
@@ -184,10 +180,9 @@ export default class LoggingFeature extends Feature {
       const removed = hadBanner && event.newUser.banner === null;
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newUser.id, [
             removed ? `${event.newUser} removed their banner.` : `${event.newUser} changed their banner.`,
             "",
-            `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Username: \`${event.newUser.username}\``,
             `**➜** Banner: ${hadBanner ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
               removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
@@ -199,10 +194,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(UserUsernameUpdatedEvent, "username_update", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newUser.id, [
             `${event.newUser} changed their username.`,
             "",
-            `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Before: \`${event.oldUser.username}\``,
             `**➜** After: \`${event.newUser.username}\``,
           ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -213,10 +207,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(UserDisplayNameUpdatedEvent, "display_name_update", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newUser.id, [
             `${event.newUser} changed their display name.`,
             "",
-            `**➜** ID: \`${event.newUser.id}\``,
             `**➜** Before: \`${event.oldUser.displayName}\``,
             `**➜** After: \`${event.newUser.displayName}\``,
           ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -235,10 +228,9 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newMember.id, [
             `${event.newMember} was given roles.`,
             "",
-            `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.added.map(role => role.toString()).join(", ")}`,
             ...actorLines(actor),
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -257,10 +249,9 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newMember.id, [
             `${event.newMember} had roles removed.`,
             "",
-            `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
             ...actorLines(actor),
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -271,10 +262,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(MemberNicknameUpdatedEvent, "nickname_update", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newMember.id, [
             `${event.newMember} changed their nickname.`,
             "",
-            `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Before: \`${event.oldMember.nickname ?? "None"}\``,
             `**➜** After: \`${event.newMember.nickname ?? "Removed"}\``,
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -291,12 +281,11 @@ export default class LoggingFeature extends Feature {
       const until = event.timeoutUntil;
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newMember.id, [
             until
               ? `${event.newMember} was timed out until ${timestamp(until)}.`
               : `${event.newMember} is no longer timed out.`,
             "",
-            `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Username: \`${event.newMember.user.username}\``,
             ...actorLines(actor),
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -309,12 +298,11 @@ export default class LoggingFeature extends Feature {
       const tier = event.newMember.guild.premiumTier;
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newMember.id, [
             event.boosted
               ? `${event.newMember} started boosting the server!`
               : `${event.newMember} stopped boosting the server.`,
             "",
-            `**➜** ID: \`${event.newMember.id}\``,
             `**➜** Username: \`${event.newMember.user.username}\``,
             `**➜** Boosts: ${count}`,
             `**➜** Tier: ${PREMIUM_TIER_NAMES[tier] ?? String(tier)}`,
@@ -328,7 +316,11 @@ export default class LoggingFeature extends Feature {
       if (changes.length === 0) {
         return;
       }
-      const embed = this.baseLogEmbed([`Server **${event.guildData.name}** was updated.`, "", ...changes]);
+      const embed = this.baseLogEmbed(event.guildData.id, [
+        `Server **${event.guildData.name}** was updated.`,
+        "",
+        ...changes,
+      ]);
       await channel.send({ embeds: [embed] });
     });
 
@@ -340,12 +332,11 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.channel.id, [
             `${channelLabel(event.channel)} was created.`,
             "",
             `**➜** Name: \`${event.channel.name}\``,
             `**➜** Type: \`${channelTypeLabel(event.channel.type)}\``,
-            `**➜** ID: \`${event.channel.id}\``,
             ...channelDetails(event.channel),
             ...channelOverwriteLines(event.channel),
             ...actorLines(actor),
@@ -355,8 +346,11 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(ChannelUpdatedEvent, "channel", async (event, channel) => {
-      const changes = describeChannelChanges(event.oldChannel, event.newChannel);
-      if (changes.length === 0) {
+      const lines = channelUpdateLines(
+        event.newChannel,
+        describeChannelChanges(event.oldChannel, event.newChannel)
+      );
+      if (lines.length === 0) {
         return;
       }
       // Channel updates carry no attribution: `ChannelUpdate` and the three
@@ -364,14 +358,7 @@ export default class LoggingFeature extends Feature {
       // matching entry may belong to a different edit. A missing moderator
       // beats naming the wrong one.
       await channel.send({
-        embeds: [
-          this.baseLogEmbed([
-            `${channelLabel(event.newChannel)} was updated.`,
-            "",
-            `**➜** ID: \`${event.newChannel.id}\``,
-            ...changes,
-          ]),
-        ],
+        embeds: [this.baseLogEmbed(event.newChannel.id, lines)],
       });
     });
 
@@ -383,11 +370,10 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.channel.id, [
             `Channel \`${event.channel.name}\` was deleted.`,
             "",
             `**➜** Type: \`${channelTypeLabel(event.channel.type)}\``,
-            `**➜** ID: \`${event.channel.id}\``,
             ...actorLines(actor),
           ]),
         ],
@@ -399,7 +385,7 @@ export default class LoggingFeature extends Feature {
       // names, so the audit entry would only repeat that same user.
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.thread.id, [
             `Thread <#${event.thread.id}> was created.`,
             "",
             ...threadDetailLines(event.thread),
@@ -422,7 +408,7 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newThread.id, [
             `Thread <#${event.newThread.id}> was updated.`,
             "",
             `**➜** Name: \`${event.newThread.name}\``,
@@ -441,11 +427,10 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.thread.id, [
             `Thread \`${event.thread.name}\` was deleted.`,
             "",
             `**➜** Parent: ${event.thread.parentId ? `<#${event.thread.parentId}>` : "None"}`,
-            `**➜** ID: \`${event.thread.id}\``,
             ...actorLines(actor),
           ]),
         ],
@@ -460,7 +445,7 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.instance.id, [
             `Stage instance started in <#${event.instance.channelId}>.`,
             "",
             ...stageDetailLines(event.instance),
@@ -482,7 +467,7 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newInstance.id, [
             `Stage instance in <#${event.newInstance.channelId}> was updated.`,
             "",
             ...changes,
@@ -500,11 +485,10 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.instance.id, [
             `Stage instance ended in <#${event.instance.channelId}>.`,
             "",
             `**➜** Topic: \`${event.instance.topic}\``,
-            `**➜** ID: \`${event.instance.id}\``,
             ...actorLines(actor),
           ]),
         ],
@@ -519,7 +503,7 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.scheduledEvent.id, [
             `Scheduled event ${scheduledEventName(event.scheduledEvent)} was created.`,
             "",
             ...scheduledEventDetailLines(event.scheduledEvent),
@@ -541,7 +525,7 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newEvent.id, [
             `Scheduled event ${scheduledEventName(event.newEvent)} was updated.`,
             "",
             ...changes,
@@ -559,7 +543,7 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.scheduledEvent.id, [
             `Scheduled event ${scheduledEventName(event.scheduledEvent)} was deleted.`,
             "",
             ...scheduledEventDetailLines(event.scheduledEvent),
@@ -572,10 +556,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(ScheduledEventUserAddedEvent, "scheduled_event", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.user.id, [
             `${event.user} is interested in ${scheduledEventName(event.scheduledEvent)}.`,
             "",
-            `**➜** ID: \`${event.user.id}\``,
             `**➜** Interested: ${event.scheduledEvent.userCount ?? "Unknown"}`,
           ]).setThumbnail(event.user.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
@@ -585,10 +568,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(ScheduledEventUserRemovedEvent, "scheduled_event", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.user.id, [
             `${event.user} is no longer interested in ${scheduledEventName(event.scheduledEvent)}.`,
             "",
-            `**➜** ID: \`${event.user.id}\``,
             `**➜** Interested: ${event.scheduledEvent.userCount ?? "Unknown"}`,
           ]).setThumbnail(event.user.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
@@ -603,7 +585,7 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.rule.id, [
             `AutoMod rule \`${event.rule.name}\` was created.`,
             "",
             ...automodRuleDetailLines(event.rule),
@@ -625,10 +607,9 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newRule.id, [
             `AutoMod rule \`${event.newRule.name}\` was updated.`,
             "",
-            `**➜** ID: \`${event.newRule.id}\``,
             ...changes,
             ...actorLines(actor),
           ]),
@@ -644,10 +625,9 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.rule.id, [
             `AutoMod rule \`${event.rule.name}\` was deleted.`,
             "",
-            `**➜** ID: \`${event.rule.id}\``,
             ...actorLines(actor),
           ]),
         ],
@@ -658,7 +638,7 @@ export default class LoggingFeature extends Feature {
       const { execution } = event;
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(execution.ruleId, [
             `AutoMod rule ${automodRuleLabel(execution.autoModerationRule, execution.ruleId)} took action.`,
             "",
             ...automodExecutionLines(execution),
@@ -671,10 +651,9 @@ export default class LoggingFeature extends Feature {
       const actor = await resolveAuditActor(event.role.guild, [AuditLogEvent.RoleCreate], event.role.id);
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.role.id, [
             `${event.role} was created.`,
             "",
-            `**➜** ID: \`${event.role.id}\``,
             `**➜** Color: \`${event.role.hexColor}\``,
             `**➜** Hoisted: \`${yesNo(event.role.hoist)}\``,
             `**➜** Mentionable: \`${yesNo(event.role.mentionable)}\``,
@@ -696,10 +675,9 @@ export default class LoggingFeature extends Feature {
       );
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newRole.id, [
             `${event.newRole} was updated.`,
             "",
-            `**➜** ID: \`${event.newRole.id}\``,
             ...changes,
             ...actorLines(actor),
           ]),
@@ -711,10 +689,9 @@ export default class LoggingFeature extends Feature {
       const actor = await resolveAuditActor(event.role.guild, [AuditLogEvent.RoleDelete], event.role.id);
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.role.id, [
             `${event.role} was deleted.`,
             "",
-            `**➜** ID: \`${event.role.id}\``,
             `**➜** Color: \`${event.role.hexColor}\``,
             ...actorLines(actor),
           ]),
@@ -725,11 +702,10 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(EmojiCreatedEvent, "emoji", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.emoji.id, [
             `Emoji ${event.emoji} was created.`,
             "",
             `**➜** Name: \`${event.emoji.name}\``,
-            `**➜** ID: \`${event.emoji.id}\``,
             `**➜** Animated: \`${yesNo(event.emoji.animated)}\``,
           ]).setThumbnail(event.emoji.imageURL({ size: 4096 })),
         ],
@@ -743,10 +719,9 @@ export default class LoggingFeature extends Feature {
       }
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newEmoji.id, [
             `Emoji ${event.newEmoji} was updated.`,
             "",
-            `**➜** ID: \`${event.newEmoji.id}\``,
             ...changes,
           ]).setThumbnail(event.newEmoji.imageURL({ size: 4096 })),
         ],
@@ -756,10 +731,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(EmojiDeletedEvent, "emoji", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.emoji.id, [
             `Emoji ${event.emoji} was deleted.`,
             "",
-            `**➜** ID: \`${event.emoji.id}\``,
             `**➜** Animated: \`${yesNo(event.emoji.animated)}\``,
           ]).setThumbnail(event.emoji.imageURL({ size: 4096 })),
         ],
@@ -769,10 +743,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(StickerCreatedEvent, "sticker", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.sticker.id, [
             `Sticker **${event.sticker.name}** was created.`,
             "",
-            `**➜** ID: \`${event.sticker.id}\``,
             `**➜** Description: \`${event.sticker.description ?? "None"}\``,
             `**➜** Format: \`${stickerFormatLabel(event.sticker.format)}\``,
             `**➜** Tags: \`${event.sticker.tags ?? "None"}\``,
@@ -788,10 +761,9 @@ export default class LoggingFeature extends Feature {
       }
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.newSticker.id, [
             `Sticker **${event.newSticker.name}** was updated.`,
             "",
-            `**➜** ID: \`${event.newSticker.id}\``,
             ...changes,
           ]).setImage(event.newSticker.url),
         ],
@@ -801,10 +773,9 @@ export default class LoggingFeature extends Feature {
     this.handleEvent(StickerDeletedEvent, "sticker", async (event, channel) => {
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(event.sticker.id, [
             `Sticker **${event.sticker.name}** was deleted.`,
             "",
-            `**➜** ID: \`${event.sticker.id}\``,
             `**➜** Format: \`${stickerFormatLabel(event.sticker.format)}\``,
           ]).setImage(event.sticker.url),
         ],
@@ -819,10 +790,9 @@ export default class LoggingFeature extends Feature {
       const actor = await resolveAuditActor(ban.guild, [AuditLogEvent.MemberBanAdd], ban.user.id);
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(ban.user.id, [
             `${ban.user} was banned.`,
             "",
-            `**➜** ID: \`${ban.user.id}\``,
             `**➜** Username: \`${ban.user.username}\``,
             ...moderatorLines(actor),
             `**➜** Reason: \`${ban.reason ?? actor?.reason ?? "None"}\``,
@@ -839,10 +809,9 @@ export default class LoggingFeature extends Feature {
       const actor = await resolveAuditActor(ban.guild, [AuditLogEvent.MemberBanRemove], ban.user.id);
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(ban.user.id, [
             `${ban.user} was unbanned.`,
             "",
-            `**➜** ID: \`${ban.user.id}\``,
             `**➜** Username: \`${ban.user.username}\``,
             ...actorLines(actor),
           ]).setThumbnail(ban.user.displayAvatarURL({ size: 4096, extension: "webp" })),
@@ -854,7 +823,7 @@ export default class LoggingFeature extends Feature {
       const { invite } = event;
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(null, [
             `**${event.guild!.name}** had an invite created.`,
             "",
             `**➜** Code: \`${invite.code}\``,
@@ -872,7 +841,7 @@ export default class LoggingFeature extends Feature {
         : null;
       await channel.send({
         embeds: [
-          this.baseLogEmbed([
+          this.baseLogEmbed(null, [
             `**${event.guild!.name}** had an invite deleted.`,
             "",
             `**➜** Code: \`${event.invite.code}\``,
@@ -900,8 +869,14 @@ export default class LoggingFeature extends Feature {
     return channel;
   }
 
-  public baseLogEmbed(descriptionLines: string[] = []): EmbedBuilder {
-    return baseEmbed().setDescription(descriptionLines.join("\n")).setTimestamp(new Date());
+  /**
+   * A log card. The subject's id rides in the footer instead of a detail
+   * line, leaving the body to what actually happened. Pass `null` for a
+   * subject with no id of its own, such as an invite.
+   */
+  public baseLogEmbed(id: string | null, descriptionLines: string[] = []): EmbedBuilder {
+    const embed = baseEmbed().setDescription(descriptionLines.join("\n")).setTimestamp(new Date());
+    return id === null ? embed : embed.setFooter({ text: `ID: ${id}` });
   }
 
   /**
