@@ -395,18 +395,14 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(ThreadCreatedEvent, "thread", async (event, channel) => {
-      const actor = await resolveAuditActor(
-        event.thread.guild,
-        [AuditLogEvent.ThreadCreate],
-        event.thread.id
-      );
+      // A thread's creator is its owner, which `threadDetailLines` already
+      // names, so the audit entry would only repeat that same user.
       await channel.send({
         embeds: [
           this.baseLogEmbed([
             `Thread <#${event.thread.id}> was created.`,
             "",
             ...threadDetailLines(event.thread),
-            ...actorLines(actor),
           ]),
         ],
       });
