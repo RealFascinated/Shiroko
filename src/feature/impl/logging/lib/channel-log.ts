@@ -35,7 +35,7 @@ const CHANNEL_TYPE_NAMES: Record<number, string> = {
  * when several fields changed at once.
  */
 export interface ChannelChange {
-  /** The change phrased to follow the channel name, e.g. "name was updated". */
+  /** The change phrased to lead the focused title, e.g. "Topic changed". */
   summary: string;
   /** The change on its own, e.g. "`a` → `b`". */
   detail: string;
@@ -62,6 +62,13 @@ export interface ChannelChanges {
 /** Introduces the overwrite lines when the log also reports other fields. */
 const PERMISSION_CHANGES_LINE = `${Constants.bullet} Permission Changes:`;
 
+/** How each overwrite action reads in a focused title. */
+const PERMISSION_SUMMARIES: Record<"Added" | "Removed" | "Updated", string> = {
+  Added: "Permissions added",
+  Removed: "Permissions removed",
+  Updated: "Permissions changed",
+};
+
 /**
  * A permission overwrite change. The focused form names the target once, so
  * the summary carries only the action while `detail` carries the target and
@@ -79,7 +86,7 @@ function permissionChange(
   // so the verb is what says which way the access moved.
   const lineTarget = verb === "Updated" ? target : `${verb} permissions for ${target}`;
   return {
-    summary: `permissions were ${verb.toLowerCase()}`,
+    summary: PERMISSION_SUMMARIES[verb],
     detail: permissionContent(target, allow, deny, neutral),
     line: permissionLine(lineTarget, allow, deny, neutral),
   };
@@ -262,12 +269,12 @@ export function describeChannelChanges(
 ): ChannelChanges {
   const fields: ChannelChange[] = [];
   if (oldChannel.name !== newChannel.name) {
-    fields.push(fieldChange("name was updated", "Name", code(oldChannel.name), code(newChannel.name)));
+    fields.push(fieldChange("Name changed", "Name", code(oldChannel.name), code(newChannel.name)));
   }
   if (oldChannel.type !== newChannel.type) {
     fields.push(
       fieldChange(
-        "type was updated",
+        "Type changed",
         "Type",
         channelTypeLabel(oldChannel.type),
         channelTypeLabel(newChannel.type)
@@ -279,7 +286,7 @@ export function describeChannelChanges(
   if (oldParent?.id !== newParent?.id) {
     fields.push(
       fieldChange(
-        "category was updated",
+        "Category changed",
         "Category",
         oldParent ? code(oldParent.name) : "None",
         newParent ? code(newParent.name) : "None"
@@ -288,20 +295,18 @@ export function describeChannelChanges(
   }
   if ("topic" in oldChannel && "topic" in newChannel && oldChannel.topic !== newChannel.topic) {
     fields.push(
-      fieldChange("topic was updated", "Topic", oldChannel.topic ?? "None", newChannel.topic ?? "None")
+      fieldChange("Topic changed", "Topic", oldChannel.topic ?? "None", newChannel.topic ?? "None")
     );
   }
   if ("rateLimitPerUser" in oldChannel && "rateLimitPerUser" in newChannel) {
     const oldSlowMode = oldChannel.rateLimitPerUser ?? 0;
     const newSlowMode = newChannel.rateLimitPerUser ?? 0;
     if (oldSlowMode !== newSlowMode) {
-      fields.push(fieldChange("slow mode was updated", "Slow Mode", `${oldSlowMode}s`, `${newSlowMode}s`));
+      fields.push(fieldChange("Slow mode changed", "Slow Mode", `${oldSlowMode}s`, `${newSlowMode}s`));
     }
   }
   if ("nsfw" in oldChannel && "nsfw" in newChannel && oldChannel.nsfw !== newChannel.nsfw) {
-    fields.push(
-      fieldChange("NSFW setting was updated", "NSFW", yesNo(oldChannel.nsfw), yesNo(newChannel.nsfw))
-    );
+    fields.push(fieldChange("NSFW setting changed", "NSFW", yesNo(oldChannel.nsfw), yesNo(newChannel.nsfw)));
   }
   return { fields, permissions: describeOverwriteBlocks(oldChannel, newChannel) };
 }
@@ -320,7 +325,7 @@ export function channelUpdateLines(channel: NonThreadGuildBasedChannel, changes:
   const label = channelLabel(channel);
   if (all.length === 1) {
     const change = all[0]!;
-    return [`${label}'s ${change.summary}`, "", change.detail];
+    return [`${change.summary} for ${label}.`, "", change.detail];
   }
   const lines = [`${label} was updated.`, "", ...changes.fields.map(change => change.line)];
   if (changes.permissions.length > 0) {

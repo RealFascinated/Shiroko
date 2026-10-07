@@ -50,7 +50,7 @@ describe("describeChannelChanges", () => {
     expect(describeChannelChanges(before, after)).toEqual({
       fields: [
         {
-          summary: "name was updated",
+          summary: "Name changed",
           detail: "`ticket-2230` → `ticket-2231`",
           line: "**➜** Name: `ticket-2230` → `ticket-2231`",
         },
@@ -66,7 +66,7 @@ describe("describeChannelChanges", () => {
       fields: [],
       permissions: [
         {
-          summary: "permissions were updated",
+          summary: "Permissions changed",
           detail: `${ROLE_MENTION} ⬤ View Channel`,
           line: `**➜** ${ROLE_MENTION} ⬤ View Channel`,
         },
@@ -81,7 +81,7 @@ describe("describeChannelChanges", () => {
       fields: [],
       permissions: [
         {
-          summary: "permissions were updated",
+          summary: "Permissions changed",
           detail: `${ROLE_MENTION} ✓ Send Messages ⬤ View Channel`,
           line: `**➜** ${ROLE_MENTION} ✓ Send Messages ⬤ View Channel`,
         },
@@ -95,9 +95,29 @@ describe("channelUpdateLines", () => {
     const before = channel([]);
     const after = { ...channel([]), name: "ticket-2231" } as NonThreadGuildBasedChannel;
     expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
-      `<#${CHANNEL_ID}>'s name was updated`,
+      `Name changed for <#${CHANNEL_ID}>.`,
       "",
       "`ticket-2230` → `ticket-2231`",
+    ]);
+  });
+
+  test("names the field a single non-name change touched", () => {
+    const before = channel([]);
+    const after = { ...channel([]), topic: "Help" } as NonThreadGuildBasedChannel;
+    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
+      `Topic changed for <#${CHANNEL_ID}>.`,
+      "",
+      "None → Help",
+    ]);
+  });
+
+  test("names the permissions a single overwrite change touched", () => {
+    const before = channel([[ROLE_ID, overwrite(["ViewChannel"], [])]]);
+    const after = channel([[ROLE_ID, overwrite([], [])]]);
+    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
+      `Permissions changed for <#${CHANNEL_ID}>.`,
+      "",
+      `${ROLE_MENTION} ⬤ View Channel`,
     ]);
   });
 
