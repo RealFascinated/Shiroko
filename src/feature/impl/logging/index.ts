@@ -888,15 +888,16 @@ export default class LoggingFeature extends Feature {
   }
 
   /**
-   * The guild's configured log channel, or `null` when unset or not a text
-   * channel.
+   * The guild's configured log channel, or `null` when unset, deleted, or
+   * not a text channel. `fetch` rejects for a channel that no longer
+   * exists, so the rejection folds into the same "unusable" result.
    */
   public async getLogsChannel(guild: Guild): Promise<TextChannel | null> {
     const channelId = await loggingService.getChannelId(guild);
     if (!channelId) {
       return null;
     }
-    const channel = await guild.channels.fetch(channelId);
+    const channel = await guild.channels.fetch(channelId).catch(() => null);
     if (!channel || channel.type !== ChannelType.GuildText) {
       return null;
     }
@@ -911,6 +912,11 @@ export default class LoggingFeature extends Feature {
    * Register one handler for `eventClass` behind the `logType` gate: when
    * the type is disabled, or the guild has no usable log channel, the
    * callback never runs.
+   *
+   * Never rejects. Handlers are dispatched from `void EventBus.post(...)`,
+   * so a rejection here (a channel the bot cannot post to, for instance)
+   * would surface as an `unhandledRejection`, which this process has no
+   * handler for.
    */
   public handleEvent<T extends Event>(
     eventClass: new (...args: any[]) => T,
@@ -930,7 +936,11 @@ export default class LoggingFeature extends Feature {
           return;
         }
 
-        await callback(event, channel);
+        try {
+          await callback(event, channel);
+        } catch (error) {
+          console.error(`Failed to post the ${logType} log for guild ${event.guild?.id}:`, error);
+        }
       },
       { featureId: FeatureIds.Logging }
     );
