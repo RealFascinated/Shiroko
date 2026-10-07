@@ -858,7 +858,7 @@ export default class LoggingFeature extends Feature {
             `**${event.guild!.name}** had an invite created.`,
             "",
             `**➜** Code: \`${invite.code}\``,
-            `**➜** Channel: \`${invite.channel ? `<#${invite.channel.id}>` : "unknown"}\``,
+            `**➜** Channel: ${invite.channel ? `<#${invite.channel.id}>` : "`unknown`"}`,
             detailLine("Expires", invite.expiresAt ? timestamp(invite.expiresAt) : "never"),
             ...(invite.inviter ? [`**➜** Created By: ${userLabel(invite.inviter)}`] : []),
           ]).setThumbnail(invite.inviter?.displayAvatarURL({ size: 4096, extension: "webp" }) ?? null),
