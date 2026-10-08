@@ -150,11 +150,9 @@ export default class LoggingFeature extends Feature {
       }
       await channel.send({
         embeds: [
-          this.baseLogEmbed(member.id, [
-            line,
-            "",
-            `**➜** Username: \`${member.user.username}\``,
-          ]).setThumbnail(member.displayAvatarURL({ size: 4096, extension: "webp" })),
+          this.baseLogEmbed(member.id, [line]).setThumbnail(
+            member.displayAvatarURL({ size: 4096, extension: "webp" })
+          ),
         ],
       });
     });
@@ -167,7 +165,6 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed(event.newUser.id, [
             removed ? `${event.newUser} removed their avatar.` : `${event.newUser} changed their avatar.`,
             "",
-            `**➜** Username: \`${event.newUser.username}\``,
             `**➜** Avatar: ${hadAvatar ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
               removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
             }`,
@@ -183,7 +180,6 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed(event.newUser.id, [
             removed ? `${event.newUser} removed their banner.` : `${event.newUser} changed their banner.`,
             "",
-            `**➜** Username: \`${event.newUser.username}\``,
             `**➜** Banner: ${hadBanner ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
               removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
             }`,
@@ -285,9 +281,7 @@ export default class LoggingFeature extends Feature {
             until
               ? `${event.newMember} was timed out until ${timestamp(until)}.`
               : `${event.newMember} is no longer timed out.`,
-            "",
-            `**➜** Username: \`${event.newMember.user.username}\``,
-            ...actorLines(actor),
+            ...(actor ? ["", ...actorLines(actor)] : []),
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
         ],
       });
@@ -303,7 +297,6 @@ export default class LoggingFeature extends Feature {
               ? `${event.newMember} started boosting the server!`
               : `${event.newMember} stopped boosting the server.`,
             "",
-            `**➜** Username: \`${event.newMember.user.username}\``,
             `**➜** Boosts: ${count}`,
             `**➜** Tier: ${PREMIUM_TIER_NAMES[tier] ?? String(tier)}`,
           ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
