@@ -50,7 +50,7 @@ export default abstract class LeaderboardSubCommand extends Command {
     if (standing.position === null || standing.row === null) {
       return "**Your position:** not ranked yet";
     }
-    return `**Your position:** **${ordinal(standing.position)}** of **${standing.total}** · ${this.renderValue(standing.row)}`;
+    return `**Your position:** **${standing.position}**/**${standing.total}** · ${this.renderValue(standing.row)}`;
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {

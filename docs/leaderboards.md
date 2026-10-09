@@ -351,7 +351,7 @@ the old ranking code was deleted. No shims, no legacy paths.
      `LeaderboardSubCommand` (in `sub/`) fetches page 1 and the caller's
      own position (`getPosition`, in parallel), renders rows with their
      global 1-based position, closes the embed with the caller's position
-     ("Your position: **42nd** of **500** · <score>", or "not ranked yet"
+     ("**Your position:** **42**/**500** · <score>", or "not ranked yet"
      with no score row), and attaches the `attachPager` button pager
      (⏮ ◀ n/N ▶ ⏭) when the board spans multiple pages.
      `attachPager`'s `render` accepts a promise so pages are fetched lazily
