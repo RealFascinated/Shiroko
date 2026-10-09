@@ -210,18 +210,12 @@ export default class SettingsModule<C> {
     return value as C;
   }
 
-  /**
-   * Read a scalar, array, group, or group leaf by typed dotted path.
-   */
   public async get<P extends Paths<C>>(guildId: string, path: P): Promise<PathValue<C, P>> {
     const store = await GuildSettings.all(guildId);
     const descriptor = this.resolve(path);
     return assembleValue(store, `${this.id}.${path}`, descriptor) as PathValue<C, P>;
   }
 
-  /**
-   * Write a leaf; each write is one row.
-   */
   public async set<P extends WritablePaths<C>>(
     guildId: string,
     path: P,
@@ -230,9 +224,6 @@ export default class SettingsModule<C> {
     await GuildSettings.set(guildId, `${this.id}.${path}`, value as JsonValue);
   }
 
-  /**
-   * Read a whole open map.
-   */
   public async entries<K extends MapKeys<C>>(guildId: string, key: K): Promise<C[K]> {
     const store = await GuildSettings.all(guildId);
     return assembleValue(store, `${this.id}.${String(key)}`, this.mapDescriptors(key).map) as C[K];
@@ -251,9 +242,6 @@ export default class SettingsModule<C> {
     await writeEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry, value);
   }
 
-  /**
-   * Delete every row of one map entry.
-   */
   public async removeEntry<K extends MapKeys<C>>(guildId: string, key: K, entryKey: string): Promise<void> {
     const { entry } = this.mapDescriptors(key);
     await clearEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry);

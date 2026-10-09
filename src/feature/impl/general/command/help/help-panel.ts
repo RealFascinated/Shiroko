@@ -5,7 +5,6 @@ import { env } from "@/lib/env";
 import Panel, { type PanelControl, type PanelView } from "@/panel/panel";
 import type { Guild } from "discord.js";
 
-/** One command's listing: its clickable mention, description, and its sub-commands. */
 interface HelpCommandInfo {
   mention: string;
   description: string;
@@ -20,7 +19,6 @@ interface HelpCategory {
   commands: readonly HelpCommandInfo[];
 }
 
-/** What the help panel renders over: the categories available in the guild. */
 interface HelpConfig {
   categories: readonly HelpCategory[];
 }

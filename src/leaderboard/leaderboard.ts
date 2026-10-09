@@ -55,11 +55,8 @@ export const MAX_PAGE_SIZE = 50;
  * position mechanics.
  */
 export default abstract class Leaderboard<T extends LeaderboardRow> {
-  /** The board's registry slug ({@link LeaderboardId}). */
   public abstract readonly id: LeaderboardId;
-  /** What is ranked: user ids or guild ids. */
   public abstract readonly entity: LeaderboardEntity;
-  /** "guild": the scope parameter is a guild id. "global": ignored. */
   public abstract readonly scope: LeaderboardScope;
 
   /**

@@ -2,7 +2,6 @@ import { yesNo } from "@/lib/format";
 import type { GuildEmoji } from "discord.js";
 import { changeLine, mentionList } from "./text";
 
-/** The fields of an emoji update that changed, as ready-to-print lines. */
 export function describeEmojiChanges(oldEmoji: GuildEmoji, newEmoji: GuildEmoji): string[] {
   const lines: string[] = [];
   if (oldEmoji.name !== newEmoji.name) {

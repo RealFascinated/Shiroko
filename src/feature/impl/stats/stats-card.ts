@@ -210,9 +210,6 @@ function formatVoiceDuration(seconds: number): string {
   return formatDuration(TimeUnit.toMillis(TimeUnit.Second, Math.max(1, Math.round(seconds))));
 }
 
-/**
- * Format a session count as `1 session` or `4 sessions`.
- */
 function formatSessions(sessions: number): string {
   return `${sessions} ${pluralise(sessions, "session")}`;
 }

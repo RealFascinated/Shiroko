@@ -5,7 +5,6 @@ import GuildFeatures from "../feature/guild-features";
 import type Event from "./event";
 import type { EventListener } from "./event-listener";
 
-/** Metadata attached to a listener class by `@EventHandler`. */
 export interface HandlerMetadata {
   method: string;
   eventClass: new (...args: any[]) => Event;

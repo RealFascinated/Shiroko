@@ -1,7 +1,6 @@
 import type { Guild, GuildScheduledEvent, PartialGuildScheduledEvent, User } from "discord.js";
 import Event from "../event";
 
-/** A user withdrew interest from a guild scheduled event. */
 export default class ScheduledEventUserRemovedEvent extends Event {
   public readonly scheduledEvent: GuildScheduledEvent | PartialGuildScheduledEvent;
   public readonly user: User;

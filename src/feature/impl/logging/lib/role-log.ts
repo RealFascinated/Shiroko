@@ -2,7 +2,6 @@ import { yesNo } from "@/lib/format";
 import type { Role } from "discord.js";
 import { changeLine, permissionLine } from "./text";
 
-/** The fields of a role update that changed, as ready-to-print lines. */
 export function describeRoleChanges(oldRole: Role, newRole: Role): string[] {
   const lines: string[] = [];
   if (oldRole.name !== newRole.name) {

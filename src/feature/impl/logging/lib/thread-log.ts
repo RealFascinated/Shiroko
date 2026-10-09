@@ -2,14 +2,12 @@ import { yesNo } from "@/lib/format";
 import { ChannelType, type AnyThreadChannel } from "discord.js";
 import { changeLine, channelMention, code, detailLine, enumLabel, userMention } from "./text";
 
-/** User-facing names for the thread channel types. */
 const THREAD_TYPE_NAMES: Record<number, string> = {
   [ChannelType.PublicThread]: "Public",
   [ChannelType.PrivateThread]: "Private",
   [ChannelType.AnnouncementThread]: "Announcement",
 };
 
-/** A thread's auto-archive window as a readable duration. */
 function formatArchiveDuration(minutes: number | null): string {
   if (!minutes) {
     return "None";
@@ -17,7 +15,6 @@ function formatArchiveDuration(minutes: number | null): string {
   return minutes >= 60 ? `${minutes / 60}h` : `${minutes}m`;
 }
 
-/** The details worth logging when a thread is created. */
 export function threadDetailLines(thread: AnyThreadChannel): string[] {
   return [
     detailLine("Name", code(thread.name)),

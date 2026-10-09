@@ -12,12 +12,9 @@ import {
 import StorageService, { StorageBucket } from "./storage";
 
 export interface StoreMediaOptions {
-  /** The Discord user the asset belongs to. */
   readonly userId: string;
   readonly kind: MediaKind;
-  /** Discord's asset hash, including the `a_` prefix when animated. */
   readonly hash: string;
-  /** The live Discord CDN URL the bytes are fetched from. */
   readonly sourceUrl: string;
 }
 

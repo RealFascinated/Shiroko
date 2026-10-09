@@ -1,7 +1,6 @@
 import type { AnyThreadChannel } from "discord.js";
 import Event from "../event";
 
-/** A thread was deleted. */
 export default class ThreadDeletedEvent extends Event {
   public readonly thread: AnyThreadChannel;
 

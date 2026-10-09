@@ -22,7 +22,6 @@ export interface Page<T> {
   pageSize: number;
   /** Total pages; 1 for an empty list. */
   pageCount: number;
-  /** Total rows across every page. */
   total: number;
   rows: T[];
 }
@@ -38,7 +37,6 @@ export interface PageRequest<T> {
   pageSize: number;
   /** Total rows across every page, ignoring paging. */
   count(): Promise<number>;
-  /** At most `limit` rows starting at `offset`. */
   rows(limit: number, offset: number): Promise<T[]>;
 }
 

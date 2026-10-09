@@ -1,7 +1,6 @@
 import type { PartialUser, User } from "discord.js";
 import { type AssetChange, MediaKind } from "./media-key";
 
-/** Extract one asset from a user, resolved by kind. */
 const ASSET: Record<MediaKind, (user: User | PartialUser) => AssetChange> = {
   [MediaKind.Avatar]: user => ({ hash: user.avatar ?? null, sourceUrl: user.avatarURL({ size: 4096 }) }),
   [MediaKind.Banner]: user => ({

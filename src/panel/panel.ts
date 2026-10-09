@@ -17,7 +17,6 @@ export interface ToggleControl<C> {
   kind: "toggle";
   key: string;
   label: string;
-  /** A short explanation shown under the field line. */
   description?: string;
   /**
    * The state suffix on the button, e.g. `(v) => (v ? "On" : "Off")`.
@@ -46,7 +45,6 @@ export interface ChoiceControl<C> {
   kind: "choice";
   key: string;
   label: string;
-  /** A short explanation shown under the field line. */
   description?: string;
   options(config: C, context: PanelContext): readonly ChoiceOption[];
   /**
@@ -67,9 +65,7 @@ export interface DialogControl<C> {
   input: "text" | "paragraph" | "channel" | "role" | "role-list";
   /** Maximum roles for a `role-list` picker; defaults to Discord's select cap. */
   maxRoles?: number;
-  /** Label above the input, and the field line's label. */
   label: string;
-  /** A short explanation shown under the field line. */
   description?: string;
   hint?: string;
   /** The modal's title, when it should differ from the label. */
@@ -108,7 +104,6 @@ export interface ViewControl<C> {
   kind: "view";
   key: string;
   label: string;
-  /** A short explanation shown under the field line. */
   description?: string;
 }
 

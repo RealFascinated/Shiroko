@@ -8,7 +8,6 @@ import {
 } from "discord.js";
 import { changeLine, channelMention, enumLabel, formatSystemChannelFlags, userMention } from "./text";
 
-/** User-facing names for Discord's guild verification levels. */
 const VERIFICATION_LEVEL_NAMES: Record<number, string> = {
   [GuildVerificationLevel.None]: "None",
   [GuildVerificationLevel.Low]: "Low",
@@ -17,7 +16,6 @@ const VERIFICATION_LEVEL_NAMES: Record<number, string> = {
   [GuildVerificationLevel.VeryHigh]: "Very High",
 };
 
-/** User-facing names for Discord's boost tiers. */
 export const PREMIUM_TIER_NAMES: Record<number, string> = {
   [GuildPremiumTier.None]: "None",
   [GuildPremiumTier.Tier1]: "Tier 1",
@@ -25,20 +23,17 @@ export const PREMIUM_TIER_NAMES: Record<number, string> = {
   [GuildPremiumTier.Tier3]: "Tier 3",
 };
 
-/** User-facing names for Discord's default notification levels. */
 const NOTIFICATION_NAMES: Record<number, string> = {
   [GuildDefaultMessageNotifications.AllMessages]: "All Messages",
   [GuildDefaultMessageNotifications.OnlyMentions]: "Only Mentions",
 };
 
-/** User-facing names for Discord's explicit content filter levels. */
 const CONTENT_FILTER_NAMES: Record<number, string> = {
   [GuildExplicitContentFilter.Disabled]: "Disabled",
   [GuildExplicitContentFilter.MembersWithoutRoles]: "Members Without Roles",
   [GuildExplicitContentFilter.AllMembers]: "All Members",
 };
 
-/** User-facing names for Discord's MFA requirement levels. */
 const MFA_LEVEL_NAMES: Record<number, string> = {
   [GuildMFALevel.None]: "None",
   [GuildMFALevel.Elevated]: "Elevated",
@@ -57,12 +52,10 @@ function formatLocale(locale: string): string {
   }
 }
 
-/** A guild's vanity URL as a full link, or "None" when it has none. */
 function formatVanity(code: string | null): string {
   return code ? `https://discord.gg/${code}` : "None";
 }
 
-/** A guild asset (or "None") as a markdown-linked CDN URL. */
 function assetUrl(url: string | null): string {
   return url ?? "None";
 }

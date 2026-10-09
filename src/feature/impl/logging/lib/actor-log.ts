@@ -11,7 +11,6 @@ export function moderatorLines(actor: AuditActor | null): string[] {
   return actor ? [detailLine("Moderator", userLabel(actor.executor))] : [];
 }
 
-/** {@link moderatorLines} plus the reason the moderator gave, when they gave one. */
 export function actorLines(actor: AuditActor | null): string[] {
   const lines = moderatorLines(actor);
   if (actor?.reason) {

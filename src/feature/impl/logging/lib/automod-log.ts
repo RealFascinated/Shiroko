@@ -10,7 +10,6 @@ import {
 } from "discord.js";
 import { boldNameOrId, changeLine, code, codeList, detailLine, enumLabel, mentionList } from "./text";
 
-/** User-facing names for what fires a rule. */
 const TRIGGER_NAMES: Record<number, string> = {
   [AutoModerationRuleTriggerType.Keyword]: "Keyword",
   [AutoModerationRuleTriggerType.Spam]: "Spam",
@@ -19,13 +18,11 @@ const TRIGGER_NAMES: Record<number, string> = {
   [AutoModerationRuleTriggerType.MemberProfile]: "Member Profile",
 };
 
-/** User-facing names for the payload a rule inspects. */
 const EVENT_NAMES: Record<number, string> = {
   [AutoModerationRuleEventType.MessageSend]: "Message Send",
   [AutoModerationRuleEventType.MemberUpdate]: "Member Update",
 };
 
-/** User-facing names for what a rule does on a match. */
 const ACTION_NAMES: Record<number, string> = {
   [AutoModerationActionType.BlockMessage]: "Block Message",
   [AutoModerationActionType.SendAlertMessage]: "Send Alert Message",
@@ -33,14 +30,12 @@ const ACTION_NAMES: Record<number, string> = {
   [AutoModerationActionType.BlockMemberInteraction]: "Block Member Interaction",
 };
 
-/** User-facing names for the built-in keyword presets. */
 const PRESET_NAMES: Record<number, string> = {
   [AutoModerationRuleKeywordPresetType.Profanity]: "Profanity",
   [AutoModerationRuleKeywordPresetType.SexualContent]: "Sexual Content",
   [AutoModerationRuleKeywordPresetType.Slurs]: "Slurs",
 };
 
-/** A rule's actions as `Block Message, Timeout (300s)`. */
 function actionList(actions: readonly AutoModerationAction[]): string {
   if (actions.length === 0) {
     return "None";
@@ -54,7 +49,6 @@ function actionList(actions: readonly AutoModerationAction[]): string {
     .join(", ");
 }
 
-/** A rule's keyword lists, regexes, presets, and mention limit as lines. */
 function triggerLines(rule: AutoModerationRule): string[] {
   const lines: string[] = [];
   const metadata = rule.triggerMetadata;
@@ -75,7 +69,6 @@ function triggerLines(rule: AutoModerationRule): string[] {
   return lines;
 }
 
-/** A rule's exemptions as ready-to-print lines. */
 function exemptionLines(rule: AutoModerationRule): string[] {
   const lines: string[] = [];
   if (rule.exemptRoles.size > 0) {
@@ -87,7 +80,6 @@ function exemptionLines(rule: AutoModerationRule): string[] {
   return lines;
 }
 
-/** The details worth logging when a rule is created or deleted. */
 export function automodRuleDetailLines(rule: AutoModerationRule): string[] {
   return [
     detailLine("Trigger", code(enumLabel(TRIGGER_NAMES, rule.triggerType))),
@@ -99,7 +91,6 @@ export function automodRuleDetailLines(rule: AutoModerationRule): string[] {
   ];
 }
 
-/** The rule fields that changed, as ready-to-print lines. */
 export function describeAutomodRuleChanges(
   oldRule: AutoModerationRule,
   newRule: AutoModerationRule
@@ -146,7 +137,6 @@ function changedBlocks(oldLines: string[], newLines: string[]): string[] {
   return oldLines.join("\n") === newLines.join("\n") ? [] : newLines;
 }
 
-/** A rule's name, or its id when the rule is no longer cached. */
 export function automodRuleLabel(rule: AutoModerationRule | null, ruleId: string): string {
   return boldNameOrId(rule?.name, ruleId);
 }

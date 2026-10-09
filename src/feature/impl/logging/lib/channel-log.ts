@@ -18,7 +18,6 @@ import {
   permissionLine,
 } from "./text";
 
-/** User-facing names for Discord's channel types. */
 const CHANNEL_TYPE_NAMES: Record<number, string> = {
   [ChannelType.GuildText]: "Text",
   [ChannelType.GuildVoice]: "Voice",
@@ -43,7 +42,6 @@ export interface ChannelChange {
   line: string;
 }
 
-/** A before/after field change, e.g. a renamed channel. */
 function fieldChange(summary: string, label: string, before: string, after: string): ChannelChange {
   return { summary, detail: changeDetail(before, after), line: changeLine(label, before, after) };
 }
@@ -92,14 +90,12 @@ function permissionChange(
   };
 }
 
-/** How a channel is named in a log: its mention, or its name once deleted. */
 export function channelLabel(channel: NonThreadGuildBasedChannel): string {
   return channel.type === ChannelType.GuildCategory
     ? `Category ${code(channel.name)}`
     : channelMention(channel.id);
 }
 
-/** A channel type as its user-facing name, falling back to "Unknown". */
 export function channelTypeLabel(type: number): string {
   return enumLabel(CHANNEL_TYPE_NAMES, type, "Unknown");
 }

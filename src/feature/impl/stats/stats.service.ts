@@ -697,9 +697,6 @@ export default class StatsService {
     );
   }
 
-  /**
-   * Stamp `leftAt` and the whole-second duration on one session row.
-   */
   private async finishSession(sessionId: string, joinedAt: Date, now: Date): Promise<void> {
     await db
       .update(voiceSessionsSchema)

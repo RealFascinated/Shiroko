@@ -14,14 +14,12 @@ import { boldNameOrId, changeLine, channelMention, code, detailLine, enumLabel, 
  */
 export type ScheduledEvent = GuildScheduledEvent | PartialGuildScheduledEvent;
 
-/** User-facing names for where an event takes place. */
 const ENTITY_NAMES: Record<number, string> = {
   [GuildScheduledEventEntityType.StageInstance]: "Stage",
   [GuildScheduledEventEntityType.Voice]: "Voice",
   [GuildScheduledEventEntityType.External]: "External",
 };
 
-/** User-facing names for an event's lifecycle state. */
 const STATUS_NAMES: Record<number, string> = {
   [GuildScheduledEventStatus.Scheduled]: "Scheduled",
   [GuildScheduledEventStatus.Active]: "Active",
@@ -29,12 +27,10 @@ const STATUS_NAMES: Record<number, string> = {
   [GuildScheduledEventStatus.Canceled]: "Canceled",
 };
 
-/** User-facing names for an event's visibility. */
 const PRIVACY_NAMES: Record<number, string> = {
   [GuildScheduledEventPrivacyLevel.GuildOnly]: "Guild Only",
 };
 
-/** An event's name, or its id when Discord sent it without one. */
 export function scheduledEventName(scheduledEvent: ScheduledEvent): string {
   return boldNameOrId(scheduledEvent.name, scheduledEvent.id);
 }
@@ -47,7 +43,6 @@ function location(scheduledEvent: ScheduledEvent): string {
   return scheduledEvent.entityMetadata?.location ? code(scheduledEvent.entityMetadata.location) : "None";
 }
 
-/** The details worth logging when an event is created or deleted. */
 export function scheduledEventDetailLines(scheduledEvent: ScheduledEvent): string[] {
   const lines = [
     detailLine("Type", code(nullableEnumLabel(ENTITY_NAMES, scheduledEvent.entityType))),
