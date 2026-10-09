@@ -281,7 +281,7 @@ export default class LevelsService {
     // that jumps multiple levels still emits 1→2.
     const startLevel = levelForXp(before.xp);
     for (let lvl = startLevel + 1; lvl <= persisted.level; lvl++) {
-      await EventBus.post(new LevelUpEvent({ userId, guild, prevLevel: lvl - 1, newLevel: lvl }));
+      await EventBus.post(new LevelUpEvent({ userId, guild, prevLevel: lvl - 1, newLevel: lvl, xp: row.xp }));
     }
     return persisted;
   }

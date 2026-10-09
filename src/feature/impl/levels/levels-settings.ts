@@ -12,6 +12,7 @@ export interface LevelsSettingsData {
   voiceXpPerMin: number;
   ignoredChannelIds: string[];
   announceChannelId: string | null;
+  levelUpMessage: string;
   rewards: Record<number, LevelReward>;
 }
 
@@ -31,6 +32,7 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
     voiceXpPerMin: 5,
     ignoredChannelIds: [],
     announceChannelId: null,
+    levelUpMessage: "**{user_mention}** reached **level {level}**!",
     rewards: {},
   },
   descriptors: [
@@ -53,6 +55,14 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
       format: ids => ids.map(id => `<#${id}>`).join(", ") || "None",
     },
     { key: "announceChannelId", label: "Announce channel", type: "channel", default: null },
+    {
+      key: "levelUpMessage",
+      label: "Level-up message",
+      description:
+        "Announced when a member levels up; supports placeholders like {user_mention}, {level}, and {current_xp}",
+      type: "string",
+      default: "**{user_mention}** reached **level {level}**!",
+    },
     {
       key: "rewards",
       label: "Level rewards",

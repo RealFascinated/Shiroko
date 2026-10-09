@@ -6,7 +6,9 @@ import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import { baseEmbed } from "@/lib/embed";
 import SettingsManager from "@/settings/index";
+import GlobalUsersManager from "@/user/global-users-manager";
 import LevelsCommand from "./command/levels/levels.command";
+import { levelUpPlaceholders } from "./level-up-placeholders";
 import { levelsSettings } from "./levels-settings";
 import { levelsService } from "./levels.service";
 
@@ -77,8 +79,9 @@ async function grantLevelRewards(event: LevelUpEvent): Promise<void> {
 
 /**
  * Post a level-up result card to the guild's configured announce channel,
- * if any. A missing/deleted channel or missing send permission logs and
- * continues. Announcing is best-effort, never fatal.
+ * if any, with the message rendered from the guild's stored template. A
+ * missing/deleted channel, missing send permission, or unresolvable user
+ * logs and continues. Announcing is best-effort, never fatal.
  */
 async function announceLevelUp(event: LevelUpEvent): Promise<void> {
   const guild = event.guildData;
@@ -91,13 +94,22 @@ async function announceLevelUp(event: LevelUpEvent): Promise<void> {
     console.error(`Level-up announce channel ${announceChannelId} not sendable in ${guild.id}`);
     return;
   }
+  const user = await guild.client.users.fetch(event.userId).catch(() => null);
+  if (!user) {
+    console.error(`Could not resolve user ${event.userId} for the level-up announcement`);
+    return;
+  }
+  const [globalUser, template] = await Promise.all([
+    GlobalUsersManager.getUser(user),
+    levelsSettings.get(guild.id, "levelUpMessage"),
+  ]);
+  const description = await levelUpPlaceholders.replace(
+    { globalUser, guild, level: event.newLevel, xp: event.xp },
+    template
+  );
   try {
     await channel.send({
-      embeds: [
-        baseEmbed("levels")
-          .setTitle("🎉 Level Up")
-          .setDescription(`**<@${event.userId}>** reached **level ${event.newLevel}**!`),
-      ],
+      embeds: [baseEmbed("levels").setTitle("🎉 Level Up").setDescription(description)],
     });
   } catch (error) {
     console.error(`Failed to announce level-up for ${event.userId}:`, error);
