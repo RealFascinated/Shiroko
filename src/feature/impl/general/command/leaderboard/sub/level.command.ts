@@ -2,7 +2,6 @@ import { levelForXp } from "@/feature/impl/levels/xp";
 import LeaderboardManager from "@/leaderboard/index";
 import type Leaderboard from "@/leaderboard/leaderboard";
 import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
-import { ordinal } from "@/lib/format";
 import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 export default class LevelLeaderboardCommand extends LeaderboardSubCommand {
@@ -22,7 +21,7 @@ export default class LevelLeaderboardCommand extends LeaderboardSubCommand {
     return "No tracked levels in this server yet.";
   }
 
-  protected override renderRow(row: LeaderboardRow, position: number): string {
-    return `**${ordinal(position)}.** <@${row.id}>: **${levelForXp(row.value)}** (${row.value.toLocaleString("en-US")} XP)`;
+  protected override renderValue(row: LeaderboardRow): string {
+    return `**${levelForXp(row.value)}** (${row.value.toLocaleString("en-US")} XP)`;
   }
 }

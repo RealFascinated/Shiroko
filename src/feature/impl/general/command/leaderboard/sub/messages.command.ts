@@ -1,7 +1,7 @@
 import LeaderboardManager from "@/leaderboard/index";
 import type Leaderboard from "@/leaderboard/leaderboard";
 import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
-import { ordinal, pluralise } from "@/lib/format";
+import { pluralise } from "@/lib/format";
 import LeaderboardSubCommand from "../leaderboard-subcommand";
 
 export default class MessagesLeaderboardCommand extends LeaderboardSubCommand {
@@ -21,7 +21,7 @@ export default class MessagesLeaderboardCommand extends LeaderboardSubCommand {
     return "No messages tracked in this server yet.";
   }
 
-  protected override renderRow(row: LeaderboardRow, position: number): string {
-    return `**${ordinal(position)}.** <@${row.id}>: **${row.value.toLocaleString("en-US")}** ${pluralise(row.value, "message")}`;
+  protected override renderValue(row: LeaderboardRow): string {
+    return `**${row.value.toLocaleString("en-US")}** ${pluralise(row.value, "message")}`;
   }
 }

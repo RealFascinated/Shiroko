@@ -1,7 +1,6 @@
 import LeaderboardManager from "@/leaderboard/index";
 import type Leaderboard from "@/leaderboard/leaderboard";
 import { LeaderboardId, type LeaderboardRow } from "@/leaderboard/leaderboard";
-import { ordinal } from "@/lib/format";
 import { formatDuration } from "@/lib/time";
 import LeaderboardSubCommand from "../leaderboard-subcommand";
 
@@ -22,7 +21,7 @@ export default class VoiceLeaderboardCommand extends LeaderboardSubCommand {
     return "No voice time tracked in this server yet.";
   }
 
-  protected override renderRow(row: LeaderboardRow, position: number): string {
-    return `**${ordinal(position)}.** <@${row.id}>: **${formatDuration(row.value * 1000)}** voice time`;
+  protected override renderValue(row: LeaderboardRow): string {
+    return `**${formatDuration(row.value * 1000)}** voice time`;
   }
 }

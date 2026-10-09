@@ -348,12 +348,16 @@ the old ranking code was deleted. No shims, no legacy paths.
      `level`, `messages`, `invites`, and `voice` subcommands, all
      paginated. The old `/levels leaderboard` and `/invites leaderboard`
      subcommands were deleted (moved, not shimmed). The shared base
-     `LeaderboardSubCommand` (in `sub/`) fetches page 1, renders rows with
-     their global 1-based position, and attaches the `attachPager` button
-     pager (⏮ ◀ n/N ▶ ⏭) when the board spans multiple pages.
+     `LeaderboardSubCommand` (in `sub/`) fetches page 1 and the caller's
+     own position (`getPosition`, in parallel), renders rows with their
+     global 1-based position, closes the embed with the caller's position
+     ("Your position: **42nd** of **500** · <score>", or "not ranked yet"
+     with no score row), and attaches the `attachPager` button pager
+     (⏮ ◀ n/N ▶ ⏭) when the board spans multiple pages.
      `attachPager`'s `render` accepts a promise so pages are fetched lazily
      per press. Adding a board is one subcommand file supplying `board`,
-     `title`, `emptyMessage`, and `renderRow`, plus one `registerSubCommand`
+     `title`, `emptyMessage`, and `renderValue` (the score's units, shared
+     by the rows and the position line), plus one `registerSubCommand`
      line.
 
 ## 10. Verification
