@@ -6,6 +6,7 @@ import FeatureCommand from "./command/feature/feature.command";
 import GuildInfoCommand from "./command/guildinfo.command";
 import { helpPanel } from "./command/help/help-panel";
 import HelpCommand from "./command/help/help.command";
+import InviteCommand from "./command/invite.command";
 import LeaderboardCommand from "./command/leaderboard/leaderboard.command";
 import PermissionsCommand from "./command/permissions/permissions.command";
 import PingCommand from "./command/ping.command";
@@ -18,6 +19,7 @@ export default class GeneralFeature extends Feature {
 
     PanelManager.register(helpPanel);
     this.registerCommand(new PingCommand());
+    this.registerCommand(new InviteCommand());
     this.registerCommand(new UserCommand());
     this.registerCommand(new GuildInfoCommand());
     this.registerCommand(new BotStatsCommand());

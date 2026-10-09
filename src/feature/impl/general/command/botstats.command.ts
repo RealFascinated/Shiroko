@@ -1,4 +1,5 @@
 import Command, { type ExecuteContext } from "@/command/command";
+import { Constants } from "@/constants";
 import { db } from "@/db/index";
 import { globalUsersSchema } from "@/db/schemas/global-users";
 import { baseEmbed } from "@/lib/embed";
@@ -25,7 +26,6 @@ export default class BotStatsCommand extends Command {
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const bot = await ctx.client.user!.fetch();
     const avatarUrl = bot.displayAvatarURL({ size: 4096, extension: "webp" });
-    const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${ctx.client.application!.id}&scope=bot%20applications.commands&permissions=8`;
     const [userCount] = await db.select({ value: sql<number>`count(*)` }).from(globalUsersSchema);
     const commandCalls = await CommandCallService.total();
     const { heap_size_limit: heapMax } = getHeapStatistics();
@@ -54,7 +54,9 @@ export default class BotStatsCommand extends Command {
       .setThumbnail(avatarUrl)
       .setDescription(lines);
 
-    const buttons = [new ButtonBuilder().setLabel("Invite").setStyle(ButtonStyle.Link).setURL(inviteUrl)];
+    const buttons = [
+      new ButtonBuilder().setLabel("Invite").setStyle(ButtonStyle.Link).setURL(Constants.inviteUrl),
+    ];
     const row = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(buttons);
 
     return ctx.reply({ embeds: [embed], components: [row] });
