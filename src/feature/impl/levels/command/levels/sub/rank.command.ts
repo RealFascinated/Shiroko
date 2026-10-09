@@ -1,13 +1,8 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
 import { levelsService } from "@/feature/impl/levels/levels.service";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
-
-const PODIUM_COLORS = {
-  1: 0xffd700,
-  2: 0xc0c0c0,
-  3: 0xcd7f32,
-};
+import { renderRankCard } from "@/feature/impl/levels/rank-card";
+import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 
 export default class RankCommand extends Command {
   constructor() {
@@ -20,53 +15,31 @@ export default class RankCommand extends Command {
 
   protected override async onExecuteSlash({ user, ctx, args, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const guildId = guild.id;
     const target = args.user("user") ?? user.discordUser;
     if (target.bot) {
       return ctx.reply(
         ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("Bots don't level up."))
       );
     }
-    const rank = await levelsService.getRankState(guildId, target.id);
-    const nextReward = await levelsService.nextReward(guildId, rank.level);
-
-    // Bar and percentage come from the same filled-cell count, so they can
-    // never disagree with each other.
-    const barLength = 10;
-    const filled = Math.round(rank.progress * barLength);
-    const percent = filled * (100 / barLength);
-    const bar = "█".repeat(filled) + "░".repeat(barLength - filled);
-
-    const rankLine =
-      rank.guildRank === null
-        ? "Not ranked yet; send a message to start earning XP!"
-        : `Rank **#${rank.guildRank}** of **${rank.totalTracked}** in the server`;
-
-    const details = [
-      `**${target}** is **level ${rank.level}** (${rank.xp.toLocaleString("en-US")} XP)`,
-      `${bar} **${percent}%** to level ${rank.level + 1}`,
-      `**${rank.nextLevelXp.toLocaleString("en-US")}** XP total needed for level ${rank.level + 1} (${(rank.nextLevelXp - rank.xp).toLocaleString("en-US")} to go)`,
-      rankLine,
-    ];
-    if (nextReward) {
-      details.splice(
-        1,
-        0,
-        `Next reward at level **${nextReward.level}**: ${nextReward.roleId ? `<@&${nextReward.roleId}>` : "something special"}`
-      );
-    }
-
-    // Top three get a podium tint; their color is typed so a rank outside
-    // the top three falls back to the embed's default.
-    const podiumColor =
-      rank.guildRank !== null && rank.guildRank <= 3 ? PODIUM_COLORS[rank.guildRank as 1 | 2 | 3] : null;
-    const embed = baseEmbed(commandName)
-      .setColor(podiumColor)
-      .setTitle("📊 Level Rank")
-      .setThumbnail(target.displayAvatarURL())
-      .setDescription(
-        details.join("\n") + `\n\n*Keep chatting and hanging out in voice to climb the ranks.*`
-      );
-    return ctx.reply({ embeds: [embed] });
+    const rank = await levelsService.getRankState(guild.id, target.id);
+    const nextReward = await levelsService.nextReward(guild.id, rank.level);
+    const png = await renderRankCard({
+      name: target.displayName,
+      avatarUrl: target.displayAvatarURL({ size: 256, extension: "png" }),
+      guildName: guild.name,
+      level: rank.level,
+      xp: rank.xp,
+      nextLevelXp: rank.nextLevelXp,
+      progress: rank.progress,
+      guildRank: rank.guildRank,
+      totalTracked: rank.totalTracked,
+      reward: nextReward
+        ? {
+            level: nextReward.level,
+            roleName: nextReward.roleId ? (guild.roles.cache.get(nextReward.roleId)?.name ?? null) : null,
+          }
+        : null,
+    });
+    return ctx.reply({ files: [{ attachment: png, name: `rank-${target.id}.png` }] });
   }
 }
