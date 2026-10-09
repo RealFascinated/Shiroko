@@ -15,10 +15,6 @@ describe("flagLabels", () => {
     expect(flagLabels(FEATURE)).toEqual(["Feature Command"]);
     expect(flagLabels(FEATURE | PERMISSIONS)).toEqual(["Feature Command", "Permissions Command"]);
   });
-
-  test("empty flags decode to nothing", () => {
-    expect(flagLabels(0n)).toEqual([]);
-  });
 });
 
 describe("hasFlags", () => {

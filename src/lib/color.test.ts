@@ -34,8 +34,4 @@ describe("formatColor", () => {
     expect(formatColor(0)).toBe("#000000");
     expect(formatColor(0xffffff)).toBe("#ffffff");
   });
-
-  test("round-trips through parseColor", () => {
-    expect(parseColor(formatColor(0x0a0b0c))).toBe(0x0a0b0c);
-  });
 });

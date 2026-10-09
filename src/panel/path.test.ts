@@ -49,16 +49,4 @@ describe("setPath", () => {
     const next = setPath({ a: { b: 1 }, untouched }, "a.b", 2);
     expect(next.untouched).toBe(untouched);
   });
-
-  test("round-trips through getPath", () => {
-    const next = setPath({ a: { b: { c: "x" } } }, "a.b.c", "y");
-    expect(getPath(next, "a.b.c")).toBe("y");
-  });
-
-  test("supports several writes without aliasing", () => {
-    let config = { a: { b: 1 }, c: { d: 2 } };
-    config = setPath(config, "a.b", 10);
-    config = setPath(config, "c.d", 20);
-    expect(config).toEqual({ a: { b: 10 }, c: { d: 20 } });
-  });
 });

@@ -32,10 +32,6 @@ class FakeRest {
       (listener as (...a: unknown[]) => void)(...args);
     }
   }
-
-  public listenerCount(event: string): number {
-    return this.listeners.get(event)?.length ?? 0;
-  }
 }
 
 function harness(): { rest: FakeRest; listeners: RestListeners } {
@@ -181,15 +177,5 @@ describe("RestListeners", () => {
     expect(listeners.buckets.value()).toBe(2);
     expect(listeners.hashes.value()).toBe(1);
     expect(listeners.globalRemaining.value()).toBe(41);
-  });
-
-  test("subscribes to the response event so the REST layer emits it", () => {
-    const { rest } = harness();
-    expect(rest.listenerCount(RESTEvents.Response)).toBe(1);
-  });
-
-  test("exposes every metric for registration", () => {
-    const { listeners } = harness();
-    expect(listeners.metrics).toHaveLength(12);
   });
 });

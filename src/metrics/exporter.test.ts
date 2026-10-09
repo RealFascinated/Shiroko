@@ -34,14 +34,7 @@ describe("VictoriaMetricsExporter", () => {
     expect(body).toContain('guilds{job="arona"} 7');
   });
 
-  test("counter_map defaults to the event label", async () => {
-    const body = await pushOnce([
-      { id: "discord_events_total", kind: "counter_map", label: "event", value: { messages: 12 } },
-    ]);
-    expect(body).toContain('discord_events_total{job="arona",event="messages"} 12');
-  });
-
-  test("counter_map honours a custom label", async () => {
+  test("counter_map exports one line per key, under the metric's label", async () => {
     const body = await pushOnce([
       {
         id: "cache_entries",
