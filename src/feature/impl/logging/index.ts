@@ -150,9 +150,10 @@ export default class LoggingFeature extends Feature {
       }
       await channel.send({
         embeds: [
-          this.baseLogEmbed(member.id, [line]).setThumbnail(
-            member.displayAvatarURL({ size: 4096, extension: "webp" })
-          ),
+          this.baseLogEmbed(member.id, [line]).setAuthor({
+            name: member.user.tag,
+            iconURL: member.displayAvatarURL({ size: 4096, extension: "webp" }),
+          }),
         ],
       });
     });
@@ -282,7 +283,10 @@ export default class LoggingFeature extends Feature {
               ? `${event.newMember} was timed out until ${timestamp(until)}.`
               : `${event.newMember} is no longer timed out.`,
             ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor({
+            name: event.newMember.user.tag,
+            iconURL: event.newMember.displayAvatarURL({ size: 4096, extension: "webp" }),
+          }),
         ],
       });
     });
