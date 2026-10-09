@@ -26,7 +26,6 @@ export default class RankCommand extends Command {
     const png = await renderRankCard({
       name: target.displayName,
       avatarUrl: target.displayAvatarURL({ size: 256, extension: "png" }),
-      guildName: guild.name,
       level: rank.level,
       xp: rank.xp,
       nextLevelXp: rank.nextLevelXp,

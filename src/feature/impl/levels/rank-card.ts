@@ -16,7 +16,6 @@ export interface RankCardReward {
 export interface RankCardData {
   name: string;
   avatarUrl: string | null;
-  guildName: string;
   level: number;
   xp: number;
   nextLevelXp: number;
@@ -27,7 +26,7 @@ export interface RankCardData {
 }
 
 const WIDTH = 900;
-const HEIGHT = 320;
+const HEIGHT = 290;
 const ACCENT = "#9b59b6";
 const PODIUM_ACCENTS = ["#ffd700", "#c0c0c0", "#cd7f32"];
 
@@ -57,11 +56,10 @@ async function paintHeader(canvas: Canvas, data: RankCardData, accent: string): 
   }
   canvas.circleOutline(centerX, centerY, size / 2 + 1, accent, 3);
   canvas.text(canvas.fitText(data.name, 416, 34, 700), x + size + 24, 78, 34, "#ffffff", 700);
-  canvas.text("Level rank", x + size + 24, 110, 20, accent, 500);
   canvas.text(
     canvas.fitText(rankLine(data), 416, 20, 500),
     x + size + 24,
-    146,
+    118,
     20,
     "rgba(255, 255, 255, 0.7)",
     500
@@ -89,13 +87,6 @@ function paintDetails(canvas: Canvas, data: RankCardData, accent: string): void 
   if (data.reward) {
     canvas.text(canvas.fitText(rewardLine(data.reward), 804, 17, 500), 48, 274, 17, accent, 500);
   }
-  canvas.text(
-    `${canvas.fitText(data.guildName, 300, 13)} · levels`,
-    48,
-    HEIGHT - 14,
-    13,
-    "rgba(255, 255, 255, 0.35)"
-  );
 }
 
 function accentFor(guildRank: number | null): string {
