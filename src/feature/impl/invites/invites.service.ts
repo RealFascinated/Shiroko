@@ -2,7 +2,7 @@ import { db } from "@/db/index";
 import { guildInvitesSchema } from "@/db/schemas/guild-invites";
 import { inviteJoinsSchema } from "@/db/schemas/invite-joins";
 import { PermissionFlagsBits, type Guild, type Invite } from "discord.js";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   emptySnapshot,
   findJoinSource,
@@ -168,6 +168,27 @@ export default class InvitesService {
       code: source?.code ?? null,
       joinedAt: now,
     });
+  }
+
+  /**
+   * Stamp the member's newest unstamped join in the guild as left now.
+   * Every leave is recorded; a board decides from the stay length whether
+   * the join counts as a fake invite.
+   */
+  public async recordLeave(guildId: string, memberId: string, now: Date = new Date()): Promise<void> {
+    const latest = db
+      .select({ id: inviteJoinsSchema.id })
+      .from(inviteJoinsSchema)
+      .where(
+        and(
+          eq(inviteJoinsSchema.guildId, guildId),
+          eq(inviteJoinsSchema.memberId, memberId),
+          isNull(inviteJoinsSchema.leftAt)
+        )
+      )
+      .orderBy(desc(inviteJoinsSchema.joinedAt))
+      .limit(1);
+    await db.update(inviteJoinsSchema).set({ leftAt: now }).where(inArray(inviteJoinsSchema.id, latest));
   }
 
   private guildState(guildId: string): InviteSnapshot {

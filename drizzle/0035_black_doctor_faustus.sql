@@ -1,0 +1,2 @@
+ALTER TABLE "invite_joins" ADD COLUMN "left_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "invite_joins_member_idx" ON "invite_joins" USING btree ("guild_id","member_id","joined_at" DESC NULLS LAST);

@@ -20,10 +20,12 @@ export default class LeaderboardManager {
 
   /**
    * Look up a registered leaderboard by its id. The registry is total
-   * over {@link LeaderboardId}, so this never returns undefined.
+   * over {@link LeaderboardId}, so this never returns undefined. `T` is
+   * the row type the caller expects from the board it names, e.g. the
+   * invites board's rows carry a leave count.
    */
-  public static getLeaderboard(id: LeaderboardId): Leaderboard<LeaderboardRow> {
-    return LeaderboardManager.BOARDS[id];
+  public static getLeaderboard<T extends LeaderboardRow = LeaderboardRow>(id: LeaderboardId): Leaderboard<T> {
+    return LeaderboardManager.BOARDS[id] as Leaderboard<T>;
   }
 
   /**

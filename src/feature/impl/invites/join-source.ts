@@ -5,7 +5,6 @@
  * bridge, the invites feature, and logging can share it.
  */
 
-/** One tracked invite's uses and inviter at snapshot time. */
 export type TrackedInvite = {
   uses: number;
   inviterId: string | null;
@@ -31,6 +30,12 @@ export type JoinSource =
   | { kind: "invite"; code: string; inviterId: string | null }
   /** The guild's vanity URL, whose uses grew instead. */
   | { kind: "vanity"; code: string };
+
+/**
+ * How long an invited member may stay before the invite counts as real.
+ * A join that ends within this window is a fake invite.
+ */
+export const FAKE_INVITE_WINDOW_MINUTES = 5;
 
 /** A snapshot with nothing tracked, the state an untrackable guild keeps. */
 export function emptySnapshot(): InviteSnapshot {

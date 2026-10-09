@@ -4,6 +4,7 @@ import GuildJoinedEvent from "@/event/events/guild-joined.event";
 import InviteCreatedEvent from "@/event/events/invite-created.event";
 import InviteDeletedEvent from "@/event/events/invite-deleted.event";
 import MemberGuildJoinEvent from "@/event/events/member-guild-join.event";
+import MemberGuildLeaveEvent from "@/event/events/member-guild-leave.event";
 import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import type { Client } from "discord.js";
@@ -50,6 +51,12 @@ export default class InvitesFeature extends Feature {
   public async onMemberGuildJoin(event: MemberGuildJoinEvent): Promise<void> {
     const { member, source } = event;
     await invitesService.recordJoin(member.guild.id, member.id, source);
+  }
+
+  @EventHandler(MemberGuildLeaveEvent)
+  public async onMemberGuildLeave(event: MemberGuildLeaveEvent): Promise<void> {
+    const { member } = event;
+    await invitesService.recordLeave(member.guild.id, member.id);
   }
 
   /**

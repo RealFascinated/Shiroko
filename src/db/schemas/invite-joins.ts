@@ -14,10 +14,13 @@ export const inviteJoinsSchema = pgTable(
     // The invite code the join used, or the vanity URL's code; null when unattributed.
     code: text("code"),
     joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+    // When the member left the guild; null while they are still in it.
+    leftAt: timestamp("left_at", { withTimezone: true }),
   },
   table => [
     index("invite_joins_guild_joined_idx").on(table.guildId, table.joinedAt.desc()),
     index("invite_joins_inviter_idx").on(table.guildId, table.inviterId),
+    index("invite_joins_member_idx").on(table.guildId, table.memberId, table.joinedAt.desc()),
   ]
 );
 

@@ -238,6 +238,14 @@ per-user `group by`; migration `0024` added
 | `VoiceLeaderboard`   | `UserLeaderboard`  | `voice_sessions` | sum   | seconds            |
 | (first guild board)  | `GuildLeaderboard` | TBD              | TBD   | TBD                |
 
+The invites board emits `InviteLeaderboardRow` (`{ id, value, leaves }`):
+`value` counts attributed invites and `leaves` counts those whose member
+left within the fake-invite window (`FAKE_INVITE_WINDOW_MINUTES`, 5
+minutes) and so count as fake invites. `invite_joins.left_at` is stamped on
+`MemberGuildLeaveEvent`, so every leave is recorded and the board derives
+the flag from the stay length. `/invites user` reads the same row through
+`getPosition`, so its invite and fake-invite counts always match the board.
+
 Each board file exports only its class; `LeaderboardManager` constructs
 the boards, and consumers look them up by id through
 `LeaderboardManager.getLeaderboard`.
