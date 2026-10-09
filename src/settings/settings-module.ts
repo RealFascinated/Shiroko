@@ -235,7 +235,7 @@ export default class SettingsModule<C> {
    */
   public async entries<K extends MapKeys<C>>(guildId: string, key: K): Promise<C[K]> {
     const store = await GuildSettings.all(guildId);
-    return assembleValue(store, `${this.id}.${String(key)}`, this.mapEntry(key)) as C[K];
+    return assembleValue(store, `${this.id}.${String(key)}`, this.mapDescriptors(key).map) as C[K];
   }
 
   /**
@@ -247,26 +247,34 @@ export default class SettingsModule<C> {
     entryKey: string,
     value: MapEntry<C[K]>
   ): Promise<void> {
-    await writeEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, this.mapEntry(key), value);
+    const { entry } = this.mapDescriptors(key);
+    await writeEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry, value);
   }
 
   /**
    * Delete every row of one map entry.
    */
   public async removeEntry<K extends MapKeys<C>>(guildId: string, key: K, entryKey: string): Promise<void> {
-    await clearEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, this.mapEntry(key));
+    const { entry } = this.mapDescriptors(key);
+    await clearEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry);
   }
 
   private field(key: string): RuntimeFieldDescriptor | undefined {
     return this.runtimeDescriptors.find(candidate => candidate.key === key);
   }
 
-  private mapEntry<K extends MapKeys<C>>(key: K): RuntimeFieldDescriptor {
+  /**
+   * The map's own descriptor plus its `entry` descriptor: assembling a whole
+   * map recurses through the former, writing one entry needs the latter.
+   */
+  private mapDescriptors<K extends MapKeys<C>>(
+    key: K
+  ): { readonly map: RuntimeFieldDescriptor; readonly entry: RuntimeFieldDescriptor } {
     const field = this.field(String(key));
     if (!field || field.type !== "map" || !field.entry) {
       throw new Error(`"${String(key)}" is not a map setting on module "${this.id}"`);
     }
-    return field.entry;
+    return { map: field, entry: field.entry };
   }
 
   private resolve(path: string): RuntimeFieldDescriptor {
