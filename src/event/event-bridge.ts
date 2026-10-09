@@ -1,7 +1,15 @@
+import { invitesService } from "@/feature/impl/invites/invites.service";
 import { assetChange } from "@/storage/media-asset";
 import { MediaKind } from "@/storage/media-key";
 import MediaService from "@/storage/media.service";
-import { Events, type Client, type DMChannel, type Guild, type NonThreadGuildBasedChannel } from "discord.js";
+import {
+  Events,
+  type Client,
+  type DMChannel,
+  type Guild,
+  type GuildMember,
+  type NonThreadGuildBasedChannel,
+} from "discord.js";
 import { EventBus } from "./event-bus";
 import AutoModActionExecutedEvent from "./events/automod-action-executed.event";
 import AutoModRuleCreatedEvent from "./events/automod-rule-created.event";
@@ -255,7 +263,7 @@ export default class EventBridge {
         void EventBus.post(new BotAddedEvent(member));
         return;
       }
-      void EventBus.post(new MemberGuildJoinEvent(member));
+      void this.postMemberJoin(member);
     });
 
     client.on(Events.GuildBanAdd, ban => {
@@ -399,6 +407,17 @@ export default class EventBridge {
         void EventBus.post(new ComponentReceivedEvent(interaction));
       }
     });
+  }
+
+  /**
+   * Post a member join with its source resolved first, so every consumer of
+   * the join event, logging and the invites feature included, reads the same
+   * attribution. `resolveJoin` never throws, so the join is posted even when
+   * Discord or the database cannot answer.
+   */
+  private async postMemberJoin(member: GuildMember): Promise<void> {
+    const source = await invitesService.resolveJoin(member.guild);
+    await EventBus.post(new MemberGuildJoinEvent(member, source));
   }
 
   /**

@@ -3,37 +3,36 @@ import { guildInvitesSchema } from "@/db/schemas/guild-invites";
 import { inviteJoinsSchema } from "@/db/schemas/invite-joins";
 import { PermissionFlagsBits, type Guild, type Invite } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
+import {
+  emptySnapshot,
+  findJoinSource,
+  type InviteSnapshot,
+  type JoinSource,
+  type TrackedInvite,
+} from "./join-source";
 
 /**
- * The result of diffing a member join against the invite snapshot
- * immediately before it: either the code that gained a use, or nothing.
- */
-export type JoinAttribution = {
-  code: string;
-  inviterId: string | null;
-};
-
-/**
- * Live invite tracking for one guild: snapshots `uses` per code in memory
- * so `guildMemberAdd` can diff them against a fresh fetch and attribute
- * the join to whichever code gained a use.
+ * Live invite tracking for one guild: snapshots each invite's `uses` and
+ * inviter in memory, plus the vanity URL's uses, so a member join can be
+ * diffed against a fresh fetch and attributed to whichever source gained a
+ * use.
  *
  * In-memory state is seeded per guild on `ClientReady`/`GuildCreate` and
  * maintained on `inviteCreate`/`inviteDelete`. The DB snapshot (`guild_invites`)
  * only records current state; `invite_joins` holds one row per attributed
  * join, so totals always derive from `count()`.
  *
- * Not all joins have a code that gained a use: vanity URLs, the OAuth
- * widget, and expired single-use invites shift no `uses` counter. Those
- * land in `invite_joins` with `(inviter_id, code)` null.
+ * Not all joins have a source that gained a use: the OAuth widget and
+ * expired single-use invites shift no counter. Those land in `invite_joins`
+ * with `(inviter_id, code)` null.
  *
- * The service records best-effort: callers attach `.catch` and never
- * await. It falls back to unknown attribution when the bot lacks
+ * The service is best-effort: attribution never throws, so a join is always
+ * logged and recorded, and it falls back to unknown when the bot lacks
  * `ManageGuild` (so the cache stays empty and every join is unknown).
  */
 export default class InvitesService {
-  /** Per-guild snapshot of `code -> uses`, the pre-join diff baseline. */
-  private cache: Map<string, Map<string, number>> = new Map();
+  /** Per-guild snapshot of invite and vanity `uses`, the pre-join diff baseline. */
+  private cache: Map<string, InviteSnapshot> = new Map();
 
   /**
    * Fetch every invite for `guild`, replace the in-memory snapshot, and
@@ -46,15 +45,16 @@ export default class InvitesService {
     try {
       invites = await guild.invites.fetch();
     } catch {
-      this.cache.set(guild.id, new Map());
+      this.cache.set(guild.id, emptySnapshot());
       return false;
     }
-    const snapshot = new Map<string, number>();
+    const snapshot = new Map<string, TrackedInvite>();
     for (const invite of invites.values()) {
-      snapshot.set(invite.code, invite.uses ?? 0);
+      snapshot.set(invite.code, trackedInvite(invite));
       await this.upsertGuildInvite(guild.id, invite);
     }
-    this.cache.set(guild.id, snapshot);
+    const vanity = await this.fetchVanity(guild);
+    this.cache.set(guild.id, { invites: snapshot, vanity });
     return true;
   }
 
@@ -63,8 +63,7 @@ export default class InvitesService {
     if (!guild) {
       return;
     }
-    const guildState = this.guildState(guild.id);
-    guildState.set(invite.code, invite.uses ?? 0);
+    this.guildState(guild.id).invites.set(invite.code, trackedInvite(invite));
     await this.upsertGuildInvite(guild.id, invite);
   }
 
@@ -77,7 +76,7 @@ export default class InvitesService {
     if (!guild) {
       return;
     }
-    this.guildState(guild.id).delete(invite.code);
+    this.guildState(guild.id).invites.delete(invite.code);
     const known = await db
       .select({ inviterId: guildInvitesSchema.inviterId })
       .from(guildInvitesSchema)
@@ -90,73 +89,94 @@ export default class InvitesService {
   }
 
   /**
-   * Diff a fresh invite fetch against `snapshot` to find which code, if
-   * any, gained uses. Returns `null` when no code gained (vanity, widget,
-   * expired single-use) or the fetch failed. Afterward the in-memory and
-   * DB snapshots are rebased onto the fresh fetch.
+   * Where a member joining now came from: the invite code that gained a use,
+   * the guild's vanity URL when that gained one instead, or `null` when
+   * neither did (the widget, an expired single-use invite) or the guild
+   * cannot be tracked.
+   *
+   * Never throws. Attribution is best-effort, while the join it explains
+   * still has to be logged and recorded, so a failed fetch or rebase
+   * degrades to unknown.
+   */
+  public async resolveJoin(guild: Guild): Promise<JoinSource | null> {
+    try {
+      return await this.diff(guild);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Diff a fresh fetch against the cached snapshot and rebase both the
+   * in-memory and DB snapshots onto it, so the next join diffs against this
+   * state.
    *
    * The fetch is intentionally sequential with the caller's member join
-   * handling; the event loop is single-threaded so no other invite diff
-   * can interleave. Multiple members joining at once resolve to whatever
-   * their respective diffs saw. Best-effort, not exact.
+   * handling; the event loop is single-threaded so no other invite diff can
+   * interleave. Multiple members joining at once resolve to whatever their
+   * respective diffs saw. Best-effort, not exact.
    */
-  public async diffJoin(guild: Guild, snapshot: Map<string, number>): Promise<JoinAttribution | null> {
+  private async diff(guild: Guild): Promise<JoinSource | null> {
+    const before = this.guildState(guild.id);
     let invites: Map<string, Invite>;
     try {
       invites = await guild.invites.fetch();
     } catch {
-      this.cache.set(guild.id, new Map());
+      this.cache.set(guild.id, emptySnapshot());
       return null;
     }
-    let used: Invite | null = null;
+    const after: InviteSnapshot = { invites: new Map(), vanity: await this.fetchVanity(guild) };
     for (const invite of invites.values()) {
-      const after = invite.uses ?? 0;
-      if (after > (snapshot.get(invite.code) ?? 0)) {
-        used = invite;
-        break;
-      }
+      after.invites.set(invite.code, trackedInvite(invite));
     }
+    const source = findJoinSource(before, after);
     // Rebase both snapshots onto the fresh fetch so the next join diffs
-    // against this state.
-    const rebased = new Map<string, number>();
+    // against this state. The cache goes first: a failed DB write must not
+    // leave the baseline stale and re-attribute the same use to the next
+    // join.
+    this.cache.set(guild.id, after);
     for (const invite of invites.values()) {
-      rebased.set(invite.code, invite.uses ?? 0);
       await this.upsertGuildInvite(guild.id, invite);
     }
-    this.cache.set(guild.id, rebased);
-    if (!used) {
+    return source;
+  }
+
+  /**
+   * The guild's vanity URL and its uses, or `null` when it has none or the
+   * fetch failed (below boost level 3, or missing `ManageGuild`). A vanity
+   * URL is a bonus, not a tracking requirement, so the failure stays quiet.
+   */
+  private async fetchVanity(guild: Guild): Promise<{ code: string; uses: number } | null> {
+    try {
+      const vanity = await guild.fetchVanityData();
+      return vanity.code ? { code: vanity.code, uses: vanity.uses } : null;
+    } catch {
       return null;
     }
-    const inviterId = used.inviter?.id ?? used.inviterId ?? null;
-    return { code: used.code, inviterId };
   }
 
   public async recordJoin(
     guildId: string,
     memberId: string,
-    attribution: JoinAttribution | null,
+    source: JoinSource | null,
     now: Date = new Date()
   ): Promise<void> {
     await db.insert(inviteJoinsSchema).values({
       guildId,
       memberId,
-      inviterId: attribution?.inviterId ?? null,
-      code: attribution?.code ?? null,
+      inviterId: source?.kind === "invite" ? source.inviterId : null,
+      code: source?.code ?? null,
       joinedAt: now,
     });
   }
 
-  private guildState(guildId: string): Map<string, number> {
+  private guildState(guildId: string): InviteSnapshot {
     let state = this.cache.get(guildId);
     if (!state) {
-      state = new Map();
+      state = emptySnapshot();
       this.cache.set(guildId, state);
     }
     return state;
-  }
-
-  public snapshot(guildId: string): Map<string, number> {
-    return this.guildState(guildId);
   }
 
   /**
@@ -195,6 +215,11 @@ export default class InvitesService {
         },
       });
   }
+}
+
+/** The tracked state of one invite: what a diff compares against and the DB stores. */
+function trackedInvite(invite: Invite): TrackedInvite {
+  return { uses: invite.uses ?? 0, inviterId: invite.inviter?.id ?? invite.inviterId ?? null };
 }
 
 export const invitesService = new InvitesService();

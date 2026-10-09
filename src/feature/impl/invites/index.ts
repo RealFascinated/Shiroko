@@ -12,9 +12,8 @@ import { invitesService } from "./invites.service";
 
 /**
  * The invites feature: `/invites` command plus invite tracking. Keeps the
- * invite snapshot seeded and maintains it on create/delete, and attributes
- * `GuildMemberAdd` joins by diffing the cached baseline against a fresh
- * fetch.
+ * invite snapshot seeded and maintains it on create/delete, and records each
+ * join against the source the bridge resolved onto `MemberGuildJoinEvent`.
  */
 export default class InvitesFeature extends Feature {
   constructor() {
@@ -49,10 +48,8 @@ export default class InvitesFeature extends Feature {
 
   @EventHandler(MemberGuildJoinEvent)
   public async onMemberGuildJoin(event: MemberGuildJoinEvent): Promise<void> {
-    const guild = event.member.guild;
-    const baseline = invitesService.snapshot(guild.id);
-    const attribution = await invitesService.diffJoin(guild, baseline);
-    await invitesService.recordJoin(guild.id, event.member.id, attribution);
+    const { member, source } = event;
+    await invitesService.recordJoin(member.guild.id, member.id, source);
   }
 
   /**

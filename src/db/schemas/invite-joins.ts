@@ -9,7 +9,9 @@ export const inviteJoinsSchema = pgTable(
       .default(sql`uuidv7()`),
     guildId: text("guild_id").notNull(),
     memberId: text("member_id").notNull(),
+    // The member whose invite it is; null for a vanity URL or unattributed join.
     inviterId: text("inviter_id"),
+    // The invite code the join used, or the vanity URL's code; null when unattributed.
     code: text("code"),
     joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
   },

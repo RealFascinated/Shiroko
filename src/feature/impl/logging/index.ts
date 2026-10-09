@@ -96,6 +96,7 @@ export default class LoggingFeature extends Feature {
         embeds: [
           this.baseLogEmbed(event.member.id, [
             `${event.member} joined the server.`,
+            ...joinSourceLines(event.source),
             "",
             detailLine("Account Created", timestamp(event.member.user.createdAt)),
           ]).setAuthor(subjectAuthor(event.member)),
