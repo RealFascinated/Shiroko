@@ -97,9 +97,11 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed(event.member.id, [
             `${event.member} joined the server.`,
             "",
-            `**➜** Username: \`${event.member.user.username}\``,
             detailLine("Account Created", timestamp(event.member.user.createdAt)),
-          ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor({
+            name: event.member.user.tag,
+            iconURL: event.member.displayAvatarURL({ size: 4096, extension: "webp" }),
+          }),
         ],
       });
     });
@@ -110,10 +112,11 @@ export default class LoggingFeature extends Feature {
         embeds: [
           this.baseLogEmbed(event.member.id, [
             `${event.member} was added to the server.`,
-            "",
-            `**➜** Username: \`${event.member.user.username}\``,
-            ...actorLines(actor),
-          ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
+            ...(actor ? ["", ...actorLines(actor)] : []),
+          ]).setAuthor({
+            name: event.member.user.tag,
+            iconURL: event.member.displayAvatarURL({ size: 4096, extension: "webp" }),
+          }),
         ],
       });
     });
@@ -131,10 +134,11 @@ export default class LoggingFeature extends Feature {
         embeds: [
           this.baseLogEmbed(event.member.id, [
             `${event.member} ${(actor && LEAVE_VERBS[actor.action]) ?? "left the server."}`,
-            "",
-            `**➜** Username: \`${event.member.user.username}\``,
-            ...actorLines(actor),
-          ]).setThumbnail(event.member.displayAvatarURL({ size: 4096, extension: "webp" })),
+            ...(actor ? ["", ...actorLines(actor)] : []),
+          ]).setAuthor({
+            name: event.member.user.tag,
+            iconURL: event.member.displayAvatarURL({ size: 4096, extension: "webp" }),
+          }),
         ],
       });
     });
@@ -790,10 +794,12 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed(ban.user.id, [
             `${ban.user} was banned.`,
             "",
-            `**➜** Username: \`${ban.user.username}\``,
             ...moderatorLines(actor),
             `**➜** Reason: \`${ban.reason ?? actor?.reason ?? "None"}\``,
-          ]).setThumbnail(ban.user.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor({
+            name: ban.user.tag,
+            iconURL: ban.user.displayAvatarURL({ size: 4096, extension: "webp" }),
+          }),
         ],
       });
     });
@@ -808,10 +814,11 @@ export default class LoggingFeature extends Feature {
         embeds: [
           this.baseLogEmbed(ban.user.id, [
             `${ban.user} was unbanned.`,
-            "",
-            `**➜** Username: \`${ban.user.username}\``,
-            ...actorLines(actor),
-          ]).setThumbnail(ban.user.displayAvatarURL({ size: 4096, extension: "webp" })),
+            ...(actor ? ["", ...actorLines(actor)] : []),
+          ]).setAuthor({
+            name: ban.user.tag,
+            iconURL: ban.user.displayAvatarURL({ size: 4096, extension: "webp" }),
+          }),
         ],
       });
     });
