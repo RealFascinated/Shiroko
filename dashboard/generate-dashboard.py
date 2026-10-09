@@ -496,7 +496,7 @@ CATEGORIES = [
     },
     {
         # Persistent command tallies from Postgres: the all-time counter per
-        # command, and the current per-second call rate.
+        # command, and the calls each command saw over the last day.
         "key": "commands",
         "title": "⚡ Commands",
         "panels": [
@@ -510,38 +510,50 @@ CATEGORIES = [
                 "legend": "{{command}}",
             },
             {
-                "key": "command-calls-rate",
-                "title": "Command calls per second",
-                "expr": "rate(command_calls_total{job=\"$job\"}[5m])",
-                "unit": "ops",
+                "key": "command-calls-per-day",
+                "title": "Command calls per day",
+                "expr": "increase(command_calls_total{job=\"$job\"}[1d])",
+                "unit": "short",
                 "min": 0,
                 "width": 12,
                 "legend": "{{command}}",
+                "style": "bars",
+                "stacking": "normal",
+                "minStep": "1d",
             },
         ],
     },
 ]
 
 
-def data_query(expr: str, legend: str) -> dict:
-    """A v2 DataQueryKind: datasource ref + group (datasource type) on the query."""
+def data_query(expr: str, legend: str, min_step: str | None = None) -> dict:
+    """A v2 DataQueryKind: datasource ref + group (datasource type) on the query.
+
+    `min_step` is the query editor's Min step, which the plugin sends as the
+    query's `interval`.
+    """
+    spec: dict = {"expr": expr, "legendFormat": legend, "queryType": "MetricsQL"}
+    if min_step is not None:
+        spec["interval"] = min_step
     return {
         "datasource": {"name": "${vm}"},
         "group": VM_PLUGIN,
         "kind": "DataQuery",
-        "spec": {"expr": expr, "legendFormat": legend, "queryType": "MetricsQL"},
+        "spec": spec,
         "version": "v0",
     }
 
 
-def panel_query(expr: str, legend: str) -> dict:
+def panel_query(expr: str, legend: str, min_step: str | None = None) -> dict:
     return {
         "kind": "PanelQuery",
-        "spec": {"hidden": False, "query": data_query(expr, legend), "refId": "A"},
+        "spec": {"hidden": False, "query": data_query(expr, legend, min_step), "refId": "A"},
     }
 
 
-def timeseries_viz(unit: str, minv: float | None, maxv: float | None) -> dict:
+def timeseries_viz(
+    unit: str, minv: float | None, maxv: float | None, draw_style: str = "line", stacking: str = "none"
+) -> dict:
     defaults: dict = {
         "color": {"mode": "palette-classic"},
         "custom": {
@@ -552,7 +564,7 @@ def timeseries_viz(unit: str, minv: float | None, maxv: float | None) -> dict:
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
-            "drawStyle": "line",
+            "drawStyle": draw_style,
             "fillOpacity": 10,
             "gradientMode": "none",
             "hideFrom": {"legend": False, "tooltip": False, "viz": False},
@@ -564,7 +576,7 @@ def timeseries_viz(unit: str, minv: float | None, maxv: float | None) -> dict:
             "showPoints": "never",
             "showValues": False,
             "spanNulls": False,
-            "stacking": {"group": "A", "mode": "none"},
+            "stacking": {"group": "A", "mode": stacking},
             "thresholdsStyle": {"mode": "off"},
         },
         "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}]},
@@ -596,6 +608,9 @@ def panel(
     minv: float | None,
     maxv: float | None,
     legend: str,
+    draw_style: str = "line",
+    stacking: str = "none",
+    min_step: str | None = None,
 ) -> dict:
     return {
         "kind": "Panel",
@@ -603,7 +618,7 @@ def panel(
             "data": {
                 "kind": "QueryGroup",
                 "spec": {
-                    "queries": [panel_query(expr, legend)],
+                    "queries": [panel_query(expr, legend, min_step)],
                     "queryOptions": {},
                     "transformations": [],
                 },
@@ -612,7 +627,7 @@ def panel(
             "id": panel_id,
             "links": [],
             "title": title,
-            "vizConfig": timeseries_viz(unit, minv, maxv),
+            "vizConfig": timeseries_viz(unit, minv, maxv, draw_style, stacking),
         },
     }
 
@@ -642,7 +657,16 @@ def build() -> dict:
                 panel_id += 1
                 panel_key = f"panel-{panel_id}"
                 elements[panel_key] = panel(
-                    panel_id, p["title"], p["expr"], p["unit"], p.get("min"), p.get("max"), p["legend"]
+                    panel_id,
+                    p["title"],
+                    p["expr"],
+                    p["unit"],
+                    p.get("min"),
+                    p.get("max"),
+                    p.get("legend"),
+                    p.get("style", "line"),
+                    p.get("stacking", "none"),
+                    p.get("minStep"),
                 )
                 row_items.append(
                     {

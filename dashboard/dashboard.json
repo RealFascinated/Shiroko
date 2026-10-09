@@ -4305,9 +4305,10 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(command_calls_total{job=\"$job\"}[5m])",
+                        "expr": "increase(command_calls_total{job=\"$job\"}[1d])",
                         "legendFormat": "{{command}}",
-                        "queryType": "MetricsQL"
+                        "queryType": "MetricsQL",
+                        "interval": "1d"
                       },
                       "version": "v0"
                     },
@@ -4322,7 +4323,7 @@
           "description": "",
           "id": 39,
           "links": [],
-          "title": "Command calls per second",
+          "title": "Command calls per day",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -4340,7 +4341,7 @@
                     "axisPlacement": "auto",
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
-                    "drawStyle": "line",
+                    "drawStyle": "bars",
                     "fillOpacity": 10,
                     "gradientMode": "none",
                     "hideFrom": {
@@ -4360,7 +4361,7 @@
                     "spanNulls": false,
                     "stacking": {
                       "group": "A",
-                      "mode": "none"
+                      "mode": "normal"
                     },
                     "thresholdsStyle": {
                       "mode": "off"
@@ -4375,7 +4376,7 @@
                       }
                     ]
                   },
-                  "unit": "ops",
+                  "unit": "short",
                   "min": 0
                 },
                 "overrides": []
