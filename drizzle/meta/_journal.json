@@ -253,6 +253,13 @@
       "when": 1791527573882,
       "tag": "0035_black_doctor_faustus",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791556906959,
+      "tag": "0036_useful_nitro",
+      "breakpoints": true
     }
   ]
 }

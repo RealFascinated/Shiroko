@@ -2,6 +2,7 @@ import { Client, GatewayIntentBits, type ApplicationCommandDataResolvable } from
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { CacheListeners } from "./cache/cache-listeners";
 import CommandManager, { SlashCommandListener } from "./command/index";
+import ComponentManager from "./component/index";
 import { Constants } from "./constants";
 import ContextMenuCommandManager, { ContextMenuCommandListener } from "./context-menu/index";
 import { db } from "./db/index";
@@ -178,6 +179,7 @@ new PermissionsListeners();
 new CacheListeners();
 new PanelManager();
 PanelManager.register(settingsPanel);
+new ComponentManager();
 new SlashCommandListener();
 new ContextMenuCommandListener();
 

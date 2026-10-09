@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { commandCallsSchema } from "./schemas/command-calls";
+import { componentsSchema } from "./schemas/components";
 import { globalUsersSchema } from "./schemas/global-users";
 import { guildBirthdaysSchema } from "./schemas/guild-birthdays";
 import { guildInvitesSchema } from "./schemas/guild-invites";
@@ -22,6 +23,7 @@ const pool = new Pool({
 
 export const schema = {
   commandCalls: commandCallsSchema,
+  components: componentsSchema,
   globalUsers: globalUsersSchema,
   guildBirthdays: guildBirthdaysSchema,
   guildUsers: guildUsersSchema,
