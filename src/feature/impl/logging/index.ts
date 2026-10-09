@@ -67,7 +67,7 @@ import {
 } from "./lib/channel-log";
 import { describeEmojiChanges } from "./lib/emoji-log";
 import { describeGuildChanges, PREMIUM_TIER_NAMES } from "./lib/guild-log";
-import { LEAVE_VERBS, describeVoiceChange } from "./lib/member-log";
+import { LEAVE_VERBS, describeVoiceChange, joinSourceLines } from "./lib/member-log";
 import { describeRoleChanges } from "./lib/role-log";
 import {
   describeScheduledEventChanges,
@@ -78,7 +78,7 @@ import { describeStageChanges, stageDetailLines } from "./lib/stage-log";
 import { describeStickerChanges, stickerFormatLabel } from "./lib/sticker-log";
 import { detailLine, timestamp } from "./lib/text";
 import { describeThreadChanges, threadDetailLines } from "./lib/thread-log";
-import { userLabel, assetLink } from "./lib/user-log";
+import { userLabel, assetLink, subjectAuthor } from "./lib/user-log";
 import LoggingCommand from "./command/logging/logging.command";
 import type { LogType } from "./log-type";
 import { loggingSettings } from "./logging-settings";
@@ -98,10 +98,7 @@ export default class LoggingFeature extends Feature {
             `${event.member} joined the server.`,
             "",
             detailLine("Account Created", timestamp(event.member.user.createdAt)),
-          ]).setAuthor({
-            name: event.member.user.tag,
-            iconURL: event.member.displayAvatarURL({ size: 4096, extension: "webp" }),
-          }),
+          ]).setAuthor(subjectAuthor(event.member)),
         ],
       });
     });
@@ -113,10 +110,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed(event.member.id, [
             `${event.member} was added to the server.`,
             ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setAuthor({
-            name: event.member.user.tag,
-            iconURL: event.member.displayAvatarURL({ size: 4096, extension: "webp" }),
-          }),
+          ]).setAuthor(subjectAuthor(event.member)),
         ],
       });
     });
@@ -135,10 +129,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed(event.member.id, [
             `${event.member} ${(actor && LEAVE_VERBS[actor.action]) ?? "left the server."}`,
             ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setAuthor({
-            name: event.member.user.tag,
-            iconURL: event.member.displayAvatarURL({ size: 4096, extension: "webp" }),
-          }),
+          ]).setAuthor(subjectAuthor(event.member)),
         ],
       });
     });
@@ -153,12 +144,7 @@ export default class LoggingFeature extends Feature {
         return;
       }
       await channel.send({
-        embeds: [
-          this.baseLogEmbed(member.id, [line]).setAuthor({
-            name: member.user.tag,
-            iconURL: member.displayAvatarURL({ size: 4096, extension: "webp" }),
-          }),
-        ],
+        embeds: [this.baseLogEmbed(member.id, [line]).setAuthor(subjectAuthor(member))],
       });
     });
 
@@ -173,7 +159,9 @@ export default class LoggingFeature extends Feature {
             `**➜** Avatar: ${hadAvatar ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
               removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
             }`,
-          ]).setThumbnail(event.afterAssetUrl),
+          ])
+            .setAuthor(subjectAuthor(event.newUser))
+            .setThumbnail(event.afterAssetUrl),
         ],
       });
     });
@@ -188,7 +176,9 @@ export default class LoggingFeature extends Feature {
             `**➜** Banner: ${hadBanner ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
               removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
             }`,
-          ]).setImage(event.afterAssetUrl),
+          ])
+            .setAuthor(subjectAuthor(event.newUser))
+            .setImage(event.afterAssetUrl),
         ],
       });
     });
@@ -200,7 +190,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Before: \`${event.oldUser.username}\``,
             `**➜** After: \`${event.newUser.username}\``,
-          ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor(subjectAuthor(event.newUser)),
         ],
       });
     });
@@ -213,7 +203,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Before: \`${event.oldUser.displayName}\``,
             `**➜** After: \`${event.newUser.displayName}\``,
-          ]).setThumbnail(event.newUser.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor(subjectAuthor(event.newUser)),
         ],
       });
     });
@@ -234,7 +224,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Roles: ${event.added.map(role => role.toString()).join(", ")}`,
             ...actorLines(actor),
-          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor(subjectAuthor(event.newMember)),
         ],
       });
     });
@@ -255,7 +245,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
             ...actorLines(actor),
-          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor(subjectAuthor(event.newMember)),
         ],
       });
     });
@@ -268,7 +258,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Before: \`${event.oldMember.nickname ?? "None"}\``,
             `**➜** After: \`${event.newMember.nickname ?? "Removed"}\``,
-          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor(subjectAuthor(event.newMember)),
         ],
       });
     });
@@ -287,10 +277,7 @@ export default class LoggingFeature extends Feature {
               ? `${event.newMember} was timed out until ${timestamp(until)}.`
               : `${event.newMember} is no longer timed out.`,
             ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setAuthor({
-            name: event.newMember.user.tag,
-            iconURL: event.newMember.displayAvatarURL({ size: 4096, extension: "webp" }),
-          }),
+          ]).setAuthor(subjectAuthor(event.newMember)),
         ],
       });
     });
@@ -307,7 +294,7 @@ export default class LoggingFeature extends Feature {
             "",
             `**➜** Boosts: ${count}`,
             `**➜** Tier: ${PREMIUM_TIER_NAMES[tier] ?? String(tier)}`,
-          ]).setThumbnail(event.newMember.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor(subjectAuthor(event.newMember)),
         ],
       });
     });
@@ -561,7 +548,7 @@ export default class LoggingFeature extends Feature {
             `${event.user} is interested in ${scheduledEventName(event.scheduledEvent)}.`,
             "",
             `**➜** Interested: ${event.scheduledEvent.userCount ?? "Unknown"}`,
-          ]).setThumbnail(event.user.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor(subjectAuthor(event.user)),
         ],
       });
     });
@@ -573,7 +560,7 @@ export default class LoggingFeature extends Feature {
             `${event.user} is no longer interested in ${scheduledEventName(event.scheduledEvent)}.`,
             "",
             `**➜** Interested: ${event.scheduledEvent.userCount ?? "Unknown"}`,
-          ]).setThumbnail(event.user.displayAvatarURL({ size: 4096, extension: "webp" })),
+          ]).setAuthor(subjectAuthor(event.user)),
         ],
       });
     });
@@ -796,10 +783,7 @@ export default class LoggingFeature extends Feature {
             "",
             ...moderatorLines(actor),
             `**➜** Reason: \`${ban.reason ?? actor?.reason ?? "None"}\``,
-          ]).setAuthor({
-            name: ban.user.tag,
-            iconURL: ban.user.displayAvatarURL({ size: 4096, extension: "webp" }),
-          }),
+          ]).setAuthor(subjectAuthor(ban.user)),
         ],
       });
     });
@@ -815,10 +799,7 @@ export default class LoggingFeature extends Feature {
           this.baseLogEmbed(ban.user.id, [
             `${ban.user} was unbanned.`,
             ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setAuthor({
-            name: ban.user.tag,
-            iconURL: ban.user.displayAvatarURL({ size: 4096, extension: "webp" }),
-          }),
+          ]).setAuthor(subjectAuthor(ban.user)),
         ],
       });
     });
