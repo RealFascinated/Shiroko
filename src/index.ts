@@ -21,6 +21,7 @@ import FeatureManager from "./feature/index";
 import { env } from "./lib/env";
 import { DiscordBotListManager } from "./lib/misc/discordbotlist";
 import { TopbotManager } from "./lib/misc/topbot";
+import { TopggManager } from "./lib/misc/topgg";
 import { PresenceListener } from "./lib/presence";
 import { formatDuration } from "./lib/time";
 import { VoiceKeepaliveListener } from "./lib/voice";
@@ -214,6 +215,13 @@ if (env.TOPBOT_TOKEN) {
   console.log("Publishing half-hourly statistics to topbot.gg");
 } else {
   console.log("TOPBOT_TOKEN not set; topbot.gg publishing is off");
+}
+
+if (env.TOPGG_TOKEN) {
+  new TopggManager({ token: env.TOPGG_TOKEN });
+  console.log("Publishing half-hourly statistics to top.gg");
+} else {
+  console.log("TOPGG_TOKEN not set; top.gg publishing is off");
 }
 
 discordClient.login(env.DISCORD_BOT_TOKEN);

@@ -18,6 +18,7 @@ export const env = createEnv({
     PRIVATE_COMMANDS_GUILD_ID: type("string | undefined"),
     DISCORDBOTLIST_TOKEN: type("string | undefined"),
     TOPBOT_TOKEN: type("string | undefined"),
+    TOPGG_TOKEN: type("string | undefined"),
     S3_ACCESS_KEY: type("string > 0"),
     S3_SECRET_KEY: type("string > 0"),
     S3_REGION: type("string > 0"),

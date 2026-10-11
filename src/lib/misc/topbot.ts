@@ -1,7 +1,7 @@
 import { EventBus } from "@/event/event-bus";
 import { EventHandler } from "@/event/event-handler";
 import { EventListener } from "@/event/event-listener";
-import PostCommandLoadEvent from "@/event/events/post-command-load.event";
+import BotReadyEvent from "@/event/events/bot-ready.event";
 import type { Client } from "discord.js";
 
 const API_BASE_URL = "https://topbot.gg/api/v1/bots";
@@ -14,10 +14,6 @@ export interface TopbotOptions {
   readonly intervalMs?: number;
 }
 
-/**
- * Mirrors the bot onto topbot.gg: keeps the guild and shard counts fresh
- * on a timer once the application command sync succeeds.
- */
 export class TopbotManager extends EventListener {
   private readonly token: string;
   private readonly intervalMs: number;
@@ -30,8 +26,8 @@ export class TopbotManager extends EventListener {
     EventBus.subscribe(this);
   }
 
-  @EventHandler(PostCommandLoadEvent)
-  public async onPostCommandLoad(event: PostCommandLoadEvent): Promise<void> {
+  @EventHandler(BotReadyEvent)
+  public async onBotReady(event: BotReadyEvent): Promise<void> {
     clearInterval(this.timer);
     await this.pushStatistics(event.client);
     this.timer = setInterval(() => void this.pushStatistics(event.client), this.intervalMs);

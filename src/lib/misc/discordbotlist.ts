@@ -15,11 +15,6 @@ export interface DiscordBotListOptions {
   readonly intervalMs?: number;
 }
 
-/**
- * Mirrors the bot onto discordbotlist.com: publishes the command set once
- * the Discord sync succeeds, then keeps guild, user and voice connection
- * counts fresh on a timer.
- */
 export class DiscordBotListManager extends EventListener {
   private readonly token: string;
   private readonly intervalMs: number;
