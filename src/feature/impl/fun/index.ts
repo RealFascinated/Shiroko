@@ -3,6 +3,7 @@ import { FeatureIds } from "@/feature/feature-ids";
 import EightBallCommand from "./command/8ball.command";
 import CoinflipCommand from "./command/coinflip.command";
 import RollCommand from "./command/roll.command";
+import TriviaCommand from "./command/trivia.command";
 
 export default class FunFeature extends Feature {
   constructor() {
@@ -11,5 +12,6 @@ export default class FunFeature extends Feature {
     this.registerCommand(new EightBallCommand());
     this.registerCommand(new CoinflipCommand());
     this.registerCommand(new RollCommand());
+    this.registerCommand(new TriviaCommand());
   }
 }
