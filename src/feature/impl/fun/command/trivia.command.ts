@@ -12,7 +12,9 @@ import {
   MessageFlags,
   type MessageActionRowComponentBuilder,
 } from "discord.js";
-import TriviaService, { type TriviaQuestion } from "../trivia.service";
+import type { CommandOptionBuilder } from "@/command/option";
+import { stringOption } from "@/command/option";
+import TriviaService, { type TriviaDifficulty, type TriviaQuestion } from "../trivia.service";
 
 const ANSWER_WINDOW_MS = TimeUnit.toMillis(TimeUnit.Minute, 30);
 const LABEL_LIMIT = 80;
@@ -42,11 +44,20 @@ export default class TriviaCommand extends ComponentCommand<TriviaAnswerPayload>
     return true;
   }
 
-  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
+  public override get options(): CommandOptionBuilder[] {
+    return [
+      stringOption(false, "difficulty", "Ask for a harder question", {
+        choices: { easy: "Easy", medium: "Medium", hard: "Hard" },
+      }),
+    ];
+  }
+
+  protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
     await ctx.deferReply();
+    const difficulty = args.string("difficulty") as TriviaDifficulty | null;
     let question: TriviaQuestion;
     try {
-      question = await TriviaService.fetchQuestion();
+      question = await TriviaService.fetchQuestion(difficulty);
     } catch {
       await ctx.editReply({
         embeds: [errorEmbed(commandName).setDescription("Trivia is unavailable, try again later.")],

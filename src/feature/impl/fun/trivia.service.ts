@@ -2,6 +2,8 @@ import { fetchJson } from "@/lib/fetch";
 
 const API_URL = "https://the-trivia-api.com/api/questions?limit=1";
 
+export type TriviaDifficulty = "easy" | "medium" | "hard";
+
 interface ApiResponseEntry {
   category: string;
   question: string;
@@ -29,8 +31,9 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 export default class TriviaService {
-  public static async fetchQuestion(): Promise<TriviaQuestion> {
-    const [raw] = await fetchJson<ApiResponseEntry[]>(API_URL);
+  public static async fetchQuestion(difficulty: TriviaDifficulty | null): Promise<TriviaQuestion> {
+    const url = API_URL + (difficulty === null ? "" : `&difficulty=${encodeURIComponent(difficulty)}`);
+    const [raw] = await fetchJson<ApiResponseEntry[]>(url);
     if (raw === undefined) {
       throw new Error("The Trivia API returned no questions");
     }
