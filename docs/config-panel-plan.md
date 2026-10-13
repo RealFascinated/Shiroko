@@ -14,7 +14,7 @@ The repo has no persistent component dispatch. Current state:
   (`isChatInputCommand`, `isUserContextMenuCommand` / `isMessageContextMenuCommand`).
   A button or select press is **dropped silently**.
 - Buttons today are one-shot collectors on a single reply:
-  `watchButtonPress` in `src/lib/embed.ts` and `attachPager` in
+  `watchButtonPress` in `src/lib/embed.ts` and `createPager` in
   `src/lib/pagination.ts`. They only work for the interaction that created
   the message and cannot drive a persistent panel.
 - Config today is subcommand-per-setting (`/level-config`), a `getConfig` /
@@ -61,7 +61,7 @@ action)` and hands the `ButtonInteraction` / `StringSelectMenuInteraction`
   same flags the command required (read from the panel's
   `requiredFlags`), the guild must match, and the message must not be too
   old (Discord already enforces 15-min interaction lifetime; a local
-  window, e.g. 3 hours like `attachPager`, is a nice-to-have).
+  window, e.g. 3 hours like `createPager`, is a nice-to-have).
 - One collector-based path (`watchButtonPress`) stays for one-shot cards;
   the panel is a distinct, message-persistent path.
 

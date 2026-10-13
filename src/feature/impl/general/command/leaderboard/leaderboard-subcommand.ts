@@ -3,13 +3,14 @@ import type Leaderboard from "@/leaderboard/leaderboard";
 import { type LeaderboardPosition, type LeaderboardRow } from "@/leaderboard/leaderboard";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
-import { attachPager, type Page } from "@/lib/pagination";
+import { createPager, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
 
 /**
- * A leaderboard subcommand: shows the given board from page 1, closes it
- * with the caller's own position, and attaches the button pager
- * (`attachPager`) when the board spans more than one page. `T` is the
+ * A leaderboard subcommand: shows the given board from page 1 and closes
+ * it with the caller's own position, with the button pager
+ * (`createPager`) in the reply when the board spans more than one page.
+ * `T` is the
  * board's row type, so a board with extra columns gets them from
  * {@link renderValue}. Subclasses supply the board, the embed title, the
  * empty-state message, and the score format; fetching, empty state,
@@ -88,13 +89,14 @@ export default abstract class LeaderboardSubCommand<
         ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription(this.emptyMessage))
       );
     }
-    const response = await ctx.reply(await render(firstPage));
-    await attachPager(response, {
+    const pager = createPager({
       namespace: this.id,
       userId: ctx.user.id,
       page: firstPage,
       fetchPage: page => board.getPage(guildId, page),
       render,
     });
+    const response = await ctx.reply(await pager.payload(firstPage));
+    pager.attach(response);
   }
 }

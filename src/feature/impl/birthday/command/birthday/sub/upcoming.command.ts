@@ -7,7 +7,7 @@ import {
 import { monthName } from "@/lib/date";
 import { baseEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
-import { attachPager, type Page } from "@/lib/pagination";
+import { createPager, type Page } from "@/lib/pagination";
 
 export default class UpcomingCommand extends Command {
   constructor() {
@@ -40,13 +40,14 @@ export default class UpcomingCommand extends Command {
       });
       return { embeds: [baseEmbed(commandName).setTitle(title).setDescription(lines.join("\n"))] };
     };
-    const response = await ctx.reply(render(firstPage));
-    await attachPager(response, {
+    const pager = createPager({
       namespace: "birthday-upcoming",
       userId: ctx.user.id,
       page: firstPage,
       fetchPage,
       render,
     });
+    const response = await ctx.reply(await pager.payload(firstPage));
+    pager.attach(response);
   }
 }

@@ -297,7 +297,7 @@ than the typed getters, which throw when the component is missing.
 ## 5. Interaction plumbing
 
 Today the bridge drops component interactions; buttons exist only as
-one-shot collectors on a single reply (`watchButtonPress`, `attachPager`),
+one-shot collectors on a single reply (`watchButtonPress`, `createPager`),
 which cannot drive a persistent panel. Two additions:
 
 1. **Bridge branch** in `src/event/event-bridge.ts`:

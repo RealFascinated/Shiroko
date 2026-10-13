@@ -1,7 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { roleOption, type CommandOptionBuilder } from "@/command/option";
 import { baseEmbed } from "@/lib/embed";
-import { attachPager, loadPage, type Page } from "@/lib/pagination";
+import { createPager, loadPage, type Page } from "@/lib/pagination";
 import Permissions, {
   FLAG_DISPLAY_NAMES,
   flagLabels,
@@ -99,14 +99,15 @@ export default class PermissionsViewCommand extends Command {
       };
     };
     const firstPage = await fetchPage(1);
-    const response = await ctx.reply(render(firstPage));
-    await attachPager(response, {
+    const pager = createPager({
       namespace: "perm-view",
       userId: ctx.user.id,
       page: firstPage,
       fetchPage,
       render,
     });
+    const response = await ctx.reply(await pager.payload(firstPage));
+    pager.attach(response);
     return response;
   }
 
@@ -126,14 +127,15 @@ export default class PermissionsViewCommand extends Command {
         embeds: [baseEmbed(commandName).setTitle("🔒 Role Permissions").setDescription(lines.join("\n"))],
       };
     };
-    const response = await ctx.reply(render(firstPage));
-    await attachPager(response, {
+    const pager = createPager({
       namespace: "perm-view",
       userId: ctx.user.id,
       page: firstPage,
       fetchPage: page => Permissions.pageConfigs(guild.id, page, PERMISSIONS_PER_PAGE),
       render,
     });
+    const response = await ctx.reply(await pager.payload(firstPage));
+    pager.attach(response);
     return response;
   }
 

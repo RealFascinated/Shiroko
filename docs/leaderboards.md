@@ -328,7 +328,7 @@ the old ranking code was deleted. No shims, no legacy paths.
 
 - Rendering: embeds, names, pagers are command-layer concerns. The service
   returns plain data. (The `/leaderboard` subcommands render through
-  `attachPager` in `src/lib/pagination.ts`.)
+  `createPager` in `src/lib/pagination.ts`.)
 - Caching of any kind, Redis, or in-memory ranking.
 - New tables. Phase 1 needs none; phase 2 needs at most new indexes.
 - The `GuildLeaderboard` concrete board: the tier exists, the metric does
@@ -360,9 +360,9 @@ the old ranking code was deleted. No shims, no legacy paths.
      own position (`getPosition`, in parallel), renders rows with their
      global 1-based position, closes the embed with the caller's position
      ("**Your position:** **42**/**500** · <score>", or "not ranked yet"
-     with no score row), and attaches the `attachPager` button pager
-     (⏮ ◀ n/N ▶ ⏭) when the board spans multiple pages.
-     `attachPager`'s `render` accepts a promise so pages are fetched lazily
+     with no score row), and pages with the `createPager` button pager
+     (⏮ ◀ n/N ▶ ⏭) in the reply when the board spans multiple pages.
+     `createPager`'s `render` accepts a promise so pages are fetched lazily
      per press. Adding a board is one subcommand file supplying `board`,
      `title`, `emptyMessage`, and `renderValue` (the score's units, shared
      by the rows and the position line), plus one `registerSubCommand`

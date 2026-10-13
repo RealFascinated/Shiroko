@@ -2,10 +2,10 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  type BaseMessageOptions,
   type ButtonInteraction,
   type InteractionResponse,
   type MessageActionRowComponentBuilder,
-  type MessageEditOptions,
 } from "discord.js";
 import { TimeUnit } from "./time";
 
@@ -58,7 +58,7 @@ export async function loadPage<T>({ page, pageSize, count, rows }: PageRequest<T
 }
 
 /**
- * Pagination options for {@link attachPager}.
+ * Pagination options for {@link createPager}.
  */
 export interface PagerOptions<T> {
   /**
@@ -71,8 +71,7 @@ export interface PagerOptions<T> {
    */
   userId: string;
   /**
-   * The page already shown in the reply. Paging continues from it, and its
-   * `pageCount` decides whether a pager is attached at all.
+   * The page to show: its `pageCount` decides whether a nav bar renders.
    */
   page: Page<T>;
   /**
@@ -80,23 +79,37 @@ export interface PagerOptions<T> {
    * query or a leaderboard's `getPage`.
    */
   fetchPage(page: number): Promise<Page<T>>;
-  render(page: Page<T>): MessageEditOptions | Promise<MessageEditOptions>;
+  render(page: Page<T>): PagePayload | Promise<PagePayload>;
 }
 
 /**
- * Wrap a reply in a prev/next pager.
- *
- * The reply has already rendered `options.page`; this attaches the ⏮ ◀ ▶ ⏭
- * buttons and re-renders via `options.fetchPage` on each valid press. Only
- * `options.userId` may page. The nav bar disables at the ends and is
- * stripped when the window elapses. No-op when the list has a single page.
+ * Payload type accepted identically by the reply, edit, and update
+ * overloads: discord.js specialises `flags` and `content` per overload,
+ * and a pager sets neither.
  */
-export async function attachPager<T>(response: InteractionResponse, options: PagerOptions<T>): Promise<void> {
+export type PagePayload = BaseMessageOptions;
+
+/**
+ * A prev/next pager: the payload to reply with, and the collector that
+ * drives it. The nav bar is part of {@link Pager.payload}, so the initial
+ * reply carries working buttons and the message is never edited until the
+ * window elapses and the dead nav bar is stripped.
+ */
+export interface Pager<T> {
+  payload(page: Page<T>): Promise<PagePayload>;
+  attach(response: InteractionResponse): void;
+}
+
+/**
+ * Build a pager around a page source. Reply with
+ * `payload(options.page)`, then hand the sent response to `attach`.
+ * Valid presses re-render via `options.fetchPage` through `button.update`
+ * (which leaves no "edited" marker). Only `options.userId` may page. The
+ * nav bar disables at the ends. No-op when the list has a single page.
+ */
+export function createPager<T>(options: PagerOptions<T>): Pager<T> {
   const { namespace, userId, page: initialPage, fetchPage, render } = options;
   const pageCount = initialPage.pageCount;
-  if (pageCount <= 1) {
-    return;
-  }
   const ids = {
     first: `${namespace}-first`,
     prev: `${namespace}-prev`,
@@ -104,9 +117,7 @@ export async function attachPager<T>(response: InteractionResponse, options: Pag
     last: `${namespace}-last`,
     counter: `${namespace}-counter`,
   };
-  let page = initialPage;
-
-  const pageRow = () =>
+  const pageRow = (page: Page<T>) =>
     new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(ids.first)
@@ -134,38 +145,44 @@ export async function attachPager<T>(response: InteractionResponse, options: Pag
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(page.page >= pageCount)
     );
-
-  const draw = async () => response.edit({ ...(await render(page)), components: [pageRow()] });
-
-  await draw();
-
-  const collector = response.createMessageComponentCollector({ time: PAGE_WINDOW_MS });
-  collector.on("collect", async (button: ButtonInteraction) => {
-    if (button.user.id !== userId) {
+  const payload = async (page: Page<T>): Promise<PagePayload> => {
+    const body: PagePayload = await render(page);
+    return pageCount <= 1 ? body : { ...body, components: [pageRow(page)] };
+  };
+  let current = initialPage;
+  const attach = (response: InteractionResponse): void => {
+    if (pageCount <= 1) {
       return;
     }
-    let target = page.page;
-    switch (button.customId) {
-      case ids.first:
-        target = 1;
-        break;
-      case ids.prev:
-        target = page.page - 1;
-        break;
-      case ids.next:
-        target = page.page + 1;
-        break;
-      case ids.last:
-        target = pageCount;
-        break;
-    }
-    if (target === page.page || target < 1 || target > pageCount) {
-      return;
-    }
-    page = await fetchPage(target);
-    await button.update({ ...(await render(page)), components: [pageRow()] });
-  });
-  collector.on("end", async () => {
-    await response.edit({ components: [] });
-  });
+    const collector = response.createMessageComponentCollector({ time: PAGE_WINDOW_MS });
+    collector.on("collect", async (button: ButtonInteraction) => {
+      if (button.user.id !== userId) {
+        return;
+      }
+      let target = current.page;
+      switch (button.customId) {
+        case ids.first:
+          target = 1;
+          break;
+        case ids.prev:
+          target = current.page - 1;
+          break;
+        case ids.next:
+          target = current.page + 1;
+          break;
+        case ids.last:
+          target = pageCount;
+          break;
+      }
+      if (target === current.page || target < 1 || target > pageCount) {
+        return;
+      }
+      current = await fetchPage(target);
+      await button.update(await payload(current));
+    });
+    collector.on("end", async () => {
+      await response.edit({ components: [] });
+    });
+  };
+  return { payload, attach };
 }

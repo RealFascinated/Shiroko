@@ -5,7 +5,7 @@ import {
   type Reminder,
 } from "@/feature/impl/reminders/reminder.service";
 import { baseEmbed } from "@/lib/embed";
-import { attachPager, type Page } from "@/lib/pagination";
+import { createPager, type Page } from "@/lib/pagination";
 import { timestampLabel } from "@/lib/time";
 
 export default class ListCommand extends Command {
@@ -38,13 +38,14 @@ export default class ListCommand extends Command {
         embeds: [baseEmbed(commandName).setTitle("⏰ Your Reminders").setDescription(lines.join("\n\n"))],
       };
     };
-    const response = await ctx.reply(render(firstPage));
-    await attachPager(response, {
+    const pager = createPager({
       namespace: "reminder-list",
       userId: ctx.user.id,
       page: firstPage,
       fetchPage,
       render,
     });
+    const response = await ctx.reply(await pager.payload(firstPage));
+    pager.attach(response);
   }
 }

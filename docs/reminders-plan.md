@@ -336,7 +336,8 @@ renew the domain
 ```
 
 Paging reuses the existing framework rather than a hand-rolled cap: the service
-returns a `Page<Reminder>` via `loadPage`, and the command attaches `attachPager`
+returns a `Page<Reminder>` via `loadPage`, and the command replies through
+`createPager`
 under the `reminder-list` namespace, exactly like `/birthday upcoming`. The
 count and the `LIMIT`/`OFFSET` window happen in Postgres, so a member with a
 thousand reminders still reads one page per press. The id is the first thing on
