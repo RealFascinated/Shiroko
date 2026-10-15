@@ -12,6 +12,7 @@ import PermissionsCommand from "./command/permissions/permissions.command";
 import PingCommand from "./command/ping.command";
 import SettingsCommand from "./command/settings/settings.command";
 import UserCommand from "./command/user/user.command";
+import VoteCommand from "./command/vote.command";
 
 export default class GeneralFeature extends Feature {
   constructor() {
@@ -23,6 +24,7 @@ export default class GeneralFeature extends Feature {
     this.registerCommand(new UserCommand());
     this.registerCommand(new GuildInfoCommand());
     this.registerCommand(new BotStatsCommand());
+    this.registerCommand(new VoteCommand());
     this.registerCommand(new HelpCommand());
     this.registerCommand(new LeaderboardCommand());
     this.registerCommand(new FeatureCommand());
