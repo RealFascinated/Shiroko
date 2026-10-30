@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
-    "@napi-rs/canvas": "^1.0.13",
+    "@napi-rs/canvas": "^1.1.0",
     "@t3-oss/env-core": "^0.13.11",
     "arktype": "^2.2.9",
     "bufferutil": "^4.1.0",
