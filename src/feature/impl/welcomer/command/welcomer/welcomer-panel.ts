@@ -104,7 +104,11 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
 
   private async previewText(message: WelcomerSettingsData, context: PanelContext): Promise<string> {
     const body = await welcomerService.previewText(context.guild, message, context.user);
-    return ["## Preview", "-# Simple format, rendered with this server's values.", "", body].join("\n");
+    const note =
+      message.mode === "card"
+        ? "-# Card format: this text is sent above the member's welcome card, generated on join."
+        : "-# Simple format, rendered with this server's values.";
+    return ["## Preview", note, "", body].join("\n");
   }
 }
 
@@ -131,10 +135,21 @@ function formatParagraph(value: unknown): string {
 
 /**
  * The controls for the message. Only the fields its current mode uses are
- * offered, so a simple message has no title or colour control.
+ * offered, so a simple message has no title or colour control and a card
+ * has no title.
  */
 export function controlsFor(message: WelcomerSettingsData): PanelControl<WelcomerSettingsData>[] {
   const controls: PanelControl<WelcomerSettingsData>[] = [];
+  const colorControl: PanelControl<WelcomerSettingsData> = {
+    kind: "dialog",
+    key: "color",
+    input: "text",
+    label: "Color",
+    hint: "A hex colour such as #9b59b6.",
+    format: value => `\`${formatColor(typeof value === "number" ? value : 0)}\``,
+    validate: input => (parseColor(input) === null ? "Enter a colour such as `#9b59b6`." : null),
+    transform: input => parseColor(input),
+  };
 
   if (message.mode === "embed") {
     controls.push({
@@ -154,16 +169,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       format: formatParagraph,
       validate: input => (input.trim().length > 0 ? null : "The description cannot be empty."),
     });
-    controls.push({
-      kind: "dialog",
-      key: "color",
-      input: "text",
-      label: "Color",
-      hint: "A hex colour such as #9b59b6.",
-      format: value => `\`${formatColor(typeof value === "number" ? value : 0)}\``,
-      validate: input => (parseColor(input) === null ? "Enter a colour such as `#9b59b6`." : null),
-      transform: input => parseColor(input),
-    });
+    controls.push(colorControl);
   } else {
     controls.push({
       kind: "dialog",
@@ -174,6 +180,9 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       format: formatParagraph,
       validate: input => (input.trim().length > 0 ? null : "The description cannot be empty."),
     });
+    if (message.mode === "card") {
+      controls.push(colorControl);
+    }
   }
 
   controls.push({
@@ -191,6 +200,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
     options: () => [
       { value: "embed", label: "Embed" },
       { value: "simple", label: "Simple" },
+      { value: "card", label: "Card" },
     ],
   });
   controls.push({

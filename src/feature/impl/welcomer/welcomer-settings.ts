@@ -2,7 +2,7 @@ import { Constants } from "@/constants";
 import { FeatureIds } from "@/feature/feature-ids";
 import SettingsModule from "@/settings/settings-module";
 
-export type WelcomerMode = "embed" | "simple";
+export type WelcomerMode = "embed" | "simple" | "card";
 
 export interface WelcomerSettingsData {
   channelId: string | null;
@@ -11,9 +11,9 @@ export interface WelcomerSettingsData {
   title: string;
   /** The embed's body, used in embed mode. */
   description: string;
-  /** The simple message's own body, used in simple mode; simple has no title. */
+  /** The plain message body, used in simple and card modes; neither has a title. */
   simpleDescription: string;
-  /** Embed accent colour; unused in simple mode. */
+  /** Embed or card accent colour; unused in simple mode. */
   color: number;
   ping: boolean;
 }
@@ -51,7 +51,7 @@ export const welcomerSettings = new SettingsModule<WelcomerSettingsData>({
       label: "Format",
       type: "choice",
       default: "embed",
-      choices: { embed: "Embed", simple: "Simple" },
+      choices: { embed: "Embed", simple: "Simple", card: "Card" },
     },
     { key: "title", label: "Title", type: "string", default: "Welcome!" },
     {

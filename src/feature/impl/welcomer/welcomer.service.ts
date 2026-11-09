@@ -1,8 +1,10 @@
+import { formatColor } from "@/lib/color";
 import { placeholders } from "@/placeholder";
 import GlobalUser from "@/user/global-user";
 import { EmbedBuilder, type Guild, type GuildMember } from "discord.js";
 import type { WelcomerSettingsData } from "./welcomer-settings";
 import { welcomerSettings } from "./welcomer-settings";
+import { renderWelcomeCard } from "./welcome-card";
 
 /** An embed's title and body with every placeholder resolved. */
 export interface WelcomerEmbedContent {
@@ -10,10 +12,11 @@ export interface WelcomerEmbedContent {
   description: string;
 }
 
-/** What a rendered message sends: an embed, or simple markdown. */
+/** What a rendered message sends: an embed, simple markdown, or markdown over a card image. */
 export interface WelcomerPayload {
   embeds?: EmbedBuilder[];
   content?: string;
+  files?: { attachment: Buffer; name: string }[];
   allowedMentions: { parse: []; users: string[] };
 }
 
@@ -77,6 +80,20 @@ export default class WelcomerService {
     const allowedMentions = { parse: [] as [], users: message.ping ? [globalUser.id] : [] };
     if (message.mode === "simple") {
       return { content: await this.resolveSimple(guild, message, globalUser), allowedMentions };
+    }
+    if (message.mode === "card") {
+      const user = globalUser.discordUser;
+      const [content, card] = await Promise.all([
+        this.resolveSimple(guild, message, globalUser),
+        renderWelcomeCard({
+          name: member?.displayName ?? user.displayName,
+          avatarUrl: (member ?? user).displayAvatarURL({ size: 256, extension: "png" }),
+          guildName: guild.name,
+          memberCount: guild.memberCount,
+          accent: formatColor(message.color),
+        }),
+      ]);
+      return { content, files: [{ attachment: card, name: "welcome.png" }], allowedMentions };
     }
     const content = await this.resolveEmbed(guild, message, globalUser);
     const embed = new EmbedBuilder()
