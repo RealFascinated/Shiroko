@@ -24,10 +24,9 @@ export interface WelcomerSettingsData {
 
 /**
  * The welcomer's settings, exposed through the generic settings system
- * exactly like every other feature's. The module is deliberately NOT
- * registered with `SettingsManager`: registration is what makes a module
- * appear in `/settings`, and the welcomer renders its own panel instead.
- * `get`/`set` work regardless, so the storage path is the shared one.
+ * exactly like every other feature's. The feature registers it unlisted:
+ * the welcomer renders its own panel instead of a `/settings` view, but the
+ * audit log still needs its labels.
  */
 export const welcomerSettings = new SettingsModule<WelcomerSettingsData>({
   id: "welcomer",
@@ -81,7 +80,13 @@ export const welcomerSettings = new SettingsModule<WelcomerSettingsData>({
       type: "string",
       default: "Member #{member_count} of {guild_name}",
     },
-    { key: "color", label: "Color", type: "number", default: Constants.mainColor },
+    {
+      key: "color",
+      label: "Color",
+      type: "number",
+      default: Constants.mainColor,
+      format: value => `#${value.toString(16).padStart(6, "0").toUpperCase()}`,
+    },
     { key: "ping", label: "Ping member", type: "boolean", default: true },
   ],
 });

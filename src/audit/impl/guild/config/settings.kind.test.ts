@@ -8,6 +8,7 @@ import SettingsKind from "./settings.kind";
 interface DemoData {
   channelId: string | null;
   enabled: boolean;
+  color: number;
   rewards: Record<string, { roleId: string | null }>;
 }
 
@@ -16,10 +17,11 @@ SettingsManager.register(
     id: "demo",
     displayName: "Demo",
     featureId: null,
-    defaults: { channelId: null, enabled: false, rewards: {} },
+    defaults: { channelId: null, enabled: false, color: 0, rewards: {} },
     descriptors: [
       { key: "channelId", label: "Channel", type: "channel", default: null },
       { key: "enabled", label: "Enabled", type: "boolean", default: false },
+      { key: "color", label: "Color", type: "number", default: 0, format: value => `#${value.toString(16)}` },
       {
         key: "rewards",
         label: "Rewards",
@@ -33,7 +35,8 @@ SettingsManager.register(
         },
       },
     ],
-  })
+  }),
+  { listed: false }
 );
 
 function entry(subjectId: string, oldValue: unknown, newValue: unknown): AuditEntry {
@@ -51,17 +54,26 @@ function entry(subjectId: string, oldValue: unknown, newValue: unknown): AuditEn
 describe("settings kind", () => {
   const kind = new SettingsKind();
 
-  test("formats values by descriptor type", async () => {
+  test("names the setting by its labels and formats values by descriptor type", async () => {
     expect(await kind.summary(entry("demo.channelId", null, "123"))).toBe(
-      "`demo.channelId`: *default* → <#123>"
+      "**Demo › Channel**: *default* → <#123>"
     );
-    expect(await kind.summary(entry("demo.enabled", false, true))).toBe("`demo.enabled`: Off → On");
+    expect(await kind.summary(entry("demo.enabled", false, true))).toBe("**Demo › Enabled**: Off → On");
+  });
+
+  test("prefers a descriptor's own format", async () => {
+    expect(await kind.summary(entry("demo.color", 255, 4096))).toBe("**Demo › Color**: #ff → #1000");
   });
 
   test("resolves a map entry's field through the entry descriptor", async () => {
     expect(await kind.summary(entry("demo.rewards.5.roleId", null, "9"))).toBe(
-      "`demo.rewards.5.roleId`: *default* → <@&9>"
+      "**Demo › Rewards › 5 › Role**: *default* → <@&9>"
     );
+  });
+
+  test("resolves an unlisted module without listing it", () => {
+    expect(SettingsManager.get("demo")).toBeDefined();
+    expect(SettingsManager.all().some(module => module.id === "demo")).toBe(false);
   });
 
   test("falls back to code formatting for an unregistered module", async () => {

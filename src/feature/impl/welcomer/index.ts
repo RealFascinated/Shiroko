@@ -3,15 +3,18 @@ import MemberGuildJoinEvent from "@/event/events/member-guild-join.event";
 import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import PanelManager from "@/panel/index";
+import SettingsManager from "@/settings/index";
 import GlobalUsersManager from "@/user/global-users-manager";
 import { welcomerPanel } from "./command/welcomer/welcomer-panel";
 import WelcomerCommand from "./command/welcomer/welcomer.command";
 import { welcomerService } from "./welcomer.service";
+import { welcomerSettings } from "./welcomer-settings";
 
 export default class WelcomerFeature extends Feature {
   constructor() {
     super(FeatureIds.Welcomer, { defaultEnabled: false, name: "Welcomer", emoji: "👋" });
 
+    SettingsManager.register(welcomerSettings, { listed: false });
     PanelManager.register(welcomerPanel);
     this.registerCommand(new WelcomerCommand());
   }

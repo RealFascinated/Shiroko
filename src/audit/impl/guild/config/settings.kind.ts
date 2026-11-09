@@ -3,7 +3,6 @@ import { formatDuration } from "@/lib/time";
 import { PermissionFlags } from "@/permission/permissions";
 import GuildSettings from "@/settings/guild-settings";
 import SettingsManager from "@/settings/index";
-import type SettingsModule from "@/settings/settings-module";
 import type { RuntimeFieldDescriptor } from "@/settings/settings-module";
 import type { AuditEntry } from "@/audit/audit-kind";
 import GuildAuditKind from "@/audit/guild-audit-kind";
@@ -21,13 +20,12 @@ export default class SettingsKind extends GuildAuditKind {
   public override readonly revertFlags: bigint = PermissionFlags.SETTINGS_COMMAND;
 
   protected override mention(subjectId: string): string {
-    return `\`${subjectId}\``;
+    const setting = resolve(subjectId);
+    return setting ? `**${setting.labels.join(" › ")}**` : `\`${subjectId}\``;
   }
 
   protected override details(row: AuditEntry): string[] {
-    const [moduleId = "", ...path] = row.subjectId.split(".");
-    const module = SettingsManager.get(moduleId);
-    const descriptor = module ? descriptorAt(module, path) : undefined;
+    const descriptor = resolve(row.subjectId)?.descriptor;
     return [`${formatValue(descriptor, row.oldValue)} → ${formatValue(descriptor, row.newValue)}`];
   }
 
@@ -37,18 +35,27 @@ export default class SettingsKind extends GuildAuditKind {
 }
 
 /**
- * Walk a stored key's path to its descriptor. A map's entry key is
- * dynamic, so the segment after a map selects its `entry` descriptor.
+ * Walk a stored key (`<moduleId>.<path>`) to its descriptor, collecting the
+ * label of each step. A map's entry key is dynamic, so the segment after a
+ * map selects its `entry` descriptor and is shown as-is.
  */
-function descriptorAt(module: SettingsModule<any>, path: string[]): RuntimeFieldDescriptor | undefined {
-  let current = module.runtimeDescriptors.find(descriptor => descriptor.key === path[0]);
-  for (const segment of path.slice(1)) {
+function resolve(subjectId: string): { descriptor: RuntimeFieldDescriptor; labels: string[] } | undefined {
+  const [moduleId = "", first, ...rest] = subjectId.split(".");
+  const module = SettingsManager.get(moduleId);
+  let current = module?.runtimeDescriptors.find(descriptor => descriptor.key === first);
+  if (!module || !current) {
+    return undefined;
+  }
+  const labels = [module.displayName, current.label];
+  for (const segment of rest) {
+    const inMap: boolean = current.type === "map";
+    current = inMap ? current.entry : current.fields?.find(field => field.key === segment);
     if (!current) {
       return undefined;
     }
-    current = current.type === "map" ? current.entry : current.fields?.find(field => field.key === segment);
+    labels.push(inMap ? segment : current.label);
   }
-  return current;
+  return { descriptor: current, labels };
 }
 
 function formatValue(descriptor: RuntimeFieldDescriptor | undefined, value: JsonValue | null): string {
@@ -60,6 +67,9 @@ function formatValue(descriptor: RuntimeFieldDescriptor | undefined, value: Json
 }
 
 function render(descriptor: RuntimeFieldDescriptor | undefined, value: JsonValue): string {
+  if (descriptor?.format) {
+    return descriptor.format(value);
+  }
   switch (descriptor?.type) {
     case "boolean":
       return value ? "On" : "Off";

@@ -12,9 +12,18 @@ import type SettingsModule from "./settings-module";
  */
 export default class SettingsManager {
   private static MODULES: Map<string, SettingsModule<any>> = new Map<string, SettingsModule<any>>();
+  private static UNLISTED: Set<string> = new Set<string>();
 
-  public static register(module: SettingsModule<any>): void {
+  /**
+   * Register a module so its stored keys resolve to labels (the audit log
+   * reads them through {@link SettingsManager.get}). `listed: false` keeps
+   * it out of `/settings`, for a feature that renders its own panel.
+   */
+  public static register(module: SettingsModule<any>, options: { listed?: boolean } = {}): void {
     SettingsManager.MODULES.set(module.id, module);
+    if (options.listed === false) {
+      SettingsManager.UNLISTED.add(module.id);
+    }
     console.log(`Registered settings module: ${module.id} - ${module.displayName}`);
   }
 
@@ -23,7 +32,9 @@ export default class SettingsManager {
   }
 
   public static all(): SettingsModule<any>[] {
-    return Array.from(SettingsManager.MODULES.values());
+    return Array.from(SettingsManager.MODULES.values()).filter(
+      module => !SettingsManager.UNLISTED.has(module.id)
+    );
   }
 
   /**
