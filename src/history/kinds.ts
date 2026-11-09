@@ -55,3 +55,42 @@ export const USER_KIND_BY_ID: Record<string, UserHistoryKind<UserChangeEvent>> =
 export const GUILD_KIND_BY_ID: Record<string, GuildHistoryKind<Event>> = Object.fromEntries(
   GUILD_HISTORY_KINDS.map(kind => [kind.id, kind])
 );
+
+/** One entry of the `/audit` type filter: a "thing" whose create/update/delete kinds are searched together. */
+export interface HistoryGroup {
+  id: string;
+  label: string;
+  kindIds: readonly string[];
+}
+
+const single = (kind: { id: string; label: string }): HistoryGroup => ({
+  id: kind.id,
+  label: kind.label,
+  kindIds: [kind.id],
+});
+
+const group = (id: string, label: string): HistoryGroup => ({
+  id,
+  label,
+  kindIds: GUILD_OBJECT_HISTORY_KINDS.filter(kind => kind.id.startsWith(`${id}_`)).map(kind => kind.id),
+});
+
+export const GUILD_HISTORY_GROUPS: HistoryGroup[] = [
+  { id: "server", label: "Server", kindIds: ["guild_update"] },
+  group("channel", "Channels"),
+  group("role", "Roles"),
+  group("emoji", "Emojis"),
+  group("sticker", "Stickers"),
+  group("thread", "Threads"),
+  group("invite", "Invites"),
+];
+
+export const USER_HISTORY_GROUPS: HistoryGroup[] = [
+  ...USER_HISTORY_KINDS.map(single),
+  {
+    id: "membership",
+    label: "Joins, leaves and bans",
+    kindIds: ["member_join", "member_leave", "member_ban", "member_unban"],
+  },
+  ...MEMBER_HISTORY_KINDS.filter(kind => !kind.id.startsWith("member_")).map(single),
+];

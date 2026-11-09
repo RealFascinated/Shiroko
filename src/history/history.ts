@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { unionAll } from "drizzle-orm/pg-core";
 import { db } from "../db/index";
 import { guildHistorySchema } from "../db/schemas/guild-history";
@@ -60,25 +60,25 @@ export default class History extends EventListener {
 
   /**
    * A user's account changes and their changes in `guildId`, newest first.
-   * `kind` narrows to one kind, which also decides which table is read.
+   * `kinds` narrows to those kinds, which also decides which tables are read.
    */
   public static async userPage(
     userId: string,
     guildId: string,
     page: number,
     pageSize: number,
-    kind?: string
+    kinds?: readonly string[]
   ): Promise<Page<HistoryEntry>> {
-    const account = kind === undefined || kind in USER_KIND_BY_ID;
-    const server = kind === undefined || kind in GUILD_KIND_BY_ID;
+    const account = kinds === undefined || kinds.some(kind => kind in USER_KIND_BY_ID);
+    const server = kinds === undefined || kinds.some(kind => kind in GUILD_KIND_BY_ID);
     const accountWhere = and(
       eq(userHistorySchema.userId, userId),
-      kind ? eq(userHistorySchema.kind, kind) : undefined
+      kinds ? inArray(userHistorySchema.kind, [...kinds]) : undefined
     );
     const serverWhere = and(
       eq(guildHistorySchema.guildId, guildId),
       eq(guildHistorySchema.subjectId, userId),
-      kind ? eq(guildHistorySchema.kind, kind) : undefined
+      kinds ? inArray(guildHistorySchema.kind, [...kinds]) : undefined
     );
     return loadPage({
       page,
@@ -102,16 +102,16 @@ export default class History extends EventListener {
     });
   }
 
-  /** Every recorded change in the guild, newest first, optionally of one kind. */
+  /** Every recorded change in the guild, newest first, optionally of the given kinds. */
   public static async guildPage(
     guildId: string,
     page: number,
     pageSize: number,
-    kind?: string
+    kinds?: readonly string[]
   ): Promise<Page<HistoryEntry>> {
     const where = and(
       eq(guildHistorySchema.guildId, guildId),
-      kind ? eq(guildHistorySchema.kind, kind) : undefined
+      kinds ? inArray(guildHistorySchema.kind, [...kinds]) : undefined
     );
     return loadPage({
       page,

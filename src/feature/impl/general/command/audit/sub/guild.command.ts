@@ -1,10 +1,10 @@
 import type { ExecuteContext } from "@/command/command";
 import History from "@/history/history";
-import { GUILD_OBJECT_HISTORY_KINDS } from "@/history/kinds";
+import { GUILD_HISTORY_GROUPS, type HistoryGroup } from "@/history/kinds";
 import HistoryCommand, { type HistorySource } from "./history-command";
 
 export default class GuildCommand extends HistoryCommand {
-  protected readonly kinds: readonly { id: string; label: string }[] = GUILD_OBJECT_HISTORY_KINDS;
+  protected readonly groups: readonly HistoryGroup[] = GUILD_HISTORY_GROUPS;
 
   constructor() {
     super({ id: "guild", displayName: "Show recent changes to the server" });
@@ -13,7 +13,7 @@ export default class GuildCommand extends HistoryCommand {
   protected override source({ ctx }: ExecuteContext): HistorySource {
     return {
       title: "Server history",
-      fetchPage: (page, pageSize, kind) => History.guildPage(ctx.guild!.id, page, pageSize, kind),
+      fetchPage: (page, pageSize, kinds) => History.guildPage(ctx.guild!.id, page, pageSize, kinds),
     };
   }
 }

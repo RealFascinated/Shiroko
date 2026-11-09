@@ -52,7 +52,11 @@ const FIELDS: Record<string, FieldFormat> = {
   description: text("Description"),
   tags: text("Tags"),
   type: { label: "Type", value: value => humanize(ChannelType[Number(value)] ?? String(value)) },
-  parentId: channel("Category"),
+  parentId: {
+    label: "Category",
+    value: value => `<#${value}>`,
+    change: (_, after) => (after === null ? "Moved out of its category" : `Moved to <#${after}>`),
+  },
   nsfw: toggle("Age-restricted"),
   slowmode: seconds("Slowmode", "Off"),
   color: text("Colour"),
@@ -85,6 +89,20 @@ export function show(value: JsonValue | null, format?: FieldFormat): string {
   return value === null || value === "" ? NONE : (format?.value(value) ?? code(value));
 }
 
+/** `before → after`, or a sentence when one side is unset (`null`). */
+export function transition(from: string | null, to: string | null): string {
+  if (from === null) {
+    return `Set to ${to ?? NONE}`;
+  }
+  return to === null ? `Cleared (was ${from})` : `${from} → ${to}`;
+}
+
+export function changeLine(from: JsonValue | null, to: JsonValue | null, format?: FieldFormat): string {
+  const render = (value: JsonValue | null): string | null =>
+    value === null || value === "" ? null : show(value, format);
+  return transition(render(from), render(to));
+}
+
 /**
  * One line per recorded field: a snapshot (create/delete) lists the values
  * that are set, an update shows `before → after` for what changed.
@@ -103,6 +121,6 @@ export function fieldLines(oldValue: JsonValue | null, newValue: JsonValue | nul
       const present = to ?? from;
       return present === null || present === "" ? [] : [`${label}: ${show(present, format)}`];
     }
-    return [`${label}: ${format?.change?.(from, to) ?? `${show(from, format)} → ${show(to, format)}`}`];
+    return [`${label}: ${format?.change?.(from, to) ?? changeLine(from, to, format)}`];
   });
 }

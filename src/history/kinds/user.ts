@@ -6,6 +6,7 @@ import type { PartialUser, User } from "discord.js";
 import type { JsonValue } from "../../db/schemas/guild-settings";
 import MediaService from "../../storage/media.service";
 import { MediaKind } from "../../storage/media-key";
+import { transition } from "../fields";
 import { UserHistoryKind, type HistoryChange, type HistoryEntry } from "../history-kind";
 
 export class UsernameKind extends UserHistoryKind<UserUsernameUpdatedEvent> {
@@ -55,12 +56,12 @@ abstract class AssetKind<
       this.side(row.subjectId, row.oldValue),
       this.side(row.subjectId, row.newValue),
     ]);
-    return [`${before} → ${after}`];
+    return [transition(before, after)];
   }
 
-  private async side(userId: string, value: JsonValue | null): Promise<string> {
+  private async side(userId: string, value: JsonValue | null): Promise<string | null> {
     if (value === null) {
-      return "*none*";
+      return null;
     }
     const { hash, url } = value as { hash: string; url: string | null };
     if (!url) {

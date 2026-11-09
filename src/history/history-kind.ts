@@ -1,7 +1,7 @@
 import type { AuditLogEvent, Guild, PartialUser, User } from "discord.js";
 import type { JsonValue } from "../db/schemas/guild-settings";
 import type Event from "../event/event";
-import { fieldLines, show } from "./fields";
+import { changeLine, fieldLines } from "./fields";
 
 const MAX_VALUE_LENGTH = 100;
 
@@ -61,7 +61,7 @@ export interface HistoryEntry extends HistoryChange {
  */
 export function entryText(title: string, row: HistoryEntry, lines: string[]): string {
   const header = [title, `<t:${Math.floor(row.createdAt.getTime() / 1000)}:R>`];
-  if (row.actorId) {
+  if (row.actorId && row.actorId !== row.subjectId) {
     header.push(`by <@${row.actorId}>`);
   }
   return [header.join(" · "), ...lines.map(line => `> ${line}`)].join("\n");
@@ -101,12 +101,16 @@ export abstract class UserHistoryKind<E extends UserChangeEvent> {
     return { user: event.newUser, ...this.change(event) };
   }
 
+  protected title(row: HistoryEntry): string {
+    return `${this.label} changed`;
+  }
+
   protected details(row: HistoryEntry): string[] | Promise<string[]> {
-    return [`${show(row.oldValue)} → ${show(row.newValue)}`];
+    return [changeLine(row.oldValue, row.newValue)];
   }
 
   public async describe(row: HistoryEntry): Promise<string> {
-    return entryText(`**${this.label}**`, row, await this.details(row));
+    return entryText(`**${this.title(row)}**`, row, await this.details(row));
   }
 }
 

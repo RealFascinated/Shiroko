@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { diffFields, type HistoryEntry } from "./history-kind";
-import { GUILD_KIND_BY_ID, USER_KIND_BY_ID } from "./kinds";
+import { GUILD_HISTORY_GROUPS, GUILD_KIND_BY_ID, USER_HISTORY_GROUPS, USER_KIND_BY_ID } from "./kinds";
 
 const at = new Date("2026-01-01T00:00:00Z");
 const when = "<t:1767225600:R>";
@@ -62,7 +62,9 @@ describe("user kinds", () => {
 
   test("describes a row", async () => {
     const row = { oldValue: "a", newValue: "b", actorId: null, createdAt: at } as HistoryEntry;
-    expect(await USER_KIND_BY_ID.username!.describe(row)).toBe(`**Username** · ${when}\n> \`a\` → \`b\``);
+    expect(await USER_KIND_BY_ID.username!.describe(row)).toBe(
+      `**Username changed** · ${when}\n> \`a\` → \`b\``
+    );
   });
 });
 
@@ -94,7 +96,48 @@ describe("guild kinds", () => {
   test("roles lists additions and removals", async () => {
     const row = guildRow("roles", null, { added: ["1"], removed: ["2"] });
     expect(await GUILD_KIND_BY_ID.roles!.describe(row)).toBe(
-      `**Roles** <@42> · ${when}\n> **Added**: <@&1>\n> **Removed**: <@&2>`
+      `**Roles changed** <@42> · ${when}\n> **Added**: <@&1>\n> **Removed**: <@&2>`
+    );
+  });
+
+  test("a single role change is titled by direction", async () => {
+    expect(
+      await GUILD_KIND_BY_ID.roles!.describe(guildRow("roles", null, { added: ["1"], removed: [] }))
+    ).toBe(`**Role added** <@42> · ${when}\n> **Role**: <@&1>`);
+    expect(
+      await GUILD_KIND_BY_ID.roles!.describe(guildRow("roles", null, { added: [], removed: ["1", "2"] }))
+    ).toBe(`**Roles removed** <@42> · ${when}\n> **Roles**: <@&1> <@&2>`);
+  });
+
+  test("an unset side reads as a sentence, not an arrow", async () => {
+    expect(await GUILD_KIND_BY_ID.nickname!.describe(guildRow("nickname", null, "Bob"))).toBe(
+      `**Nickname changed** <@42> · ${when}\n> Set to \`Bob\``
+    );
+    expect(await GUILD_KIND_BY_ID.nickname!.describe(guildRow("nickname", "Bob", null))).toBe(
+      `**Nickname changed** <@42> · ${when}\n> Cleared (was \`Bob\`)`
+    );
+  });
+
+  test("timeout and boost put the direction in the title", async () => {
+    expect(await GUILD_KIND_BY_ID.timeout!.describe(guildRow("timeout", null, "2026-01-01T00:00:00Z"))).toBe(
+      `**Timed out** <@42> · ${when}\n> **Until**: <t:1767225600:f>`
+    );
+    expect(await GUILD_KIND_BY_ID.timeout!.describe(guildRow("timeout", "2026-01-01T00:00:00Z", null))).toBe(
+      `**Timeout removed** <@42> · ${when}`
+    );
+    expect(await GUILD_KIND_BY_ID.boost!.describe(guildRow("boost", false, true))).toBe(
+      `**Started boosting** <@42> · ${when}`
+    );
+  });
+
+  test("moving a channel names the category and skips a self-made change's actor", async () => {
+    expect(
+      await GUILD_KIND_BY_ID.channel_update!.describe(
+        guildRow("channel_update", { parentId: "5" }, { parentId: null })
+      )
+    ).toContain("**Category**: Moved out of its category");
+    expect(await GUILD_KIND_BY_ID.nickname!.describe(guildRow("nickname", "a", "b", "42"))).not.toContain(
+      "by <@"
     );
   });
 
@@ -115,5 +158,27 @@ describe("guild kinds", () => {
 
   test("every kind id is unique", () => {
     expect(Object.keys(GUILD_KIND_BY_ID).length).toBe(26);
+  });
+});
+
+describe("history groups", () => {
+  test("every group holds only real kinds and the filters fit Discord's choice limit", () => {
+    for (const groups of [GUILD_HISTORY_GROUPS, USER_HISTORY_GROUPS]) {
+      expect(groups.length).toBeLessThanOrEqual(25);
+      for (const { kindIds } of groups) {
+        expect(kindIds.length).toBeGreaterThan(0);
+        for (const id of kindIds) {
+          expect(id in GUILD_KIND_BY_ID || id in USER_KIND_BY_ID).toBe(true);
+        }
+      }
+    }
+  });
+
+  test("a thing's create, update and delete share one group", () => {
+    expect(GUILD_HISTORY_GROUPS.find(group => group.id === "channel")?.kindIds).toEqual([
+      "channel_create",
+      "channel_update",
+      "channel_delete",
+    ]);
   });
 });

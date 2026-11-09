@@ -7,7 +7,7 @@ import MemberNicknameUpdatedEvent from "../../event/events/member-nickname-updat
 import MemberRolesUpdatedEvent from "../../event/events/member-roles-updated.event";
 import MemberTimeoutUpdatedEvent from "../../event/events/member-timeout-updated.event";
 import MemberUnbannedEvent from "../../event/events/member-unbanned.event";
-import { show } from "../fields";
+import { changeLine } from "../fields";
 import { formatValue, GuildHistoryKind, type GuildHistoryDraft, type HistoryEntry } from "../history-kind";
 
 export class MemberJoinKind extends GuildHistoryKind<MemberGuildJoinEvent> {
@@ -100,8 +100,12 @@ export class NicknameKind extends GuildHistoryKind<MemberNicknameUpdatedEvent> {
     };
   }
 
+  protected override title(): string {
+    return `${this.label} changed`;
+  }
+
   protected override details(row: HistoryEntry): string[] {
-    return [`${show(row.oldValue)} → ${show(row.newValue)}`];
+    return [changeLine(row.oldValue, row.newValue)];
   }
 }
 
@@ -121,13 +125,23 @@ export class RolesKind extends GuildHistoryKind<MemberRolesUpdatedEvent> {
     };
   }
 
+  protected override title(row: HistoryEntry): string {
+    const { added = [], removed = [] } = (row.newValue ?? {}) as { added?: string[]; removed?: string[] };
+    if (added.length > 0 && removed.length > 0) {
+      return "Roles changed";
+    }
+    const ids = added.length > 0 ? added : removed;
+    return `${ids.length === 1 ? "Role" : "Roles"} ${added.length > 0 ? "added" : "removed"}`;
+  }
+
   protected override details(row: HistoryEntry): string[] {
     const { added = [], removed = [] } = (row.newValue ?? {}) as { added?: string[]; removed?: string[] };
     const roles = (ids: string[]): string => ids.map(id => `<@&${id}>`).join(" ");
-    return [
-      ...(added.length > 0 ? [`**Added**: ${roles(added)}`] : []),
-      ...(removed.length > 0 ? [`**Removed**: ${roles(removed)}`] : []),
-    ];
+    if (added.length > 0 && removed.length > 0) {
+      return [`**Added**: ${roles(added)}`, `**Removed**: ${roles(removed)}`];
+    }
+    const ids = added.length > 0 ? added : removed;
+    return ids.length > 0 ? [`**${ids.length === 1 ? "Role" : "Roles"}**: ${roles(ids)}`] : [];
   }
 }
 
@@ -146,12 +160,14 @@ export class TimeoutKind extends GuildHistoryKind<MemberTimeoutUpdatedEvent> {
     };
   }
 
+  protected override title(row: HistoryEntry): string {
+    return typeof row.newValue === "string" ? "Timed out" : "Timeout removed";
+  }
+
   protected override details(row: HistoryEntry): string[] {
-    return [
-      typeof row.newValue === "string"
-        ? `Timed out until <t:${Math.floor(new Date(row.newValue).getTime() / 1000)}:f>`
-        : "Timeout removed",
-    ];
+    return typeof row.newValue === "string"
+      ? [`**Until**: <t:${Math.floor(new Date(row.newValue).getTime() / 1000)}:f>`]
+      : [];
   }
 }
 
@@ -164,7 +180,11 @@ export class BoostKind extends GuildHistoryKind<MemberBoostUpdatedEvent> {
     return { guild: newMember.guild, subjectId: newMember.id, oldValue: !boosted, newValue: boosted };
   }
 
-  protected override details(row: HistoryEntry): string[] {
-    return [row.newValue ? "Started boosting" : "Stopped boosting"];
+  protected override title(row: HistoryEntry): string {
+    return row.newValue ? "Started boosting" : "Stopped boosting";
+  }
+
+  protected override details(): string[] {
+    return [];
   }
 }
