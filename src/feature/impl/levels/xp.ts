@@ -1,20 +1,23 @@
 /**
- * Pure XP math. A single fixed curve: the exponential
- *   xpForLevel(l) = BASE·(RATE^l − 1)   (total XP required to REACH level l)
+ * Pure XP math. A single fixed cubic curve over `n = level - 1`:
+ *   xpForLevel(l) = A·n³ + B·n² + C·n   (total XP required to REACH level l)
  *
  * `levelForXp` is its inverse (floor level for a total), and `progressToNext`
  * the fraction of the current level's span already filled. All functions are
  * pure; no IO, no cache.
  *
- * The curve subtracts 1 so new users start at level 1 with 0 XP. Early
- * levels arrive fast (first level-up in a few minutes of chatting), then
- * each level takes noticeably longer than the last: the per-level gap
- * grows ~25× from level 2 to level 25, so mid-tier milestones like level
- * 25 are a real grind (~13 h of max-rate messaging at the default 15-25 XP).
+ * Using `level - 1` puts level 1 at 0 XP, so new users start at level 1.
+ * A polynomial keeps every level reachable: the per-level gap grows
+ * roughly quadratically instead of doubling every few levels, so regulars
+ * keep levelling for years rather than stalling around 50. At the default
+ * 15-25 XP and 60 s cooldown the first level-up takes ~5 messages; a
+ * typical member reaches ~37 in a year, and level 100 (~1.8M XP) is a
+ * multi-year goal for the most active.
  */
 
-const BASE = 500;
-const RATE = 1.15;
+const A = 1.6;
+const B = 25;
+const C = 75;
 
 /**
  * Total XP required to reach `level`. Rounded to a whole number so
@@ -22,7 +25,8 @@ const RATE = 1.15;
  * and displayed on rank cards.
  */
 export function xpForLevel(level: number): number {
-  return Math.round(BASE * (Math.pow(RATE, level) - 1));
+  const n = level - 1;
+  return Math.round(A * n ** 3 + B * n ** 2 + C * n);
 }
 
 /**
@@ -30,12 +34,12 @@ export function xpForLevel(level: number): number {
  * highest `l` with `xpForLevel(l) <= xp`. Levels start at 1, so totals
  * below the level-1 threshold are still level 1.
  *
- * The closed form is exact for unrounded thresholds; the rounding in
- * `xpForLevel` can shift a boundary by under 1 XP, so the correction
- * loop snaps the result back when it lands just off the true floor.
+ * The cube root of the leading term overestimates the level (it ignores
+ * the lower-order terms), so the correction loops walk it down to the
+ * true floor; that is a handful of steps even at level 100.
  */
 export function levelForXp(xp: number): number {
-  let level = Math.floor(Math.log(1 + xp / BASE) / Math.log(RATE));
+  let level = Math.max(1, Math.floor(Math.cbrt(xp / A)) + 1);
   while (xpForLevel(level + 1) <= xp) {
     level++;
   }
