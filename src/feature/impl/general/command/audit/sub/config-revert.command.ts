@@ -6,13 +6,13 @@ import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { fetchGuildMember } from "@/lib/guild";
 import Permissions from "@/permission/permissions";
 
-export default class AuditLogRevertCommand extends Command {
+export default class ConfigRevertCommand extends Command {
   constructor() {
-    super({ id: "revert", displayName: "Restore the value from before a change" });
+    super({ id: "config-revert", displayName: "Restore the value from before a change" });
   }
 
   public override get options(): CommandOptionBuilder[] {
-    return [integerOption(true, "id", "The entry number shown in /audit-log view", 1)];
+    return [integerOption(true, "id", "The entry number shown in /audit config", 1)];
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {

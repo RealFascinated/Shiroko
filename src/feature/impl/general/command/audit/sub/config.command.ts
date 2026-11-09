@@ -8,9 +8,9 @@ import { createPager, type Page } from "@/lib/pagination";
 
 const ENTRIES_PER_PAGE = 8;
 
-export default class AuditLogViewCommand extends Command {
+export default class ConfigCommand extends Command {
   constructor() {
-    super({ id: "view", displayName: "View recent configuration changes" });
+    super({ id: "config", displayName: "View recent configuration changes" });
   }
 
   public override get options(): CommandOptionBuilder[] {
@@ -33,7 +33,7 @@ export default class AuditLogViewCommand extends Command {
     });
     const firstPage = await fetchPage(1);
     const pager = createPager({
-      namespace: "audit-log",
+      namespace: "audit-config",
       userId: ctx.user.id,
       page: firstPage,
       fetchPage,

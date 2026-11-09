@@ -43,6 +43,7 @@ import { RestListeners } from "./metrics/rest-listeners";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
 import SettingsManager from "./settings/index";
+import History from "./history/history";
 import { MediaListeners } from "./storage/media-listeners";
 import StorageService from "./storage/storage";
 
@@ -168,6 +169,7 @@ new ContextMenuCommandListener();
 registerFeatures();
 SettingsManager.register(featureSettings());
 new MediaListeners();
+new History();
 
 if (env.VM_PUSH_URL) {
   const exporter = new VictoriaMetricsExporter(metricManager, {

@@ -3,7 +3,7 @@ import type { AuditActor } from "./audit-log";
 
 /**
  * One category of audited change. Each kind knows how to describe its own
- * entries and how to undo one, so `/audit-log` never branches on `kind`.
+ * entries and how to undo one, so `/audit config` never branches on `kind`.
  */
 export default abstract class AuditKind {
   public abstract readonly id: string;
