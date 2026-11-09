@@ -1,6 +1,7 @@
 import { EmbedBuilder, MessageFlags, type InteractionReplyOptions } from "discord.js";
 import { Constants } from "../constants";
 import { discordClient } from "../client";
+import type { Page } from "./pagination";
 
 /**
  * Base constructors for every embed. See `DESIGN.md` for the full system.
@@ -11,8 +12,17 @@ import { discordClient } from "../client";
  *
  * Every embed wears the same footer: bot name, then the invoking command.
  */
-export function baseEmbed(command: string | null = null): EmbedBuilder {
-  return new EmbedBuilder().setColor(Constants.mainColor).setFooter({ text: footerText(command) });
+export function baseEmbed(command: string | null = null, page?: Page<unknown>): EmbedBuilder {
+  return new EmbedBuilder()
+    .setColor(Constants.mainColor)
+    .setFooter({ text: page ? `${footerText(command)} · ${pageSummary(page)}` : footerText(command) });
+}
+
+/**
+ * The `Page 1/3 · 24 Items` counter a paged list wears in its footer.
+ */
+export function pageSummary({ page, pageCount, total }: Page<unknown>): string {
+  return `Page ${page}/${pageCount} ·${total} ${total === 1 ? "Item" : "Items"}`;
 }
 
 /**

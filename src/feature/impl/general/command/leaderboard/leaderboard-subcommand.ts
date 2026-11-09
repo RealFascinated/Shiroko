@@ -2,7 +2,7 @@ import Command, { type ExecuteContext } from "@/command/command";
 import LeaderboardManager from "@/leaderboard/index";
 import type Leaderboard from "@/leaderboard/leaderboard";
 import type { LeaderboardId, LeaderboardPosition, LeaderboardRow } from "@/leaderboard/leaderboard";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { baseEmbed, ephemeralErrorReply, errorEmbed, pageSummary } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
 import { createPager, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
@@ -80,10 +80,10 @@ export default class LeaderboardSubCommand extends Command {
         "",
         this.renderPosition(standing),
       ];
-      const embed = baseEmbed(commandName).setTitle(this.title).setDescription(lines.join("\n"));
+      const embed = baseEmbed(commandName, page).setTitle(this.title).setDescription(lines.join("\n"));
       const footer = (await this.footer?.(guild)) ?? null;
       if (footer) {
-        embed.setFooter({ text: footer });
+        embed.setFooter({ text: `${footer} · ${pageSummary(page)}` });
       }
       return {
         embeds: [embed],

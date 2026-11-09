@@ -26,7 +26,7 @@ export default class ConfigCommand extends Command {
     const fetchPage = (page: number) => AuditLog.page(guild.id, page, ENTRIES_PER_PAGE, filter);
     const render = (page: Page<GuildAuditLogSchema>) => ({
       embeds: [
-        baseEmbed(commandName)
+        baseEmbed(commandName, page)
           .setTitle("📜 Audit Log")
           .setDescription(page.rows.map(describeEntry).join("\n") || "No changes recorded."),
       ],

@@ -84,7 +84,7 @@ export default class PermissionsViewCommand extends Command {
       const lines = page.rows.map(({ label, state }) => `${state ? "✅" : "❌"} **${label}**`);
       return {
         embeds: [
-          baseEmbed(commandName)
+          baseEmbed(commandName, page)
             .setTitle(`🔒 ${title}`)
             .setDescription(
               `**Effective permissions:** ${flagLabels(effective).join(", ") || "None"}\n**Own permissions:** ${
@@ -124,7 +124,9 @@ export default class PermissionsViewCommand extends Command {
         return `**${this.roleName(guild, roleId)}**: ${flags}${inherited}`;
       });
       return {
-        embeds: [baseEmbed(commandName).setTitle("🔒 Role Permissions").setDescription(lines.join("\n"))],
+        embeds: [
+          baseEmbed(commandName, page).setTitle("🔒 Role Permissions").setDescription(lines.join("\n")),
+        ],
       };
     };
     const pager = createPager({

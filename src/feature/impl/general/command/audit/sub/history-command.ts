@@ -50,7 +50,7 @@ export default abstract class HistoryCommand extends Command {
       );
       return {
         embeds: [
-          baseEmbed(commandName)
+          baseEmbed(commandName, page)
             .setTitle(title)
             .setDescription(entries.join("\n\n") || "Nothing recorded yet."),
         ],

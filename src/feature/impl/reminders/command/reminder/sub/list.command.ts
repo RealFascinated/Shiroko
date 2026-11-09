@@ -35,7 +35,9 @@ export default class ListCommand extends Command {
           }\n${reminder.about}`
       );
       return {
-        embeds: [baseEmbed(commandName).setTitle("⏰ Your Reminders").setDescription(lines.join("\n\n"))],
+        embeds: [
+          baseEmbed(commandName, page).setTitle("⏰ Your Reminders").setDescription(lines.join("\n\n")),
+        ],
       };
     };
     const pager = createPager({
