@@ -1,4 +1,4 @@
-import Canvas from "@/lib/canvas";
+import Canvas, { CardColors } from "@/lib/canvas";
 import { formatCount } from "@/lib/format";
 
 /**
@@ -28,57 +28,95 @@ export interface RankCardData {
 }
 
 const WIDTH = 900;
-const HEIGHT = 290;
 const ACCENT = "#9b59b6";
 const PODIUM_ACCENTS = ["#ffd700", "#c0c0c0", "#cd7f32"];
+const MARGIN = 40;
+const RIGHT = WIDTH - MARGIN;
+const AVATAR_SIZE = 112;
+const CONTENT_X = MARGIN + AVATAR_SIZE + 24;
+const TILE_WIDTH = 116;
 
 export async function renderRankCard(data: RankCardData): Promise<Buffer> {
   const accent = accentFor(data.guildRank);
-  const canvas = new Canvas(WIDTH, HEIGHT).background("#1a1626");
-  await paintHeader(canvas, data, accent);
-  paintLevelTile(canvas, data);
+  const canvas = new Canvas(WIDTH, data.reward ? 296 : 262).card();
+  canvas.avatar(await Canvas.loadImage(data.avatarUrl), data.name, MARGIN, MARGIN, AVATAR_SIZE);
+  paintLevelTile(canvas, data.level, accent);
+  paintIdentity(canvas, data, accent);
+  canvas.line(MARGIN, 184.5, RIGHT, 184.5, CardColors.rule);
   paintProgress(canvas, data, accent);
-  paintDetails(canvas, data, accent);
+  if (data.reward) {
+    canvas.label("Next reward", MARGIN, 272);
+    canvas.text(
+      canvas.fitText(rewardLine(data.reward), RIGHT - MARGIN - 120, 15, 500),
+      MARGIN + 120,
+      272,
+      15,
+      CardColors.muted,
+      500
+    );
+  }
   return canvas.png();
 }
 
-async function paintHeader(canvas: Canvas, data: RankCardData, accent: string): Promise<void> {
-  const size = 96;
-  const x = 48;
-  const y = 38;
-  await canvas.avatar(data.avatarUrl, data.name, x, y, size, accent);
-  canvas.text(canvas.fitText(data.name, 416, 34, 700), x + size + 24, 78, 34, "#ffffff", 700);
+function paintLevelTile(canvas: Canvas, level: number, accent: string): void {
+  const x = RIGHT - TILE_WIDTH;
+  const ink = inkOn(accent);
+  canvas.roundedRect(x, MARGIN, TILE_WIDTH, AVATAR_SIZE, 12, accent);
+  canvas.label("Level", x + 16, MARGIN + 28, ink, 11);
+  canvas.text(String(level), x + 14, MARGIN + AVATAR_SIZE - 18, 52, ink, 700);
+}
+
+function paintIdentity(canvas: Canvas, data: RankCardData, accent: string): void {
+  const maxWidth = RIGHT - TILE_WIDTH - 24 - CONTENT_X;
+  canvas.text(canvas.fitText(data.name, maxWidth, 30, 700), CONTENT_X, 86, 30, CardColors.text, 700);
+  if (data.guildRank === null) {
+    canvas.text(
+      "Not ranked yet; send a message to start earning XP",
+      CONTENT_X,
+      116,
+      16,
+      CardColors.muted,
+      500
+    );
+    return;
+  }
+  const rank = `#${data.guildRank}`;
+  canvas.text(rank, CONTENT_X, 116, 16, accent, 600);
   canvas.text(
-    canvas.fitText(rankLine(data), 416, 20, 500),
-    x + size + 24,
-    118,
-    20,
-    "rgba(255, 255, 255, 0.7)",
+    ` of ${formatCount(data.totalTracked)} in this server · ${formatCount(data.xp)} XP total`,
+    CONTENT_X + canvas.measure(rank, 16, 600),
+    116,
+    16,
+    CardColors.muted,
     500
   );
 }
 
-function paintLevelTile(canvas: Canvas, data: RankCardData): void {
-  canvas.roundedRect(608, 36, 244, 100, 18, "rgba(255, 255, 255, 0.06)");
-  canvas.centeredText("LEVEL", 730, 68, 16, "rgba(255, 255, 255, 0.55)", 500);
-  canvas.centeredText(String(data.level), 730, 120, 56, "#ffffff", 700);
-}
-
 function paintProgress(canvas: Canvas, data: RankCardData, accent: string): void {
-  const width = 720;
-  const height = 22;
-  canvas.roundedRect(48, 180, width, height, height / 2, "rgba(255, 255, 255, 0.08)");
-  canvas.roundedRect(48, 180, width * data.progress, height, height / 2, accent);
-  canvas.text(`${Math.round(data.progress * 100)}%`, 792, 197, 22, accent, 700);
-}
-
-function paintDetails(canvas: Canvas, data: RankCardData, accent: string): void {
   const earned = data.xp - data.currentLevelXp;
   const span = data.nextLevelXp - data.currentLevelXp;
-  const xpLine = `${formatCount(earned)} / ${formatCount(span)} XP · ${formatCount(span - earned)} to go · ${formatCount(data.xp)} total`;
-  canvas.text(canvas.fitText(xpLine, 804, 20, 500), 48, 244, 20, "rgba(255, 255, 255, 0.75)", 500);
-  if (data.reward) {
-    canvas.text(canvas.fitText(rewardLine(data.reward), 804, 17, 500), 48, 274, 17, accent, 500);
+  const width = RIGHT - MARGIN;
+  const earnedText = formatCount(earned);
+  canvas.text(earnedText, MARGIN, 220, 16, CardColors.text, 600);
+  canvas.text(
+    ` / ${formatCount(span)} XP`,
+    MARGIN + canvas.measure(earnedText, 16, 600),
+    220,
+    16,
+    CardColors.muted,
+    500
+  );
+  canvas.rightText(
+    `${formatCount(span - earned)} XP to level ${data.level + 1}`,
+    RIGHT,
+    220,
+    15,
+    CardColors.muted,
+    500
+  );
+  canvas.roundedRect(MARGIN, 234, width, 6, 3, CardColors.raised);
+  if (data.progress > 0) {
+    canvas.roundedRect(MARGIN, 234, Math.max(6, width * data.progress), 6, 3, accent);
   }
 }
 
@@ -86,14 +124,16 @@ function accentFor(guildRank: number | null): string {
   return guildRank !== null && guildRank <= 3 ? PODIUM_ACCENTS[guildRank - 1]! : ACCENT;
 }
 
-function rankLine(data: RankCardData): string {
-  return data.guildRank === null
-    ? "Not ranked yet; send a message to start earning XP!"
-    : `#${data.guildRank} of ${data.totalTracked} in this server`;
+/**
+ * Text colour that stays legible on an `accent` fill: dark on the light
+ * podium metals, light on the brand purple.
+ */
+function inkOn(accent: string): string {
+  const rgb = Bun.color(accent, "{rgb}");
+  const luma = rgb ? (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255 : 0;
+  return luma > 0.5 ? CardColors.base : CardColors.text;
 }
 
 function rewardLine(reward: RankCardReward): string {
-  return reward.roleName
-    ? `Next reward at level ${reward.level} · ${reward.roleName}`
-    : `Next reward at level ${reward.level}`;
+  return reward.roleName ? `Level ${reward.level} · ${reward.roleName}` : `Level ${reward.level}`;
 }

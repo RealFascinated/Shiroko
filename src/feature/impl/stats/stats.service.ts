@@ -63,7 +63,7 @@ function statsWindows(now: Date, days = 7): StatsWindows {
 
 /**
  * Fill `days` calendar days from `start` with bucketed values, defaulting
- * empty days to zero. Labels are UTC weekday initials for the chart.
+ * empty days to zero. Labels are short UTC weekday names for the chart.
  */
 function toDaySeries(start: Date, days: number, byDay: Map<string, number>): DaySeries {
   const values: number[] = [];
@@ -71,7 +71,7 @@ function toDaySeries(start: Date, days: number, byDay: Map<string, number>): Day
   for (let offset = 0; offset < days; offset++) {
     const day = new Date(start.getTime() + offset * 24 * 60 * 60 * 1000);
     values.push(byDay.get(day.toISOString().slice(0, 10)) ?? 0);
-    dayLabels.push("SMTWTFS"[day.getUTCDay()]!);
+    dayLabels.push(day.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }));
   }
   return { values, dayLabels };
 }

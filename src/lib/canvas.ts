@@ -14,6 +14,21 @@ import {
  */
 export const CANVAS_FONT = "Geist";
 
+/**
+ * The palette every card shares, so the cards read as one set.
+ */
+export const CardColors = {
+  base: "#1b1a20",
+  raised: "#26252c",
+  inactive: "#38373f",
+  text: "#f4f3f6",
+  muted: "#a3a1ab",
+  faint: "#6f6d78",
+  rule: "#2e2d35",
+} as const;
+
+const CARD_RADIUS = 16;
+
 let fontsRegistered = false;
 
 function ensureFonts(): void {
@@ -24,7 +39,7 @@ function ensureFonts(): void {
   fontsRegistered = true;
 }
 
-export type CanvasFontWeight = 400 | 500 | 700;
+export type CanvasFontWeight = 400 | 500 | 600 | 700;
 
 /**
  * Thin wrapper over an `@napi-rs/canvas` 2d context: owns font
@@ -41,9 +56,24 @@ export default class Canvas {
     this.ctx = this.canvas.getContext("2d");
   }
 
-  public background(color: string): this {
-    this.ctx.fillStyle = color;
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  public get width(): number {
+    return this.canvas.width;
+  }
+
+  public get height(): number {
+    return this.canvas.height;
+  }
+
+  /**
+   * The shared card shape: rounded corners left transparent so the card
+   * sits on Discord's own background, filled flat. Clips the rest of the
+   * drawing to that shape, so call it first.
+   */
+  public card(): this {
+    this.roundedPath(0, 0, this.width, this.height, CARD_RADIUS);
+    this.ctx.clip();
+    this.ctx.fillStyle = CardColors.base;
+    this.ctx.fillRect(0, 0, this.width, this.height);
     return this;
   }
 
@@ -69,16 +99,48 @@ export default class Canvas {
     color: string,
     weight: CanvasFontWeight = 400
   ): number {
-    this.ctx.font = `${weight} ${size}px "${CANVAS_FONT}"`;
-    const width = this.ctx.measureText(text).width;
-    this.ctx.fillStyle = color;
-    this.ctx.fillText(text, centerX - width / 2, y);
+    const width = this.measure(text, size, weight);
+    this.text(text, centerX - width / 2, y, size, color, weight);
     return width;
   }
 
-  public fitText(text: string, maxWidth: number, size: number, weight: CanvasFontWeight = 400): string {
+  public rightText(
+    text: string,
+    rightX: number,
+    y: number,
+    size: number,
+    color: string,
+    weight: CanvasFontWeight = 400
+  ): number {
+    const width = this.measure(text, size, weight);
+    this.text(text, rightX - width, y, size, color, weight);
+    return width;
+  }
+
+  /**
+   * Small uppercase caption with open tracking, the style every card uses
+   * to name a value.
+   */
+  public label(
+    text: string,
+    x: number,
+    y: number,
+    color: string = CardColors.faint,
+    size: number = 12
+  ): this {
+    this.ctx.letterSpacing = "1.2px";
+    this.text(text.toUpperCase(), x, y, size, color, 600);
+    this.ctx.letterSpacing = "0px";
+    return this;
+  }
+
+  public measure(text: string, size: number, weight: CanvasFontWeight = 400): number {
     this.ctx.font = `${weight} ${size}px "${CANVAS_FONT}"`;
-    if (this.ctx.measureText(text).width <= maxWidth) {
+    return this.ctx.measureText(text).width;
+  }
+
+  public fitText(text: string, maxWidth: number, size: number, weight: CanvasFontWeight = 400): string {
+    if (this.measure(text, size, weight) <= maxWidth) {
       return text;
     }
     let shortened = text;
@@ -97,6 +159,63 @@ export default class Canvas {
     color: string
   ): this {
     this.ctx.fillStyle = color;
+    this.roundedPath(x, y, width, height, radius);
+    this.ctx.fill();
+    return this;
+  }
+
+  public line(x1: number, y1: number, x2: number, y2: number, color: string, width: number = 1): this {
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = width;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x1, y1);
+    this.ctx.lineTo(x2, y2);
+    this.ctx.stroke();
+    return this;
+  }
+
+  /**
+   * A rounded-square avatar with the name's initial as the fallback when
+   * there is no image.
+   */
+  public avatar(image: Image | null, name: string, x: number, y: number, size: number): this {
+    const radius = size * 0.16;
+    if (!image) {
+      this.roundedRect(x, y, size, size, radius, CardColors.raised);
+      this.centeredText(
+        name.slice(0, 1).toUpperCase(),
+        x + size / 2,
+        y + size * 0.67,
+        size * 0.46,
+        CardColors.muted,
+        600
+      );
+      return this;
+    }
+    this.ctx.save();
+    this.roundedPath(x, y, size, size, radius);
+    this.ctx.clip();
+    this.ctx.drawImage(image, x, y, size, size);
+    this.ctx.restore();
+    return this;
+  }
+
+  public async png(): Promise<Buffer> {
+    return this.canvas.encode("png");
+  }
+
+  public static async loadImage(url: string | null): Promise<Image | null> {
+    if (!url) {
+      return null;
+    }
+    try {
+      return (await loadImage(url)) as unknown as Image;
+    } catch {
+      return null;
+    }
+  }
+
+  private roundedPath(x: number, y: number, width: number, height: number, radius: number): void {
     const r = Math.min(radius, width / 2, height / 2);
     this.ctx.beginPath();
     this.ctx.moveTo(x + r, y);
@@ -105,68 +224,5 @@ export default class Canvas {
     this.ctx.arcTo(x, y + height, x, y, r);
     this.ctx.arcTo(x, y, x + width, y, r);
     this.ctx.closePath();
-    this.ctx.fill();
-    return this;
-  }
-
-  public circleImage(image: Image, x: number, y: number, radius: number): this {
-    this.ctx.save();
-    this.ctx.beginPath();
-    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-    this.ctx.clip();
-    this.ctx.drawImage(image, x - radius, y - radius, radius * 2, radius * 2);
-    this.ctx.restore();
-    return this;
-  }
-
-  public circleOutline(x: number, y: number, radius: number, color: string, width: number): this {
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = width;
-    this.ctx.beginPath();
-    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-    this.ctx.stroke();
-    return this;
-  }
-
-  /**
-   * A circular avatar at (`x`, `y`) with the name's initial as the fallback
-   * when there is no image, ringed in `accent`.
-   */
-  public async avatar(
-    url: string | null,
-    name: string,
-    x: number,
-    y: number,
-    size: number,
-    accent: string
-  ): Promise<this> {
-    const centerX = x + size / 2;
-    const centerY = y + size / 2;
-    const image = url ? await Canvas.loadImage(url) : null;
-    if (image) {
-      this.circleImage(image, centerX, centerY, size / 2);
-    } else {
-      this.roundedRect(x, y, size, size, size / 2, "#2a2340").centeredText(
-        name.slice(0, 1).toUpperCase(),
-        centerX,
-        centerY + 16,
-        44,
-        "#ffffff",
-        700
-      );
-    }
-    return this.circleOutline(centerX, centerY, size / 2 + 1, accent, 3);
-  }
-
-  public async png(): Promise<Buffer> {
-    return this.canvas.encode("png");
-  }
-
-  public static async loadImage(url: string): Promise<Image | null> {
-    try {
-      return (await loadImage(url)) as unknown as Image;
-    } catch {
-      return null;
-    }
   }
 }

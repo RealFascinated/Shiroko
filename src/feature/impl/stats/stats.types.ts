@@ -31,7 +31,7 @@ export interface VoiceSummary {
 }
 
 /**
- * Per-day values for the chart, oldest first, with weekday initials drawn
+ * Per-day values for the chart, oldest first, with short weekday names drawn
  * under each bar. Both derive from the same UTC days as the query window.
  */
 export interface DaySeries {

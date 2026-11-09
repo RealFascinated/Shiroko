@@ -1,4 +1,4 @@
-import Canvas from "@/lib/canvas";
+import Canvas, { CardColors } from "@/lib/canvas";
 
 export interface WelcomeCardData {
   name: string;
@@ -8,16 +8,23 @@ export interface WelcomeCardData {
 }
 
 const WIDTH = 900;
-const HEIGHT = 330;
-const AVATAR_SIZE = 140;
+const HEIGHT = 216;
+const AVATAR_SIZE = 136;
 
 export async function renderWelcomeCard(data: WelcomeCardData): Promise<Buffer> {
-  const canvas = new Canvas(WIDTH, HEIGHT).background("#1a1626");
-  const centerX = WIDTH / 2;
-  await canvas.avatar(data.avatarUrl, data.name, centerX - AVATAR_SIZE / 2, 36, AVATAR_SIZE, data.accent);
+  const canvas = new Canvas(WIDTH, HEIGHT).card();
+  canvas.avatar(
+    await Canvas.loadImage(data.avatarUrl),
+    data.name,
+    40,
+    (HEIGHT - AVATAR_SIZE) / 2,
+    AVATAR_SIZE
+  );
+  const x = 40 + AVATAR_SIZE + 32;
+  const maxWidth = WIDTH - 40 - x;
   const [line1, line2, line3] = data.lines;
-  canvas.centeredText(canvas.fitText(line1, 800, 16, 700), centerX, 216, 16, data.accent, 700);
-  canvas.centeredText(canvas.fitText(line2, 800, 38, 700), centerX, 260, 38, "#ffffff", 700);
-  canvas.centeredText(canvas.fitText(line3, 800, 20, 500), centerX, 296, 20, "rgba(255, 255, 255, 0.6)", 500);
+  canvas.label(canvas.fitText(line1, maxWidth, 13, 600), x, 78, data.accent, 13);
+  canvas.text(canvas.fitText(line2, maxWidth, 34, 700), x, 124, 34, CardColors.text, 700);
+  canvas.text(canvas.fitText(line3, maxWidth, 18, 500), x, 156, 18, CardColors.muted, 500);
   return canvas.png();
 }

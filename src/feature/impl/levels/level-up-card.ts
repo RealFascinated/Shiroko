@@ -1,4 +1,4 @@
-import Canvas from "@/lib/canvas";
+import Canvas, { CardColors } from "@/lib/canvas";
 
 export interface LevelUpCardData {
   name: string;
@@ -7,27 +7,31 @@ export interface LevelUpCardData {
   newLevel: number;
 }
 
-const WIDTH = 900;
-const HEIGHT = 200;
+const WIDTH = 760;
+const HEIGHT = 160;
 const ACCENT = "#9b59b6";
-const TILE_Y = 52;
-const TILE_WIDTH = 120;
-const TILE_HEIGHT = 96;
+const MARGIN = 40;
+const RIGHT = WIDTH - MARGIN;
+const AVATAR_SIZE = 80;
+const TILE_WIDTH = 96;
+const ARROW_GAP = 44;
 
 export async function renderLevelUpCard(data: LevelUpCardData): Promise<Buffer> {
-  const canvas = new Canvas(WIDTH, HEIGHT).background("#1a1626");
-  await canvas.avatar(data.avatarUrl, data.name, 44, 44, 112, ACCENT);
-  canvas.text("LEVEL UP", 184, 86, 16, ACCENT, 700);
-  canvas.text(canvas.fitText(data.name, 340, 34, 700), 184, 126, 34, "#ffffff", 700);
-  paintLevelTile(canvas, 556, data.prevLevel, "rgba(255, 255, 255, 0.06)", "rgba(255, 255, 255, 0.6)");
-  canvas.centeredText("→", 706, 112, 32, "rgba(255, 255, 255, 0.55)", 700);
-  paintLevelTile(canvas, 736, data.newLevel, ACCENT, "#ffffff");
+  const canvas = new Canvas(WIDTH, HEIGHT).card();
+  canvas.avatar(await Canvas.loadImage(data.avatarUrl), data.name, MARGIN, MARGIN, AVATAR_SIZE);
+  const nextX = RIGHT - TILE_WIDTH;
+  const prevX = nextX - ARROW_GAP - TILE_WIDTH;
+  paintLevelTile(canvas, prevX, data.prevLevel, CardColors.raised, CardColors.faint);
+  canvas.centeredText("→", prevX + TILE_WIDTH + ARROW_GAP / 2, 88, 20, CardColors.faint, 500);
+  paintLevelTile(canvas, nextX, data.newLevel, ACCENT, CardColors.text);
+  const x = MARGIN + AVATAR_SIZE + 20;
+  canvas.label("Level up", x, 70, ACCENT);
+  canvas.text(canvas.fitText(data.name, prevX - 24 - x, 26, 700), x, 102, 26, CardColors.text, 700);
   return canvas.png();
 }
 
 function paintLevelTile(canvas: Canvas, x: number, level: number, fill: string, color: string): void {
-  const centerX = x + TILE_WIDTH / 2;
-  canvas.roundedRect(x, TILE_Y, TILE_WIDTH, TILE_HEIGHT, 18, fill);
-  canvas.centeredText("LEVEL", centerX, TILE_Y + 28, 13, color, 500);
-  canvas.centeredText(String(level), centerX, TILE_Y + 78, 44, color, 700);
+  canvas.roundedRect(x, MARGIN, TILE_WIDTH, AVATAR_SIZE, 12, fill);
+  canvas.label("Level", x + 14, MARGIN + 22, color, 10);
+  canvas.text(String(level), x + 12, MARGIN + AVATAR_SIZE - 14, 36, color, 700);
 }

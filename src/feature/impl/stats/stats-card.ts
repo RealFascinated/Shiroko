@@ -1,4 +1,4 @@
-import Canvas from "@/lib/canvas";
+import Canvas, { CardColors } from "@/lib/canvas";
 import { formatCount, pluralise } from "@/lib/format";
 import { TimeUnit, formatDuration } from "@/lib/time";
 import type { DaySeries, StatsCardKind, StatsSummary, VoiceSummary } from "./stats.types";
@@ -22,91 +22,91 @@ export interface StatsCardData {
 }
 
 const WIDTH = 900;
-const HEIGHT = 460;
+const HEIGHT = 440;
 const ACCENT = "#9b59b6";
-const ACCENT_DIM = "rgba(155, 89, 182, 0.35)";
+const MARGIN = 40;
+const RIGHT = WIDTH - MARGIN;
+const LABELS = ["Today", "Last 7d", "Last 30d", "Total"];
 
 export async function renderStatsCard(data: StatsCardData): Promise<Buffer> {
-  const canvas = new Canvas(WIDTH, HEIGHT).background("#1a1626");
+  const canvas = new Canvas(WIDTH, HEIGHT).card();
   await paintHeader(canvas, data);
+  canvas.line(MARGIN, 124.5, RIGHT, 124.5, CardColors.rule);
   paintWindowRow(canvas, data);
-  paintChart(canvas, data.series);
-  paintFooter(canvas, data.guildName);
+  canvas.line(MARGIN, 244.5, RIGHT, 244.5, CardColors.rule);
+  paintChart(canvas, data);
   return canvas.png();
 }
 
 async function paintHeader(canvas: Canvas, data: StatsCardData): Promise<void> {
-  const size = 96;
-  const x = 48;
-  const y = 36;
-  await canvas.avatar(data.avatarUrl, data.name, x, y, size, ACCENT);
-  canvas.text(canvas.fitText(data.name, 560, 34, 700), x + size + 24, y + 42, 34, "#ffffff", 700);
-  canvas.text(cardTitle(data.kind, data.scope), x + size + 24, y + 74, 20, ACCENT, 500);
+  const size = 56;
+  canvas.avatar(await Canvas.loadImage(data.avatarUrl), data.name, MARGIN, 36, size);
+  const x = MARGIN + size + 18;
+  const maxWidth = RIGHT - x;
+  canvas.text(canvas.fitText(data.name, maxWidth, 24, 700), x, 62, 24, CardColors.text, 700);
+  canvas.text(
+    canvas.fitText(`${cardTitle(data.kind, data.scope)} · ${data.guildName}`, maxWidth, 15, 500),
+    x,
+    86,
+    15,
+    CardColors.muted,
+    500
+  );
 }
 
+/**
+ * The four windows as columns split by hairlines rather than boxed tiles,
+ * with the running total set in the accent colour.
+ */
 function paintWindowRow(canvas: Canvas, data: StatsCardData): void {
-  const labels = ["Today", "Last 7d", "Last 30d", "Total"];
   const tiles = tileValues(data);
-  const gap = 20;
-  const tileWidth = (WIDTH - 96 - gap * 3) / 4;
-  const y = 168;
-  const height = 104;
+  const columnWidth = (RIGHT - MARGIN) / 4;
   tiles.forEach((tile, index) => {
-    const x = 48 + index * (tileWidth + gap);
-    canvas.roundedRect(
-      x,
-      y,
-      tileWidth,
-      height,
-      16,
-      index === 3 ? "rgba(155, 89, 182, 0.28)" : "rgba(255, 255, 255, 0.06)"
+    const x = MARGIN + index * columnWidth;
+    const textX = index === 0 ? x : x + 24;
+    if (index > 0) {
+      canvas.line(x + 0.5, 148, x + 0.5, 222, CardColors.rule);
+    }
+    canvas.label(LABELS[index]!, textX, 162);
+    canvas.text(
+      canvas.fitText(tile.value, columnWidth - 40, 30, 700),
+      textX,
+      198,
+      30,
+      index === tiles.length - 1 ? ACCENT : CardColors.text,
+      700
     );
-    canvas.text(labels[index]!, x + 18, y + 30, 16, "rgba(255, 255, 255, 0.6)", 500);
-    canvas.text(canvas.fitText(tile.value, tileWidth - 36, 30, 700), x + 18, y + 68, 30, "#ffffff", 700);
     if (tile.sub) {
-      canvas.text(
-        canvas.fitText(tile.sub, tileWidth - 36, 15, 500),
-        x + 18,
-        y + 90,
-        15,
-        "rgba(255, 255, 255, 0.55)",
-        500
-      );
+      canvas.text(canvas.fitText(tile.sub, columnWidth - 40, 14, 500), textX, 220, 14, CardColors.muted, 500);
     }
   });
 }
 
-function paintChart(canvas: Canvas, series: DaySeries): void {
-  const x = 48;
-  const width = WIDTH - 96;
-  const baseY = 408;
-  const topY = 308;
+function paintChart(canvas: Canvas, data: StatsCardData): void {
+  const { series } = data;
+  canvas.label("Last 7 days", MARGIN, 280);
+  const width = RIGHT - MARGIN;
+  const baseY = 382;
+  const topY = 312;
   const max = Math.max(...series.values, 1);
-  const gap = 14;
+  const gap = 24;
   const barWidth = (width - gap * 6) / 7;
   series.values.forEach((value, index) => {
-    const barX = x + index * (barWidth + gap);
-    const barHeight = Math.max(value > 0 ? 6 : 2, ((baseY - topY) * value) / max);
-    canvas.roundedRect(barX, baseY - barHeight, barWidth, barHeight, 6, index === 6 ? ACCENT : ACCENT_DIM);
+    const barX = MARGIN + index * (barWidth + gap);
+    const centerX = barX + barWidth / 2;
+    const barHeight = Math.max(value > 0 ? 4 : 2, ((baseY - topY) * value) / max);
+    const today = index === series.values.length - 1;
+    canvas.roundedRect(barX, baseY - barHeight, barWidth, barHeight, 3, today ? ACCENT : CardColors.inactive);
     canvas.centeredText(
-      series.dayLabels[index] ?? "",
-      barX + barWidth / 2,
-      baseY + 24,
-      14,
-      "rgba(255, 255, 255, 0.55)",
+      canvas.fitText(formatBarValue(data.kind, value), barWidth + gap - 4, 13, 500),
+      centerX,
+      baseY - barHeight - 8,
+      13,
+      today ? CardColors.text : CardColors.muted,
       500
     );
+    canvas.centeredText(series.dayLabels[index] ?? "", centerX, baseY + 24, 12, CardColors.faint, 600);
   });
-}
-
-function paintFooter(canvas: Canvas, guildName: string): void {
-  canvas.text(
-    `${canvas.fitText(guildName, 300, 13)} · graph - last 7 days`,
-    48,
-    HEIGHT - 14,
-    13,
-    "rgba(255, 255, 255, 0.35)"
-  );
 }
 
 function cardTitle(kind: StatsCardKind, scope: StatsCardScope): string {
@@ -187,6 +187,13 @@ function tileValues(data: StatsCardData): Array<{ value: string; sub?: string }>
  */
 function formatVoiceDuration(seconds: number): string {
   return formatDuration(TimeUnit.toMillis(TimeUnit.Second, Math.max(1, Math.round(seconds))));
+}
+
+function formatBarValue(kind: StatsCardKind, value: number): string {
+  if (value === 0) {
+    return "0";
+  }
+  return kind === "voice" ? formatVoiceDuration(value) : formatCount(value);
 }
 
 function formatSessions(sessions: number): string {
