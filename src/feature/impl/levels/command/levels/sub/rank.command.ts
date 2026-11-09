@@ -28,6 +28,7 @@ export default class RankCommand extends Command {
       avatarUrl: target.displayAvatarURL({ size: 256, extension: "png" }),
       level: rank.level,
       xp: rank.xp,
+      currentLevelXp: rank.currentLevelXp,
       nextLevelXp: rank.nextLevelXp,
       progress: rank.progress,
       guildRank: rank.guildRank,

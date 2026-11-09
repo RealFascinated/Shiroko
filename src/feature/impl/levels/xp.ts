@@ -10,7 +10,7 @@
  * levels arrive fast (first level-up in a few minutes of chatting), then
  * each level takes noticeably longer than the last: the per-level gap
  * grows ~25× from level 2 to level 25, so mid-tier milestones like level
- * 25 are a real grind (~27 h of max-rate messaging).
+ * 25 are a real grind (~13 h of max-rate messaging at the default 15-25 XP).
  */
 
 const BASE = 500;

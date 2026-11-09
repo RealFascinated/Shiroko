@@ -18,7 +18,7 @@ import { GUILD_EVENT_KINDS, GUILD_KIND_BY_ID, USER_AUDIT_KINDS, USER_KIND_BY_ID 
 export interface GuildAuditFilter {
   /** Defaults to every guild kind. */
   kinds?: readonly string[];
-  /** A subject id or a dotted prefix of one: `levels` matches `levels.messageXp`. */
+  /** A subject id or a dotted prefix of one: `levels` matches `levels.messageXpMin`. */
   subject?: string;
   actorId?: string;
 }

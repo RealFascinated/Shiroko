@@ -3,15 +3,15 @@ import Event from "../event";
 
 /**
  * A user crossed one or more level thresholds. Emitted by the levelling
- * listener after XP is granted, once per level gained, so reward granters
- * and announcements can react independently.
+ * listener once per XP grant, spanning every level it crossed, so reward
+ * granters and announcements react once rather than per level.
  */
 export default class LevelUpEvent extends Event {
   public override readonly userId: string;
   public readonly guildData: Guild;
   public readonly prevLevel: number;
   public readonly newLevel: number;
-  // The total XP after the grant; one grant emits the same value on every level it crosses.
+  // The total XP after the grant.
   public readonly xp: number;
 
   constructor(options: { userId: string; guild: Guild; prevLevel: number; newLevel: number; xp: number }) {

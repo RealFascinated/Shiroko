@@ -19,6 +19,7 @@ export interface RankCardData {
   avatarUrl: string | null;
   level: number;
   xp: number;
+  currentLevelXp: number;
   nextLevelXp: number;
   progress: number;
   guildRank: number | null;
@@ -72,8 +73,9 @@ function paintProgress(canvas: Canvas, data: RankCardData, accent: string): void
 }
 
 function paintDetails(canvas: Canvas, data: RankCardData, accent: string): void {
-  const toGo = data.nextLevelXp - data.xp;
-  const xpLine = `${formatCount(data.xp)} / ${formatCount(data.nextLevelXp)} XP · ${formatCount(toGo)} to go`;
+  const earned = data.xp - data.currentLevelXp;
+  const span = data.nextLevelXp - data.currentLevelXp;
+  const xpLine = `${formatCount(earned)} / ${formatCount(span)} XP · ${formatCount(span - earned)} to go · ${formatCount(data.xp)} total`;
   canvas.text(canvas.fitText(xpLine, 804, 20, 500), 48, 244, 20, "rgba(255, 255, 255, 0.75)", 500);
   if (data.reward) {
     canvas.text(canvas.fitText(rewardLine(data.reward), 804, 17, 500), 48, 274, 17, accent, 500);

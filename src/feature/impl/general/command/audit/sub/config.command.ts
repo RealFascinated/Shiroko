@@ -13,7 +13,7 @@ export default class ConfigCommand extends AuditListCommand {
 
   protected override userOptions(): CommandOptionBuilder[] {
     return [
-      stringOption(false, "key", "A setting key or module, like levels or levels.messageXp"),
+      stringOption(false, "key", "A setting key or module, like levels or levels.messageXpMin"),
       userOption(false, "user", "Only changes made by this user"),
     ];
   }

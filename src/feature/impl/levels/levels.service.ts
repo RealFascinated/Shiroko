@@ -7,14 +7,16 @@ import { LeaderboardId } from "@/leaderboard/leaderboard";
 import { syncMembers, type MemberSyncProgress, type MemberSyncResult } from "@/lib/member-sync";
 import { isAssignableRole } from "@/lib/roles";
 import GuildUsersManager from "@/user/guild-users-manager";
-import type { Guild, Role } from "discord.js";
+import { MessageType, type Guild, type Message, type Role } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
+import { randomInt } from "node:crypto";
 import { levelsSettings, type LevelReward } from "./levels-settings";
 import { levelForXp, progressToNext, xpForLevel } from "./xp";
 
 export interface RankState {
   level: number;
   xp: number;
+  currentLevelXp: number;
   guildRank: number | null;
   totalTracked: number;
   nextLevelXp: number;
@@ -31,72 +33,57 @@ interface UserLevelSnapshot {
   readonly xp: number;
 }
 
+// Without the MessageContent intent the text is unreadable, so system messages (joins, pins, boosts) and stickers are the only filterable noise.
+const XP_MESSAGE_TYPES: ReadonlySet<MessageType> = new Set([MessageType.Default, MessageType.Reply]);
+
 /**
- * Levelling service. Grants XP for messages and voice, detects level-ups
- * under the fixed curve, persists the new (xp, level) pair via one
- * upsert, and emits `LevelUpEvent` for every level crossed so reward
- * granters and announcements can react independently.
+ * Levelling service. Grants XP for messages, detects level-ups under the
+ * fixed curve, persists the new (xp, level) pair via one upsert, and emits
+ * one `LevelUpEvent` per grant that crosses a level so reward granters and
+ * announcements can react independently.
  *
  * Message grants are rate-limited by the guild user's `lastMessageAt`;
- * ignored channels never grant. Voice grants use whole minutes from
- * `VoiceSessionEndedEvent`. XP and levels come straight from the DB on
- * every read; config is read through the settings system on every
- * request; no in-memory level or config cache exists.
+ * ignored channels, their threads, and ignored categories never grant.
+ * XP and levels come straight from the DB on every read; config is read
+ * through the settings system on every request; no in-memory level or
+ * config cache exists.
  */
 export default class LevelsService {
   /**
-   * Try to grant message XP to a user in a guild, gated by the per-guild
-   * user's `lastMessageAt` cooldown (atomically claimed in SQL; exactly
-   * one concurrent message per window wins). Returns the new level
-   * snapshot, or `null` when the grant was skipped (bot-safe channel
-   * ignored, cooldown not elapsed, no guild).
+   * Try to grant a random `messageXpMin..messageXpMax` XP for a message,
+   * gated by the per-guild user's `lastMessageAt` cooldown (atomically
+   * claimed in SQL; exactly one concurrent message per window wins).
+   * Returns the new level snapshot, or `null` when the grant was skipped
+   * (system message or sticker, ignored channel, cooldown not elapsed).
    */
   public async grantMessageXp(
-    guild: Guild,
-    userId: string,
-    channelId: string,
+    message: Message<true>,
     now: Date = new Date()
   ): Promise<UserLevelSnapshot | null> {
-    const ignored = await levelsSettings.get(guild.id, "ignoredChannelIds");
-    if (ignored.includes(channelId)) {
+    if (!XP_MESSAGE_TYPES.has(message.type) || message.stickers.size > 0) {
       return null;
     }
-    const member = await guild.members.fetch(userId).catch(() => null);
-    if (!member) {
+    const { guild, channel, author } = message;
+    const settings = await levelsSettings.values(guild.id);
+    const parent = channel.isThread() ? channel.parent : null;
+    const lineage = [channel.id, channel.parentId, parent?.parentId];
+    if (lineage.some(id => id && settings.ignoredChannelIds.includes(id))) {
       return null;
     }
-    const cooldownMs = await levelsSettings.get(guild.id, "messageCooldownMs");
     const claimed = await GuildUsersManager.claimLastMessage(
       guild,
-      member.user,
+      author,
       now,
-      Math.floor(cooldownMs / 1000)
+      Math.floor(settings.messageCooldownMs / 1000)
     );
     if (!claimed) {
       return null;
     }
-    const messageXp = await levelsSettings.get(guild.id, "messageXp");
-    return this.grant(guild, userId, messageXp, now);
-  }
-
-  /**
-   * Grant voice XP from a completed voice session, at the guild's rate per
-   * whole minute. Returns the new level snapshot.
-   */
-  public async grantVoiceXp(
-    guild: Guild,
-    userId: string,
-    durationSeconds: number,
-    now: Date = new Date()
-  ): Promise<UserLevelSnapshot> {
-    const minutes = Math.max(0, Math.floor(durationSeconds / 60));
-    if (minutes === 0) {
-      return this.getLevel(guild.id, userId);
-    }
-    const voiceXpPerMin = await levelsSettings.get(guild.id, "voiceXpPerMin");
-    // Voice grants have no cooldown, so `grant` always writes; fall back
-    // to a fresh read only if the upsert unexpectedly returned no row.
-    return (await this.grant(guild, userId, minutes * voiceXpPerMin, now)) ?? this.getLevel(guild.id, userId);
+    const amount = randomInt(
+      settings.messageXpMin,
+      Math.max(settings.messageXpMin, settings.messageXpMax) + 1
+    );
+    return this.grant(guild, author.id, amount, now);
   }
 
   /**
@@ -129,6 +116,7 @@ export default class LevelsService {
     return {
       xp,
       level,
+      currentLevelXp: xpForLevel(level),
       guildRank: position.position,
       totalTracked: position.total,
       nextLevelXp: xpForLevel(level + 1),
@@ -213,7 +201,7 @@ export default class LevelsService {
   }
 
   /**
-   * Persist an XP gain and emit a `LevelUpEvent` for every level crossed.
+   * Persist an XP gain and emit one `LevelUpEvent` spanning every level crossed.
    * The message-XP cooldown is enforced atomically upstream via
    * `GuildUsersManager.claimLastMessage`; this method only ever adds XP.
    */
@@ -247,13 +235,15 @@ export default class LevelsService {
       level: persistedLevel,
     };
 
-    // Emit every level crossed. The pre-grant xp comes from the upserted
-    // total, not a separate read, so concurrent grants cannot both claim the
-    // same crossing; `levelForXp` clamps new users to level 1, so a first
-    // grant that jumps multiple levels still emits 1→2.
-    const startLevel = levelForXp(row.xp - amount);
-    for (let lvl = startLevel + 1; lvl <= persisted.level; lvl++) {
-      await EventBus.post(new LevelUpEvent({ userId, guild, prevLevel: lvl - 1, newLevel: lvl, xp: row.xp }));
+    // The pre-grant xp comes from the upserted total, not a separate read,
+    // so concurrent grants cannot both claim the same crossing;
+    // `levelForXp` clamps new users to level 1, so a first grant that jumps
+    // multiple levels still starts its span at 1.
+    const prevLevel = levelForXp(row.xp - amount);
+    if (persisted.level > prevLevel) {
+      await EventBus.post(
+        new LevelUpEvent({ userId, guild, prevLevel, newLevel: persisted.level, xp: row.xp })
+      );
     }
     return persisted;
   }

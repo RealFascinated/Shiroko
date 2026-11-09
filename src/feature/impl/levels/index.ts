@@ -1,21 +1,21 @@
 import { EventHandler } from "@/event/event-handler";
 import LevelUpEvent from "@/event/events/level-up.event";
 import MessageRecordedEvent from "@/event/events/message-recorded.event";
-import VoiceSessionEndedEvent from "@/event/events/voice-session-ended.event";
 import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import { baseEmbed } from "@/lib/embed";
 import SettingsManager from "@/settings/index";
 import GlobalUsersManager from "@/user/global-users-manager";
 import LevelsCommand from "./command/levels/levels.command";
+import { renderLevelUpCard } from "./level-up-card";
 import { levelUpPlaceholders } from "./level-up-placeholders";
 import { levelsSettings } from "./levels-settings";
 import { levelsService } from "./levels.service";
 
 /**
  * The levelling feature: `/levels` command plus XP listeners. Consumes the
- * stats feature's derived events (`MessageRecorded`, `VoiceSessionEnded`)
- * as its only activity sources.
+ * stats feature's derived `MessageRecorded` event as its only activity
+ * source.
  */
 export default class LevelsFeature extends Feature {
   constructor() {
@@ -27,24 +27,10 @@ export default class LevelsFeature extends Feature {
 
   @EventHandler(MessageRecordedEvent, { featureId: FeatureIds.Levels })
   public async onMessageRecorded(event: MessageRecordedEvent): Promise<void> {
-    const guild = event.guildData;
-    if (!guild) {
+    if (!event.message.inGuild()) {
       return;
     }
-    await levelsService.grantMessageXp(guild, event.userId, event.channelId);
-  }
-
-  @EventHandler(VoiceSessionEndedEvent, { featureId: FeatureIds.Levels })
-  public async onVoiceSessionEnded(event: VoiceSessionEndedEvent): Promise<void> {
-    const guild = event.guildData;
-    if (!guild) {
-      return;
-    }
-    const durationSeconds = Math.max(
-      0,
-      Math.floor((event.leftAt.getTime() - event.joinedAt.getTime()) / 1000)
-    );
-    await levelsService.grantVoiceXp(guild, event.userId, durationSeconds);
+    await levelsService.grantMessageXp(event.message);
   }
 
   @EventHandler(LevelUpEvent, { featureId: FeatureIds.Levels })
@@ -109,9 +95,21 @@ async function announceLevelUp(event: LevelUpEvent): Promise<void> {
     { globalUser, guild, level: event.newLevel, xp: event.xp },
     template
   );
+  const card = await renderLevelUpCard({
+    name: user.displayName,
+    avatarUrl: user.displayAvatarURL({ size: 256, extension: "png" }),
+    prevLevel: event.prevLevel,
+    newLevel: event.newLevel,
+  });
   try {
     await channel.send({
-      embeds: [baseEmbed("levels").setTitle("🎉 Level Up").setDescription(description)],
+      embeds: [
+        baseEmbed("levels")
+          .setTitle("🎉 Level Up")
+          .setDescription(description)
+          .setImage("attachment://level-up.png"),
+      ],
+      files: [{ attachment: card, name: "level-up.png" }],
     });
   } catch (error) {
     console.error(`Failed to announce level-up for ${event.userId}:`, error);

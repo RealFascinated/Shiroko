@@ -7,9 +7,9 @@ export interface LevelReward {
 }
 
 export interface LevelsSettingsData {
-  messageXp: number;
+  messageXpMin: number;
+  messageXpMax: number;
   messageCooldownMs: number;
-  voiceXpPerMin: number;
   ignoredChannelIds: string[];
   announceChannelId: string | null;
   levelUpMessage: string;
@@ -27,16 +27,24 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
   displayName: "Levelling",
   featureId: FeatureIds.Levels,
   defaults: {
-    messageXp: 10,
+    messageXpMin: 15,
+    messageXpMax: 25,
     messageCooldownMs: 60_000,
-    voiceXpPerMin: 5,
     ignoredChannelIds: [],
     announceChannelId: null,
     levelUpMessage: "**{user_mention}** reached **level {level}**!",
     rewards: {},
   },
   descriptors: [
-    { key: "messageXp", label: "Message XP", type: "number", default: 10, min: 1 },
+    {
+      key: "messageXpMin",
+      label: "Message XP (min)",
+      description: "Each XP-granting message rolls a random amount between min and max",
+      type: "number",
+      default: 15,
+      min: 1,
+    },
+    { key: "messageXpMax", label: "Message XP (max)", type: "number", default: 25, min: 1 },
     {
       key: "messageCooldownMs",
       label: "Message cooldown",
@@ -45,11 +53,10 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
       default: 60_000,
       min: 10_000,
     },
-    { key: "voiceXpPerMin", label: "Voice XP per minute", type: "number", default: 5, min: 1 },
     {
       key: "ignoredChannelIds",
       label: "Ignored channels",
-      description: "Channels that never grant XP; one per line",
+      description: "Channels or categories that never grant XP, including their threads; one per line",
       type: "string-list",
       default: [],
       format: ids => ids.map(id => `<#${id}>`).join(", ") || "None",

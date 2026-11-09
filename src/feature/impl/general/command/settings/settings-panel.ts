@@ -10,7 +10,7 @@ import type { Guild } from "discord.js";
 /**
  * The aggregated per-guild state the hub renders over: every enabled
  * settings module's values, nested under the module's id, so a control's
- * dotted key (`levels.messageXp`, `logging.enabled.message`) resolves to
+ * dotted key (`levels.messageXpMin`, `logging.enabled.message`) resolves to
  * one stored setting.
  */
 type SettingsHubConfig = Record<string, Record<string, unknown>>;

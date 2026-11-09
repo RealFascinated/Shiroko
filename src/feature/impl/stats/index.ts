@@ -53,7 +53,7 @@ export default class StatsFeature extends Feature {
       new MessageRecordedEvent({
         userId: globalUser.id,
         guild,
-        channelId: message.channelId,
+        message,
       })
     );
   }
