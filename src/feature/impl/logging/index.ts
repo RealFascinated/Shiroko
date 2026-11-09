@@ -1,6 +1,6 @@
 import type Event from "@/event/event";
 import { EventBus } from "@/event/event-bus";
-import { GUILD_KIND_BY_ID } from "@/history/kinds";
+import { GUILD_KIND_BY_ID } from "@/audit/kinds";
 import ConfigChangeRecordedEvent from "@/event/events/config-change-recorded.event";
 import AutoModActionExecutedEvent from "@/event/events/automod-action-executed.event";
 import AutoModRuleCreatedEvent from "@/event/events/automod-rule-created.event";

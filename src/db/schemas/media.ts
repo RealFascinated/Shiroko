@@ -9,7 +9,7 @@ import { index, integer, pgTable, primaryKey, text, timestamp } from "drizzle-or
  * pair is the row whose `supersededAt` is null; every earlier row is a
  * previous version whose file the sweep deletes from storage once it
  * expires. The row itself is kept forever: the hash and sizes outlive the
- * file so history can still say what the asset was.
+ * file so the audit log can still say what the asset was.
  *
  * `userId` is deliberately not a foreign key: media is a self-contained
  * store, and tying it to `global_users` would

@@ -236,7 +236,7 @@ export default abstract class Panel<C extends object> {
    * control key that changed, so a panel writes a single setting rather
    * than re-storing its whole config, exactly like the settings store
    * (one row per `<namespace>.<key>`). `userId` is the member who made
-   * the edit, for the config history.
+   * the edit, for the config audit.
    */
   public abstract updateConfig(
     guild: Guild,

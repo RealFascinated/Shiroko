@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import HistoryWriter, { type HistoryActor } from "../history/history-writer";
+import AuditWriter, { type AuditActor } from "../audit/audit-writer";
 import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { guildKey } from "../cache/key";
@@ -38,16 +38,16 @@ export default class GuildSettings {
 
   /**
    * Upsert a value; passing `null` deletes the row (back to default). The
-   * change is recorded in the config history, and writing the value a row already holds does
+   * change is recorded in the config audit, and writing the value a row already holds does
    * nothing.
    */
   public static async set(
     guildId: string,
     key: string,
     value: JsonValue | null,
-    actor: HistoryActor
+    actor: AuditActor
   ): Promise<void> {
-    await HistoryWriter.write(
+    await AuditWriter.write(
       actor,
       "settings",
       key,

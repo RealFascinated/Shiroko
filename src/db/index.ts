@@ -7,7 +7,7 @@ import { commandCallsSchema } from "./schemas/command-calls";
 import { componentsSchema } from "./schemas/components";
 import { globalUsersSchema } from "./schemas/global-users";
 import { guildBirthdaysSchema } from "./schemas/guild-birthdays";
-import { guildHistorySchema } from "./schemas/guild-history";
+import { guildAuditSchema } from "./schemas/guild-audit";
 import { guildInvitesSchema } from "./schemas/guild-invites";
 import { permissionRolesSchema } from "./schemas/permission-roles";
 import { guildSettingsSchema } from "./schemas/guild-settings";
@@ -17,7 +17,7 @@ import { inviteJoinsSchema } from "./schemas/invite-joins";
 import { mediaSchema } from "./schemas/media";
 import { messageEventsSchema } from "./schemas/message-events";
 import { remindersSchema } from "./schemas/reminders";
-import { userHistorySchema } from "./schemas/user-history";
+import { userAuditSchema } from "./schemas/user-audit";
 import { userLevelsSchema } from "./schemas/user-levels";
 import { voiceSessionsSchema } from "./schemas/voice-sessions";
 
@@ -32,13 +32,13 @@ export const schema = {
   components: componentsSchema,
   globalUsers: globalUsersSchema,
   guildBirthdays: guildBirthdaysSchema,
-  guildHistory: guildHistorySchema,
+  guildAudit: guildAuditSchema,
   guildUsers: guildUsersSchema,
   permissionRoles: permissionRolesSchema,
   guildSettings: guildSettingsSchema,
   guildInvites: guildInvitesSchema,
   inviteJoins: inviteJoinsSchema,
-  userHistory: userHistorySchema,
+  userAudit: userAuditSchema,
   userLevels: userLevelsSchema,
   interactions: interactionsSchema,
   media: mediaSchema,

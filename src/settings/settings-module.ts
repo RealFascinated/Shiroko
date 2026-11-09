@@ -1,6 +1,6 @@
 import type { JsonValue } from "../db/schemas/guild-settings";
 import type { FeatureIds } from "../feature/feature-ids";
-import type { HistoryActor } from "../history/history-writer";
+import type { AuditActor } from "../audit/audit-writer";
 import GuildSettings from "./guild-settings";
 
 /**
@@ -221,7 +221,7 @@ export default class SettingsModule<C> {
     guildId: string,
     path: P,
     value: PathValue<C, P>,
-    actor: HistoryActor
+    actor: AuditActor
   ): Promise<void> {
     await GuildSettings.set(guildId, `${this.id}.${path}`, value as JsonValue, actor);
   }
@@ -239,7 +239,7 @@ export default class SettingsModule<C> {
     key: K,
     entryKey: string,
     value: MapEntry<C[K]>,
-    actor: HistoryActor
+    actor: AuditActor
   ): Promise<void> {
     const { entry } = this.mapDescriptors(key);
     await writeEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry, value, actor);
@@ -249,7 +249,7 @@ export default class SettingsModule<C> {
     guildId: string,
     key: K,
     entryKey: string,
-    actor: HistoryActor
+    actor: AuditActor
   ): Promise<void> {
     const { entry } = this.mapDescriptors(key);
     await clearEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry, actor);
@@ -341,7 +341,7 @@ async function writeEntry(
   key: string,
   entry: RuntimeFieldDescriptor,
   value: unknown,
-  actor: HistoryActor
+  actor: AuditActor
 ): Promise<void> {
   if (entry.type === "group") {
     const record = value as Record<string, unknown>;
@@ -362,7 +362,7 @@ async function clearEntry(
   guildId: string,
   key: string,
   entry: RuntimeFieldDescriptor,
-  actor: HistoryActor
+  actor: AuditActor
 ): Promise<void> {
   if (entry.type === "group") {
     for (const child of entry.fields ?? []) {
