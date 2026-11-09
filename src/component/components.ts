@@ -69,9 +69,13 @@ export default class Components {
     return row ?? null;
   }
 
-  /** Drop every component of a message, e.g. once a one-shot press lands. */
-  public static async deleteByMessage(messageId: string): Promise<void> {
-    await db.delete(componentsSchema).where(eq(componentsSchema.messageId, messageId));
+  /**
+   * Drop every component of a message, e.g. once a one-shot press lands, and
+   * return what was deleted. An empty result means another caller already
+   * dropped them, which makes this a claim on ending the message.
+   */
+  public static async deleteByMessage(messageId: string): Promise<ComponentSchema[]> {
+    return db.delete(componentsSchema).where(eq(componentsSchema.messageId, messageId)).returning();
   }
 
   /** Delete every expired row and return what was deleted. */
