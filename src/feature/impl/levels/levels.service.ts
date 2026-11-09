@@ -6,8 +6,9 @@ import LeaderboardManager from "@/leaderboard/index";
 import { LeaderboardId } from "@/leaderboard/leaderboard";
 import { syncMembers, type MemberSyncProgress, type MemberSyncResult } from "@/lib/member-sync";
 import { isAssignableRole } from "@/lib/roles";
+import GlobalUsersManager from "@/user/global-users-manager";
 import GuildUsersManager from "@/user/guild-users-manager";
-import { MessageType, type Guild, type Message, type Role } from "discord.js";
+import { MessageType, type Guild, type Message, type Role, type User } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import { levelsSettings, type LevelReward } from "./levels-settings";
@@ -132,6 +133,25 @@ export default class LevelsService {
   public async nextReward(guildId: string, atLevel: number): Promise<RewardRow | null> {
     const rewards = await this.rewards(guildId);
     return rewards.find(reward => reward.type === "Role" && reward.level > atLevel) ?? null;
+  }
+
+  public async giveXp(guild: Guild, user: User, amount: number): Promise<UserLevelSnapshot | null> {
+    await GlobalUsersManager.getUser(user);
+    return this.grant(guild, user.id, amount, new Date());
+  }
+
+  /**
+   * Subtract XP, floored at 0. Reward roles already granted are kept: they
+   * are never revoked when a member drops below their level.
+   */
+  public async removeXp(guildId: string, userId: string, amount: number): Promise<UserLevelSnapshot> {
+    const [row] = await db
+      .update(userLevelsSchema)
+      .set({ xp: sql`greatest(${userLevelsSchema.xp} - ${amount}, 0)`, updatedAt: new Date() })
+      .where(and(eq(userLevelsSchema.guildId, guildId), eq(userLevelsSchema.userId, userId)))
+      .returning({ xp: userLevelsSchema.xp });
+    const xp = row?.xp ?? 0;
+    return { xp, level: levelForXp(xp) };
   }
 
   public async setRewardRole(guild: Guild, level: number, roleId: string, userId: string): Promise<void> {

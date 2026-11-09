@@ -1,5 +1,7 @@
 import Command from "@/command/command";
+import GiveXpCommand from "./sub/give-xp.command";
 import RankCommand from "./sub/rank.command";
+import RemoveXpCommand from "./sub/remove-xp.command";
 import RewardAddCommand from "./sub/reward-add.command";
 import RewardRemoveCommand from "./sub/reward-remove.command";
 import RewardsCommand from "./sub/rewards.command";
@@ -14,5 +16,7 @@ export default class LevelsCommand extends Command {
     this.registerSubCommand(new RewardAddCommand());
     this.registerSubCommand(new RewardRemoveCommand());
     this.registerSubCommand(new SyncRewardsCommand());
+    this.registerSubCommand(new GiveXpCommand());
+    this.registerSubCommand(new RemoveXpCommand());
   }
 }
