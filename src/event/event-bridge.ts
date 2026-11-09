@@ -47,6 +47,9 @@ import ScheduledEventDeletedEvent from "./events/scheduled-event-deleted.event";
 import ScheduledEventUpdatedEvent from "./events/scheduled-event-updated.event";
 import ScheduledEventUserAddedEvent from "./events/scheduled-event-user-added.event";
 import ScheduledEventUserRemovedEvent from "./events/scheduled-event-user-removed.event";
+import ShardDisconnectedEvent from "./events/shard-disconnected.event";
+import ShardReconnectingEvent from "./events/shard-reconnecting.event";
+import ShardResumedEvent from "./events/shard-resumed.event";
 import SlashCommandReceivedEvent from "./events/slash-command-received.event";
 import StageInstanceCreatedEvent from "./events/stage-instance-created.event";
 import StageInstanceDeletedEvent from "./events/stage-instance-deleted.event";
@@ -108,6 +111,18 @@ export default class EventBridge {
 
     client.on(Events.ClientReady, readyClient => {
       void EventBus.post(new BotReadyEvent(readyClient));
+    });
+
+    client.on(Events.ShardDisconnect, (closeEvent, shardId) => {
+      void EventBus.post(new ShardDisconnectedEvent(shardId, closeEvent.code));
+    });
+
+    client.on(Events.ShardReconnecting, shardId => {
+      void EventBus.post(new ShardReconnectingEvent(shardId));
+    });
+
+    client.on(Events.ShardResume, (shardId, replayedEvents) => {
+      void EventBus.post(new ShardResumedEvent(shardId, replayedEvents));
     });
 
     client.on(Events.GuildCreate, guild => {

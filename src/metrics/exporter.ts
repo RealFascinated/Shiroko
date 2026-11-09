@@ -43,20 +43,32 @@ function encodePushPayload(snapshot: MetricSnapshot[], labels: Record<string, st
         break;
       }
       case "histogram": {
-        const h = entry.value as HistogramValue;
-        let cumulative = 0;
-        for (let i = 0; i < h.buckets.length; i++) {
-          cumulative += h.counts[i]!;
-          lines.push(`${entry.id}_bucket${leLabel(h.buckets[i]!, base)} ${formatValue(cumulative)}`);
+        lines.push(...histogramLines(entry.id, entry.value as HistogramValue, base));
+        break;
+      }
+      case "histogram_map": {
+        const histograms = entry.value as Record<string, HistogramValue>;
+        for (const [key, h] of Object.entries(histograms)) {
+          lines.push(...histogramLines(entry.id, h, withLabel(base, entry.label, key)));
         }
-        lines.push(`${entry.id}_bucket${leLabel(Infinity, base)} ${formatValue(h.count)}`);
-        lines.push(`${entry.id}_sum${base} ${formatValue(h.sum)}`);
-        lines.push(`${entry.id}_count${base} ${formatValue(h.count)}`);
         break;
       }
     }
   }
   return lines.join("\n") + "\n";
+}
+
+function histogramLines(id: string, h: HistogramValue, base: string): string[] {
+  const lines: string[] = [];
+  let cumulative = 0;
+  for (let i = 0; i < h.buckets.length; i++) {
+    cumulative += h.counts[i]!;
+    lines.push(`${id}_bucket${leLabel(h.buckets[i]!, base)} ${formatValue(cumulative)}`);
+  }
+  lines.push(`${id}_bucket${leLabel(Infinity, base)} ${formatValue(h.count)}`);
+  lines.push(`${id}_sum${base} ${formatValue(h.sum)}`);
+  lines.push(`${id}_count${base} ${formatValue(h.count)}`);
+  return lines;
 }
 
 /** `le` is the only per-series label a histogram adds; others inherit `base`. */

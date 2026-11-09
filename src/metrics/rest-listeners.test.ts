@@ -1,5 +1,5 @@
 import { describe, expect, setSystemTime, test } from "bun:test";
-import { RESTEvents, type Client } from "discord.js";
+import { RESTEvents, SnowflakeUtil, type Client } from "discord.js";
 import { RestListeners } from "./rest-listeners";
 
 type Listener = (...args: never[]) => void;
@@ -176,5 +176,33 @@ describe("RestListeners", () => {
     expect(listeners.buckets.value()).toBe(2);
     expect(listeners.hashes.value()).toBe(1);
     expect(listeners.globalRemaining.value()).toBe(41);
+  });
+
+  test("times interaction callbacks from the interaction's snowflake", () => {
+    const { rest, listeners } = harness();
+    const created = new Date("2026-01-01T00:00:00Z");
+    const id = SnowflakeUtil.generate({ timestamp: created }).toString();
+    setSystemTime(new Date(created.getTime() + 1200));
+    rest.emit(
+      RESTEvents.Response,
+      { route: "/interactions/:id/:token/callback", path: `/interactions/${id}/token/callback` },
+      response(204)
+    );
+    setSystemTime();
+
+    expect(listeners.interactionAck.value().count).toBe(1);
+    expect(listeners.interactionAck.value().sum).toBe(1200);
+  });
+
+  test("counts a 404 callback as an expired interaction", () => {
+    const { rest, listeners } = harness();
+    rest.emit(
+      RESTEvents.Response,
+      { route: "/interactions/:id/:token/callback", path: "/interactions/1/token/callback" },
+      response(404)
+    );
+
+    expect(listeners.interactionsExpired.value()).toBe(1);
+    expect(listeners.interactionAck.value().count).toBe(0);
   });
 });

@@ -8,6 +8,7 @@ import GuildFeatures from "../feature/guild-features";
 import { fetchGuildMember } from "../lib/guild";
 import { replyFailure } from "../lib/interaction-error";
 import CommandCallService from "../metrics/command-calls.service";
+import type { CommandDurationMetric, CommandErrorsMetric } from "../metrics/impl/commands";
 import Permissions, { hasFlags } from "../permission/permissions";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
@@ -57,7 +58,10 @@ export default class CommandManager {
 }
 
 export class SlashCommandListener extends EventListener {
-  constructor() {
+  constructor(
+    private readonly duration: CommandDurationMetric,
+    private readonly errors: CommandErrorsMetric
+  ) {
     super();
     EventBus.subscribe(this);
   }
@@ -109,6 +113,7 @@ export class SlashCommandListener extends EventListener {
       }
     }
 
+    const started = performance.now();
     try {
       const user = await GlobalUsersManager.getUser(interaction.user);
       const args = new ParsedArguments(interaction.options);
@@ -121,8 +126,11 @@ export class SlashCommandListener extends EventListener {
         commandName: command.id,
       });
     } catch (error) {
+      this.errors.increment(command.id);
       console.error(`Error executing command "${commandName}":`, error);
       await replyFailure(interaction);
+    } finally {
+      this.duration.observe(command.id, performance.now() - started);
     }
   }
 }

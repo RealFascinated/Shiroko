@@ -7,6 +7,7 @@ import type { Metric } from "@/metrics/metric";
 import {
   JobDurationMetric,
   JobFailuresMetric,
+  JobIntervalMetric,
   JobLastSuccessMetric,
   JobRunsMetric,
   JobSkipsMetric,
@@ -29,6 +30,7 @@ export default class JobManager extends EventListener {
   public readonly skips: JobSkipsMetric = new JobSkipsMetric();
   public readonly duration: JobDurationMetric = new JobDurationMetric();
   public readonly lastSuccess: JobLastSuccessMetric = new JobLastSuccessMetric();
+  public readonly interval: JobIntervalMetric = new JobIntervalMetric();
 
   private readonly jobs: Map<string, Job> = new Map<string, Job>();
   private readonly running: Set<string> = new Set<string>();
@@ -40,7 +42,7 @@ export default class JobManager extends EventListener {
   }
 
   public get metrics(): Metric<any>[] {
-    return [this.runs, this.failures, this.skips, this.duration, this.lastSuccess];
+    return [this.runs, this.failures, this.skips, this.duration, this.lastSuccess, this.interval];
   }
 
   public register(job: Job): void {
@@ -48,6 +50,7 @@ export default class JobManager extends EventListener {
       throw new Error(`Job "${job.id}" is already registered`);
     }
     this.jobs.set(job.id, job);
+    this.interval.set(job.id, job.schedule.periodMs / 1000);
   }
 
   /**

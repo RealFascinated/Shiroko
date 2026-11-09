@@ -1,5 +1,7 @@
 import { S3Client } from "bun";
 import { env } from "../lib/env";
+import { StorageDurationMetric, StorageErrorsMetric } from "../metrics/impl/storage";
+import type { Metric } from "../metrics/metric";
 
 export type StorageData = Parameters<S3Client["write"]>[1];
 export enum StorageBucket {
@@ -7,6 +9,9 @@ export enum StorageBucket {
 }
 
 export default class StorageService {
+  private static readonly duration: StorageDurationMetric = new StorageDurationMetric();
+  private static readonly errors: StorageErrorsMetric = new StorageErrorsMetric();
+
   private static readonly clients: Map<StorageBucket, S3Client> = new Map<StorageBucket, S3Client>(
     Object.values(StorageBucket).map(
       bucket =>
@@ -22,6 +27,10 @@ export default class StorageService {
         ] as const
     )
   );
+
+  public static get metrics(): Metric<any>[] {
+    return [StorageService.duration, StorageService.errors];
+  }
 
   private static clientFor(bucket: StorageBucket): S3Client {
     const client = StorageService.clients.get(bucket);
@@ -48,7 +57,9 @@ export default class StorageService {
     contentType?: string
   ): Promise<boolean> {
     try {
-      await StorageService.clientFor(bucket).write(filename, data, { type: contentType });
+      await StorageService.measure("write", () =>
+        StorageService.clientFor(bucket).write(filename, data, { type: contentType })
+      );
       return true;
     } catch (error) {
       console.error(`Failed to save file to storage: ${bucket}/${filename} (${error})`);
@@ -74,11 +85,23 @@ export default class StorageService {
 
   public static async deleteFile(bucket: StorageBucket, filename: string): Promise<boolean> {
     try {
-      await StorageService.clientFor(bucket).delete(filename);
+      await StorageService.measure("delete", () => StorageService.clientFor(bucket).delete(filename));
       return true;
     } catch (error) {
       console.error(`Failed to delete file from storage: ${bucket}/${filename} (${error})`);
       return false;
+    }
+  }
+
+  private static async measure<T>(op: string, run: () => Promise<T>): Promise<T> {
+    const started = performance.now();
+    try {
+      return await run();
+    } catch (error) {
+      StorageService.errors.increment(op);
+      throw error;
+    } finally {
+      StorageService.duration.observe(op, performance.now() - started);
     }
   }
 

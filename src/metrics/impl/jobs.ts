@@ -77,3 +77,14 @@ export class JobLastSuccessMetric extends JobGaugeMetric {
     });
   }
 }
+
+export class JobIntervalMetric extends JobGaugeMetric {
+  public constructor() {
+    super({
+      id: "job_interval_seconds",
+      kind: "counter_map",
+      unit: "seconds",
+      help: "Seconds between each job's scheduled ticks",
+    });
+  }
+}

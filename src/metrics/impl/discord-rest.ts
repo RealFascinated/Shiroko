@@ -304,3 +304,39 @@ export class RestInvalidRequestsMetric extends GaugeMetric {
     });
   }
 }
+
+/**
+ * Milliseconds from an interaction's creation (its snowflake timestamp) to
+ * the response for its callback, i.e. how close each acknowledgement came
+ * to Discord's 3 second deadline. Measured when the response lands, so it
+ * includes the callback's own round trip and slightly overstates the
+ * latency Discord saw.
+ */
+export class InteractionAckMetric extends HistogramMetric {
+  public constructor() {
+    super(
+      {
+        id: "discord_interaction_ack_ms",
+        kind: "histogram",
+        help: "Time from interaction creation to its callback response, in milliseconds",
+        unit: "ms",
+      },
+      [100, 250, 500, 1000, 1500, 2000, 2500, 3000, 5000]
+    );
+  }
+}
+
+/**
+ * Callbacks Discord rejected with a 404: the interaction token had already
+ * expired (Unknown interaction, 10062), so the user saw "The application
+ * did not respond".
+ */
+export class InteractionsExpiredMetric extends CounterMetric {
+  public constructor() {
+    super({
+      id: "discord_interactions_expired_total",
+      kind: "counter",
+      help: "Interaction callbacks rejected because the interaction had expired",
+    });
+  }
+}

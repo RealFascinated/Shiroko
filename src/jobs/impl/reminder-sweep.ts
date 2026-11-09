@@ -3,6 +3,8 @@ import { baseEmbed } from "@/lib/embed";
 import { discordTimestamp } from "@/lib/time";
 import type { Client, SendableChannels } from "discord.js";
 import { reminderService, type Reminder } from "@/feature/impl/reminders/reminder.service";
+import { ReminderLagMetric, RemindersDroppedMetric } from "@/metrics/impl/reminders";
+import type { Metric } from "@/metrics/metric";
 import Job from "../job";
 import { IntervalSchedule } from "../schedule";
 
@@ -13,15 +15,27 @@ import { IntervalSchedule } from "../schedule";
  * hold up the rest of the batch.
  */
 export default class ReminderSweepJob extends Job {
+  public readonly lag: ReminderLagMetric = new ReminderLagMetric();
+  public readonly dropped: RemindersDroppedMetric = new RemindersDroppedMetric();
+
   public constructor() {
     super({ id: "reminder_sweep", schedule: new IntervalSchedule(30_000) });
+  }
+
+  public get metrics(): Metric<any>[] {
+    return [this.lag, this.dropped];
   }
 
   public override async run(client: Client): Promise<void> {
     for (const reminder of await reminderService.claimDue(new Date())) {
       try {
-        await deliver(client, reminder);
+        if (await deliver(client, reminder)) {
+          this.lag.observe(Date.now() - reminder.remindAt.getTime());
+        } else {
+          this.dropped.increment();
+        }
       } catch (error) {
+        this.dropped.increment();
         console.error(`Failed to deliver reminder #${reminder.id}:`, error);
       }
     }
@@ -36,15 +50,15 @@ export default class ReminderSweepJob extends Job {
  * nor a DM can be reached, the reminder is logged and dropped. `fetch`
  * rejects for a channel that no longer exists rather than returning null,
  * and `send` rejects for one the bot lacks permission in, so both fold into
- * the same "unreachable" path.
+ * the same "unreachable" path. Resolves `false` when the reminder was dropped.
  */
-async function deliver(client: Client, reminder: Reminder): Promise<void> {
+async function deliver(client: Client, reminder: Reminder): Promise<boolean> {
   const channel = await client.channels.fetch(reminder.channelId).catch(() => null);
   if (channel?.isSendable()) {
     try {
       // A channel reminder pings its owner; a DM is already addressed to them.
       await sendReminder(channel, reminder, reminder.dm ? undefined : `<@${reminder.userId}>`);
-      return;
+      return true;
     } catch (error) {
       console.warn(`Reminder #${reminder.id}: could not post in ${reminder.channelId}:`, error);
     }
@@ -56,12 +70,13 @@ async function deliver(client: Client, reminder: Reminder): Promise<void> {
     console.warn(
       `Reminder #${reminder.id}: target ${reminder.channelId} is unreachable and no DM could be opened; dropping it.`
     );
-    return;
+    return false;
   }
   // A DM reminder whose channel is gone is simply re-opened, so the note is
   // only for a channel reminder that had to relocate.
   const note = reminder.dm ? undefined : "*(I couldn't post in that channel, so I sent this here instead.)*";
   await sendReminder(dm, reminder, undefined, note);
+  return true;
 }
 
 /**

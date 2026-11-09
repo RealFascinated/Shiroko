@@ -5,7 +5,7 @@ import CommandManager, { SlashCommandListener } from "./command/index";
 import ComponentManager from "./component/index";
 import { Constants } from "./constants";
 import ContextMenuCommandManager, { ContextMenuCommandListener } from "./context-menu/index";
-import { db } from "./db/index";
+import { db, pool } from "./db/index";
 import EventBridge from "./event/event-bridge";
 import { EventBus } from "./event/event-bus";
 import { EventHandler } from "./event/event-handler";
@@ -29,10 +29,12 @@ import MediaSweepJob from "./jobs/impl/media-sweep";
 import MediaSyncJob from "./jobs/impl/media-sync";
 import PresenceJob from "./jobs/impl/presence";
 import ReminderSweepJob from "./jobs/impl/reminder-sweep";
+import { DbListeners } from "./metrics/db-listeners";
 import { EventVolumeListeners } from "./metrics/event-volume-listeners";
 import { VictoriaMetricsExporter } from "./metrics/exporter";
 import { CacheMetricsMetric } from "./metrics/impl/cache";
 import { CommandCallsMetric } from "./metrics/impl/command-calls";
+import { CommandDurationMetric, CommandErrorsMetric } from "./metrics/impl/commands";
 import { ProcessCpuUsageMetric } from "./metrics/impl/cpu-usage";
 import { DiscordCacheMetric } from "./metrics/impl/discord-cache";
 import { DiscordEventsMetric } from "./metrics/impl/discord-events";
@@ -44,6 +46,8 @@ import { ProcessRamTotalMetric } from "./metrics/impl/process-ram-total";
 import { ProcessRamUsedMetric } from "./metrics/impl/process-ram-used";
 import { SeenUsersMetric } from "./metrics/impl/seen-users";
 import { UptimeMetric } from "./metrics/impl/uptime-seconds";
+import { ProcessMemoryMetric } from "./metrics/impl/process-memory";
+import { GatewayListeners } from "./metrics/gateway-listeners";
 import { MetricManager } from "./metrics/index";
 import { RestListeners } from "./metrics/rest-listeners";
 import PanelManager from "./panel/index";
@@ -66,6 +70,7 @@ metricManager.register(new GatewayLatencyMetric(discordClient));
 metricManager.register(new SeenUsersMetric());
 metricManager.register(new ProcessRamUsedMetric());
 metricManager.register(new ProcessRamTotalMetric());
+metricManager.register(new ProcessMemoryMetric());
 metricManager.register(new ProcessCpuUsageMetric());
 metricManager.register(new UptimeMetric());
 metricManager.register(new EventLoopMetric());
@@ -76,16 +81,26 @@ metricManager.register(new MediaBytesMetric());
 metricManager.register(new CommandCallsMetric());
 const discordEventsMetric = metricManager.register(new DiscordEventsMetric());
 new EventVolumeListeners(discordEventsMetric);
+const commandDuration = metricManager.register(new CommandDurationMetric());
+const commandErrors = metricManager.register(new CommandErrorsMetric());
 
 const restListeners = new RestListeners(discordClient);
-for (const metric of restListeners.metrics) {
+const reminderSweep = new ReminderSweepJob();
+for (const metric of [
+  ...restListeners.metrics,
+  ...new DbListeners(pool).metrics,
+  ...new GatewayListeners().metrics,
+  ...EventBus.metrics,
+  ...StorageService.metrics,
+  ...reminderSweep.metrics,
+]) {
   metricManager.register(metric);
 }
 
 const jobManager = new JobManager();
 jobManager.register(new PresenceJob());
 jobManager.register(new BirthdaySweepJob());
-jobManager.register(new ReminderSweepJob());
+jobManager.register(reminderSweep);
 jobManager.register(new ComponentSweepJob());
 jobManager.register(new MediaSweepJob());
 jobManager.register(new MediaSyncJob());
@@ -178,8 +193,8 @@ new CacheListeners();
 new PanelManager();
 new ComponentManager();
 new ContextMenuCommandManager();
-new SlashCommandListener();
-new ContextMenuCommandListener();
+new SlashCommandListener(commandDuration, commandErrors);
+new ContextMenuCommandListener(commandDuration, commandErrors);
 
 registerFeatures();
 SettingsManager.register(featureSettings());

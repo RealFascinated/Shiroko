@@ -1,5 +1,7 @@
-import { RESTEvents, type Client } from "discord.js";
+import { RESTEvents, SnowflakeUtil, type Client } from "discord.js";
 import {
+  InteractionAckMetric,
+  InteractionsExpiredMetric,
   RestBucketLimitMetric,
   RestBucketRemainingMetric,
   RestBucketsMetric,
@@ -14,6 +16,8 @@ import {
   RestRequestsMetric,
 } from "./impl/discord-rest";
 import type { Metric } from "./metric";
+
+const INTERACTION_CALLBACK_ROUTE = "/interactions/:id/:token/callback";
 
 /**
  * Instruments the discord.js REST manager. Every metric here is fed by the
@@ -34,6 +38,8 @@ export class RestListeners {
   public readonly duration: RestRequestDurationMetric = new RestRequestDurationMetric();
   public readonly rateLimitWait: RestRateLimitWaitMetric = new RestRateLimitWaitMetric();
   public readonly invalidRequests: RestInvalidRequestsMetric = new RestInvalidRequestsMetric();
+  public readonly interactionAck: InteractionAckMetric = new InteractionAckMetric();
+  public readonly interactionsExpired: InteractionsExpiredMetric = new InteractionsExpiredMetric();
   public readonly buckets: RestBucketsMetric;
   public readonly hashes: RestHashesMetric;
   public readonly globalRemaining: RestGlobalRemainingMetric;
@@ -63,6 +69,8 @@ export class RestListeners {
       this.duration,
       this.rateLimitWait,
       this.invalidRequests,
+      this.interactionAck,
+      this.interactionsExpired,
     ];
   }
 
@@ -98,6 +106,9 @@ export class RestListeners {
       if (limit !== null) {
         this.bucketLimit.record(request.route, limit);
       }
+      if (request.route === INTERACTION_CALLBACK_ROUTE) {
+        this.recordInteractionCallback(request.path, response.status);
+      }
     });
 
     client.rest.on(RESTEvents.RateLimited, info => {
@@ -111,6 +122,21 @@ export class RestListeners {
     client.rest.on(RESTEvents.InvalidRequestWarning, info => {
       this.invalidRequests.set(info.count);
     });
+  }
+
+  /**
+   * The callback path is `/interactions/<id>/<token>/callback`, and the id
+   * is a snowflake, so it carries the interaction's creation time.
+   */
+  private recordInteractionCallback(path: string, status: number): void {
+    if (status === 404) {
+      this.interactionsExpired.increment();
+      return;
+    }
+    const id = path.split("/")[2];
+    if (id) {
+      this.interactionAck.observe(Date.now() - SnowflakeUtil.timestampFrom(id));
+    }
   }
 }
 

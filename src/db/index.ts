@@ -23,7 +23,7 @@ import { userAuditSchema } from "./schemas/user-audit";
 import { userLevelsSchema } from "./schemas/user-levels";
 import { voiceSessionsSchema } from "./schemas/voice-sessions";
 
-const pool = new Pool({
+export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 

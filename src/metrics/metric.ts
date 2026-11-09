@@ -1,4 +1,4 @@
-export type MetricKind = "gauge" | "histogram" | "counter" | "counter_map";
+export type MetricKind = "gauge" | "histogram" | "counter" | "counter_map" | "histogram_map";
 
 /**
  * Every metric carries the same registration metadata: an id, the
@@ -10,7 +10,7 @@ export interface MetricRegistration {
   readonly help: string;
   readonly unit?: string;
   /**
-   * For `counter_map`: the label each map key is exported under
+   * For `counter_map` and `histogram_map`: the label each map key is exported under
    * (defaults to `event`). Keys must be valid Prometheus label names.
    */
   readonly label?: string;

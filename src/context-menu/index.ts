@@ -4,6 +4,7 @@ import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
 import ContextMenuReceivedEvent from "../event/events/context-menu-received.event";
 import { replyFailure } from "../lib/interaction-error";
+import type { CommandDurationMetric, CommandErrorsMetric } from "../metrics/impl/commands";
 import GlobalUsersManager from "../user/global-users-manager";
 import type ContextMenuCommand from "./context-menu-command";
 import AvatarCommand from "./impl/avatar.command";
@@ -39,7 +40,10 @@ export default class ContextMenuCommandManager {
 }
 
 export class ContextMenuCommandListener extends EventListener {
-  constructor() {
+  constructor(
+    private readonly duration: CommandDurationMetric,
+    private readonly errors: CommandErrorsMetric
+  ) {
     super();
     EventBus.subscribe(this);
   }
@@ -54,12 +58,16 @@ export class ContextMenuCommandListener extends EventListener {
       return;
     }
 
+    const started = performance.now();
     try {
       const globalUser = await GlobalUsersManager.getUser(interaction.user);
       await command.execute({ user: globalUser, guild: interaction.guild, ctx: interaction });
     } catch (error) {
+      this.errors.increment(command.displayName);
       console.error(`Error executing context menu command "${commandName}":`, error);
       await replyFailure(interaction);
+    } finally {
+      this.duration.observe(command.displayName, performance.now() - started);
     }
   }
 }

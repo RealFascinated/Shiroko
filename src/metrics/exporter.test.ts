@@ -62,4 +62,18 @@ describe("VictoriaMetricsExporter", () => {
     expect(body).toContain('event_loop_ms_sum{job="arona"} 120');
     expect(body).toContain('event_loop_ms_count{job="arona"} 5');
   });
+
+  test("histogram_map buckets carry both the key label and le", async () => {
+    const body = await pushOnce([
+      {
+        id: "command_duration_ms",
+        kind: "histogram_map",
+        label: "command",
+        value: { ping: { buckets: [10], counts: [2], sum: 9, count: 3 } },
+      },
+    ]);
+    expect(body).toContain('command_duration_ms_bucket{job="arona",command="ping",le="10"} 2');
+    expect(body).toContain('command_duration_ms_bucket{job="arona",command="ping",le="+Inf"} 3');
+    expect(body).toContain('command_duration_ms_sum{job="arona",command="ping"} 9');
+  });
 });

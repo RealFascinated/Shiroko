@@ -5,6 +5,12 @@
  */
 export abstract class JobSchedule {
   public abstract arm(tick: () => void): () => void;
+
+  /**
+   * Milliseconds between two consecutive ticks, which the staleness alert
+   * scales its threshold by.
+   */
+  public abstract get periodMs(): number;
 }
 
 /**
@@ -20,6 +26,17 @@ export class CronSchedule extends JobSchedule {
     const job = Bun.cron(this.expression, tick, { tz: "UTC" });
     return () => job.stop();
   }
+
+  /**
+   * The gap between the next two fire times. Exact for the evenly spaced
+   * expressions the jobs use; an uneven one (`0 9 * * MON-FRI`) reports
+   * whichever gap comes next.
+   */
+  public get periodMs(): number {
+    const next = Bun.cron.parse(this.expression, Date.now(), { tz: "UTC" });
+    const after = next ? Bun.cron.parse(this.expression, next, { tz: "UTC" }) : null;
+    return next && after ? after.getTime() - next.getTime() : 0;
+  }
 }
 
 /**
@@ -34,5 +51,9 @@ export class IntervalSchedule extends JobSchedule {
   public arm(tick: () => void): () => void {
     const timer = setInterval(tick, this.intervalMs);
     return () => clearInterval(timer);
+  }
+
+  public get periodMs(): number {
+    return this.intervalMs;
   }
 }

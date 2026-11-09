@@ -2,6 +2,8 @@ import type { Guild } from "discord.js";
 import "reflect-metadata";
 import type { FeatureIds } from "../feature/feature-ids";
 import GuildFeatures from "../feature/guild-features";
+import { EventHandlerDurationMetric, EventHandlerErrorsMetric } from "../metrics/impl/event-handlers";
+import type { Metric } from "../metrics/metric";
 import type Event from "./event";
 import type { EventListener } from "./event-listener";
 
@@ -35,6 +37,12 @@ interface HandlerEntry {
  */
 export class EventBus {
   private static readonly HANDLERS: Map<new (...args: any[]) => Event, HandlerEntry[]> = new Map();
+  private static readonly duration: EventHandlerDurationMetric = new EventHandlerDurationMetric();
+  private static readonly errors: EventHandlerErrorsMetric = new EventHandlerErrorsMetric();
+
+  public static get metrics(): Metric<any>[] {
+    return [EventBus.duration, EventBus.errors];
+  }
 
   public static subscribe(listener: EventListener): void {
     for (const metadata of EventBus.listenerHandlers(listener)) {
@@ -107,10 +115,17 @@ export class EventBus {
       if (!(await EventBus.gate(entry, event))) {
         continue;
       }
+      const name = entry.method
+        ? `${entry.listener.constructor.name}.${entry.method}`
+        : entry.listener.constructor.name;
+      const started = performance.now();
       try {
         await entry.handler(event);
       } catch (error) {
-        console.error(`Event handler ${entry.listener.constructor.name}.${entry.method} failed:`, error);
+        EventBus.errors.increment(name);
+        console.error(`Event handler ${name} failed:`, error);
+      } finally {
+        EventBus.duration.observe(name, performance.now() - started);
       }
     }
   }
