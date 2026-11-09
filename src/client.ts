@@ -1,4 +1,11 @@
+import type { ClusterClient } from "discord-hybrid-sharding";
 import { Client, GatewayIntentBits } from "discord.js";
+
+declare module "discord.js" {
+  interface Client {
+    cluster: ClusterClient<Client>;
+  }
+}
 
 /**
  * The gateway client. Its own module so formatting code can read the client's

@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import { isPrimary } from "@/cluster/cluster";
 import { EventBus } from "@/event/event-bus";
 import { EventHandler } from "@/event/event-handler";
 import { EventListener } from "@/event/event-listener";
@@ -12,6 +13,12 @@ import {
   JobRunsMetric,
   JobSkipsMetric,
 } from "@/metrics/impl/jobs";
+import BirthdaySweepJob from "./impl/birthday-sweep";
+import ComponentSweepJob from "./impl/component-sweep";
+import MediaSweepJob from "./impl/media-sweep";
+import MediaSyncJob from "./impl/media-sync";
+import PresenceJob from "./impl/presence";
+import ReminderSweepJob from "./impl/reminder-sweep";
 import type Job from "./job";
 
 /**
@@ -36,16 +43,34 @@ export default class JobManager extends EventListener {
   private readonly running: Set<string> = new Set<string>();
   private readonly disarms: (() => void)[] = [];
 
-  constructor() {
+  constructor(client: Client) {
     super();
     EventBus.subscribe(this);
+    this.register(new PresenceJob());
+    this.register(new BirthdaySweepJob());
+    this.register(new MediaSyncJob());
+    // Work over the whole database rather than this cluster's guilds runs on
+    // one cluster only, or every cluster would repeat it.
+    if (isPrimary(client)) {
+      this.register(new ReminderSweepJob());
+      this.register(new ComponentSweepJob());
+      this.register(new MediaSweepJob());
+    }
   }
 
   public get metrics(): Metric<any>[] {
-    return [this.runs, this.failures, this.skips, this.duration, this.lastSuccess, this.interval];
+    return [
+      this.runs,
+      this.failures,
+      this.skips,
+      this.duration,
+      this.lastSuccess,
+      this.interval,
+      ...[...this.jobs.values()].flatMap(job => job.metrics),
+    ];
   }
 
-  public register(job: Job): void {
+  private register(job: Job): void {
     if (this.jobs.has(job.id)) {
       throw new Error(`Job "${job.id}" is already registered`);
     }

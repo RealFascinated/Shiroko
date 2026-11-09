@@ -22,7 +22,7 @@ export default class ReminderSweepJob extends Job {
     super({ id: "reminder_sweep", schedule: new IntervalSchedule(30_000) });
   }
 
-  public get metrics(): Metric<any>[] {
+  public override get metrics(): Metric<any>[] {
     return [this.lag, this.dropped];
   }
 

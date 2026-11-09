@@ -19,8 +19,8 @@ export default class AfkFeature extends Feature {
   }
 
   @EventHandler(BotReadyEvent)
-  public async onBotReady(): Promise<void> {
-    await afkService.load();
+  public async onBotReady(event: BotReadyEvent): Promise<void> {
+    await afkService.load(event.client);
   }
 
   @EventHandler(MessageCreatedEvent, { featureId: FeatureIds.Afk })

@@ -22,7 +22,10 @@ const captured = capturePush();
 afterAll(() => captured.restore());
 
 async function pushOnce(snapshot: MetricSnapshot[]): Promise<string> {
-  const exporter = new VictoriaMetricsExporter(managerOf(snapshot), { url: "http://vm.test", job: "arona" });
+  const exporter = new VictoriaMetricsExporter(managerOf(snapshot), {
+    url: "http://vm.test",
+    labels: { job: "arona", cluster: "1" },
+  });
   exporter.start();
   await Bun.sleep(0);
   return captured.bodies.at(-1) ?? "";
@@ -31,7 +34,7 @@ async function pushOnce(snapshot: MetricSnapshot[]): Promise<string> {
 describe("VictoriaMetricsExporter", () => {
   test("serializes a gauge with the job label", async () => {
     const body = await pushOnce([{ id: "guilds", kind: "gauge", label: "event", value: 7 }]);
-    expect(body).toContain('guilds{job="arona"} 7');
+    expect(body).toContain('guilds{job="arona",cluster="1"} 7');
   });
 
   test("counter_map exports one line per key, under the metric's label", async () => {
@@ -43,8 +46,8 @@ describe("VictoriaMetricsExporter", () => {
         value: { "guild-settings:size": 4, "global-users:hits": 9 },
       },
     ]);
-    expect(body).toContain('cache_entries{job="arona",cache="guild-settings:size"} 4');
-    expect(body).toContain('cache_entries{job="arona",cache="global-users:hits"} 9');
+    expect(body).toContain('cache_entries{job="arona",cluster="1",cache="guild-settings:size"} 4');
+    expect(body).toContain('cache_entries{job="arona",cluster="1",cache="global-users:hits"} 9');
   });
 
   test("histogram buckets carry the le label", async () => {
@@ -56,11 +59,11 @@ describe("VictoriaMetricsExporter", () => {
         value: { buckets: [10, 50], counts: [3, 2], sum: 120, count: 5 },
       },
     ]);
-    expect(body).toContain('event_loop_ms_bucket{job="arona",le="10"} 3');
-    expect(body).toContain('event_loop_ms_bucket{job="arona",le="50"} 5');
-    expect(body).toContain('event_loop_ms_bucket{job="arona",le="+Inf"} 5');
-    expect(body).toContain('event_loop_ms_sum{job="arona"} 120');
-    expect(body).toContain('event_loop_ms_count{job="arona"} 5');
+    expect(body).toContain('event_loop_ms_bucket{job="arona",cluster="1",le="10"} 3');
+    expect(body).toContain('event_loop_ms_bucket{job="arona",cluster="1",le="50"} 5');
+    expect(body).toContain('event_loop_ms_bucket{job="arona",cluster="1",le="+Inf"} 5');
+    expect(body).toContain('event_loop_ms_sum{job="arona",cluster="1"} 120');
+    expect(body).toContain('event_loop_ms_count{job="arona",cluster="1"} 5');
   });
 
   test("histogram_map buckets carry both the key label and le", async () => {
@@ -72,8 +75,8 @@ describe("VictoriaMetricsExporter", () => {
         value: { ping: { buckets: [10], counts: [2], sum: 9, count: 3 } },
       },
     ]);
-    expect(body).toContain('command_duration_ms_bucket{job="arona",command="ping",le="10"} 2');
-    expect(body).toContain('command_duration_ms_bucket{job="arona",command="ping",le="+Inf"} 3');
-    expect(body).toContain('command_duration_ms_sum{job="arona",command="ping"} 9');
+    expect(body).toContain('command_duration_ms_bucket{job="arona",cluster="1",command="ping",le="10"} 2');
+    expect(body).toContain('command_duration_ms_bucket{job="arona",cluster="1",command="ping",le="+Inf"} 3');
+    expect(body).toContain('command_duration_ms_sum{job="arona",cluster="1",command="ping"} 9');
   });
 });

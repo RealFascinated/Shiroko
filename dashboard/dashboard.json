@@ -40,10 +40,10 @@
             "group": "victoriametrics-metrics-datasource",
             "kind": "DataQuery",
             "spec": {
-              "expr": "uptime_seconds{job=~\"$job\"} < 120",
+              "expr": "uptime_seconds{job=~\"$job\",cluster=~\"$cluster\"} < 120",
               "step": "60s",
               "titleFormat": "Restart",
-              "textFormat": "{{job}}"
+              "textFormat": "cluster {{cluster}}"
             },
             "version": "v0"
           }
@@ -71,7 +71,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "max(uptime_seconds{job=~\"$job\"})",
+                        "expr": "min(uptime_seconds{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -85,7 +85,7 @@
               "transformations": []
             }
           },
-          "description": "Time since the process started. Orange for the first hour after a restart.",
+          "description": "Time since the most recently started cluster started. Orange for the first hour after any cluster restarts.",
           "id": 1,
           "links": [],
           "title": "Uptime",
@@ -155,7 +155,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(guilds{job=~\"$job\"})",
+                        "expr": "sum(guilds{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -235,7 +235,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "max(gateway_latency_ms{job=~\"$job\"})",
+                        "expr": "max(gateway_latency_ms{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -323,7 +323,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(event_loop_ms_bucket{job=~\"$job\"}[5m])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(event_loop_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[5m])))",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -411,7 +411,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "max(process_cpu_usage{job=~\"$job\"})",
+                        "expr": "max(process_cpu_usage{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -499,7 +499,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "max(process_ram_used{job=~\"$job\"}) / max(process_ram_total{job=~\"$job\"}) * 100",
+                        "expr": "max(process_ram_used{job=~\"$job\",cluster=~\"$cluster\"} / process_ram_total{job=~\"$job\",cluster=~\"$cluster\"}) * 100",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -513,7 +513,7 @@
               "transformations": []
             }
           },
-          "description": "Heap used as a share of the heap size limit.",
+          "description": "Heap used as a share of the heap size limit, for the fullest cluster.",
           "id": 6,
           "links": [],
           "title": "Heap used",
@@ -587,7 +587,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(rate(command_duration_ms_count{job=~\"$job\"}[5m])) * 60 or vector(0)",
+                        "expr": "sum(rate(command_duration_ms_count{job=~\"$job\",cluster=~\"$cluster\"}[5m])) * 60 or vector(0)",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -667,7 +667,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(increase(command_errors_total{job=~\"$job\"}[24h])) or vector(0)",
+                        "expr": "sum(increase(command_errors_total{job=~\"$job\",cluster=~\"$cluster\"}[24h])) or vector(0)",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -751,7 +751,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(discord_interaction_ack_ms_bucket{job=~\"$job\"}[15m])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(discord_interaction_ack_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[15m])))",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -839,7 +839,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(increase(discord_interactions_expired_total{job=~\"$job\"}[24h])) or vector(0)",
+                        "expr": "sum(increase(discord_interactions_expired_total{job=~\"$job\",cluster=~\"$cluster\"}[24h])) or vector(0)",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -923,7 +923,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(increase(discord_rest_rate_limits_total{job=~\"$job\"}[1h])) or vector(0)",
+                        "expr": "sum(increase(discord_rest_rate_limits_total{job=~\"$job\",cluster=~\"$cluster\"}[1h])) or vector(0)",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -1011,7 +1011,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(increase(job_failures_total{job=~\"$job\"}[24h])) or vector(0)",
+                        "expr": "sum(increase(job_failures_total{job=~\"$job\",cluster=~\"$cluster\"}[24h])) or vector(0)",
                         "legendFormat": "",
                         "queryType": "MetricsQL"
                       },
@@ -1095,7 +1095,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "topk(10, sum by (command) (increase(command_calls_total{job=~\"$job\"}[$__range])))",
+                        "expr": "topk(10, sum by (command) (increase(command_calls_total{job=~\"$job\",cluster=~\"$cluster\"}[$__range])))",
                         "legendFormat": "{{command}}",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -1185,7 +1185,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "increase(command_calls_total{job=~\"$job\"}[1d])",
+                        "expr": "increase(command_calls_total{job=~\"$job\",cluster=~\"$cluster\"}[1d])",
                         "legendFormat": "{{command}}",
                         "queryType": "MetricsQL",
                         "interval": "1d"
@@ -1298,7 +1298,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.5, sum by (le) (rate(command_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.5, sum by (le) (rate(command_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p50",
                         "queryType": "MetricsQL"
                       },
@@ -1318,7 +1318,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(command_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(command_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
@@ -1338,7 +1338,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.99, sum by (le) (rate(command_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.99, sum by (le) (rate(command_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p99",
                         "queryType": "MetricsQL"
                       },
@@ -1450,7 +1450,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "topk(10, histogram_quantile(0.95, sum by (command, le) (rate(command_duration_ms_bucket{job=~\"$job\"}[$__range]))))",
+                        "expr": "topk(10, histogram_quantile(0.95, sum by (command, le) (rate(command_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__range]))))",
                         "legendFormat": "{{command}}",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -1540,7 +1540,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.5, sum by (le) (rate(discord_interaction_ack_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.5, sum by (le) (rate(discord_interaction_ack_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p50",
                         "queryType": "MetricsQL"
                       },
@@ -1560,7 +1560,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(discord_interaction_ack_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(discord_interaction_ack_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
@@ -1680,7 +1680,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (command) (increase(command_errors_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum by (command) (increase(command_errors_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "{{command}}",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -1793,7 +1793,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(increase(discord_interactions_expired_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum(increase(discord_interactions_expired_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "expired",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -1906,7 +1906,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (event) (rate(discord_events_total{job=~\"$job\",event=~\"messages|presence_changes|member_joins\"}[$__rate_interval]))",
+                        "expr": "sum by (event) (rate(discord_events_total{job=~\"$job\",cluster=~\"$cluster\",event=~\"messages|presence_changes|member_joins\"}[$__rate_interval]))",
                         "legendFormat": "{{event}}",
                         "queryType": "MetricsQL"
                       },
@@ -2018,7 +2018,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (event) (rate(discord_events_total{job=~\"$job\",event=~\"slash_commands|components|context_menus\"}[$__rate_interval]))",
+                        "expr": "sum by (event) (rate(discord_events_total{job=~\"$job\",cluster=~\"$cluster\",event=~\"slash_commands|components|context_menus\"}[$__rate_interval]))",
                         "legendFormat": "{{event}}",
                         "queryType": "MetricsQL"
                       },
@@ -2130,8 +2130,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "gateway_latency_ms{job=~\"$job\"}",
-                        "legendFormat": "latency",
+                        "expr": "gateway_latency_ms{job=~\"$job\",cluster=~\"$cluster\"}",
+                        "legendFormat": "cluster {{cluster}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -2250,7 +2250,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (event) (increase(discord_gateway_lifecycle_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum by (event) (increase(discord_gateway_lifecycle_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "{{event}}",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -2363,7 +2363,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (code) (increase(discord_gateway_disconnects_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum by (code) (increase(discord_gateway_disconnects_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "{{code}}",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -2476,7 +2476,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "last_over_time(guilds{job=~\"$job\"}[1h])",
+                        "expr": "sum(last_over_time(guilds{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "guilds",
                         "queryType": "MetricsQL"
                       },
@@ -2587,7 +2587,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "last_over_time(seen_users{job=~\"$job\"}[1h])",
+                        "expr": "last_over_time(seen_users{job=~\"$job\",cluster=~\"$cluster\"}[1h])",
                         "legendFormat": "users",
                         "queryType": "MetricsQL"
                       },
@@ -2698,7 +2698,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (change) (increase(guild_changes_total{job=~\"$job\"}[1d]))",
+                        "expr": "sum by (change) (increase(guild_changes_total{job=~\"$job\",cluster=~\"$cluster\"}[1d]))",
                         "legendFormat": "{{change}}",
                         "queryType": "MetricsQL",
                         "interval": "1d"
@@ -2811,8 +2811,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "process_cpu_usage{job=~\"$job\"}",
-                        "legendFormat": "cpu",
+                        "expr": "process_cpu_usage{job=~\"$job\",cluster=~\"$cluster\"}",
+                        "legendFormat": "cluster {{cluster}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -2924,8 +2924,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "process_ram_used{job=~\"$job\"}",
-                        "legendFormat": "used",
+                        "expr": "process_ram_used{job=~\"$job\",cluster=~\"$cluster\"}",
+                        "legendFormat": "used {{cluster}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -2944,8 +2944,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "process_ram_total{job=~\"$job\"}",
-                        "legendFormat": "limit",
+                        "expr": "process_ram_total{job=~\"$job\",cluster=~\"$cluster\"}",
+                        "legendFormat": "limit {{cluster}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -3056,8 +3056,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "process_memory_bytes{job=~\"$job\"}",
-                        "legendFormat": "{{kind}}",
+                        "expr": "process_memory_bytes{job=~\"$job\",cluster=~\"$cluster\"}",
+                        "legendFormat": "{{kind}} {{cluster}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -3168,7 +3168,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.5, sum by (le) (rate(event_loop_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.5, sum by (le) (rate(event_loop_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p50",
                         "queryType": "MetricsQL"
                       },
@@ -3188,7 +3188,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(event_loop_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(event_loop_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
@@ -3208,7 +3208,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.99, sum by (le) (rate(event_loop_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.99, sum by (le) (rate(event_loop_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p99",
                         "queryType": "MetricsQL"
                       },
@@ -3328,7 +3328,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "topk(10, histogram_quantile(0.95, sum by (handler, le) (rate(event_handler_duration_ms_bucket{job=~\"$job\"}[$__range]))))",
+                        "expr": "topk(10, histogram_quantile(0.95, sum by (handler, le) (rate(event_handler_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__range]))))",
                         "legendFormat": "{{handler}}",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -3418,7 +3418,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (handler) (increase(event_handler_errors_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum by (handler) (increase(event_handler_errors_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "{{handler}}",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -3531,7 +3531,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "db_pool_connections{job=~\"$job\"}",
+                        "expr": "sum by (state) (db_pool_connections{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "{{state}}",
                         "queryType": "MetricsQL"
                       },
@@ -3545,7 +3545,7 @@
               "transformations": []
             }
           },
-          "description": "Postgres pool connections. Any sustained waiting means the pool is exhausted.",
+          "description": "Postgres pool connections, summed across clusters (each holds its own pool). Any sustained waiting means a pool is exhausted.",
           "id": 34,
           "links": [],
           "title": "Pool connections",
@@ -3643,7 +3643,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.5, sum by (le) (rate(db_query_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.5, sum by (le) (rate(db_query_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p50",
                         "queryType": "MetricsQL"
                       },
@@ -3663,7 +3663,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(db_query_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(db_query_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
@@ -3683,7 +3683,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.99, sum by (le) (rate(db_query_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.99, sum by (le) (rate(db_query_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p99",
                         "queryType": "MetricsQL"
                       },
@@ -3795,7 +3795,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(rate(db_query_duration_ms_count{job=~\"$job\"}[$__rate_interval]))",
+                        "expr": "sum(rate(db_query_duration_ms_count{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval]))",
                         "legendFormat": "queries",
                         "queryType": "MetricsQL"
                       },
@@ -3815,7 +3815,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(rate(db_query_errors_total{job=~\"$job\"}[$__rate_interval]))",
+                        "expr": "sum(rate(db_query_errors_total{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval]))",
                         "legendFormat": "errors",
                         "queryType": "MetricsQL"
                       },
@@ -3927,7 +3927,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(rate(discord_rest_requests_total{job=~\"$job\"}[$__rate_interval]))",
+                        "expr": "sum(rate(discord_rest_requests_total{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval]))",
                         "legendFormat": "requests",
                         "queryType": "MetricsQL"
                       },
@@ -3947,7 +3947,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(rate(discord_rest_errors_total{job=~\"$job\"}[$__rate_interval]))",
+                        "expr": "sum(rate(discord_rest_errors_total{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval]))",
                         "legendFormat": "errors",
                         "queryType": "MetricsQL"
                       },
@@ -4059,7 +4059,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.5, sum by (le) (rate(discord_rest_request_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.5, sum by (le) (rate(discord_rest_request_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p50",
                         "queryType": "MetricsQL"
                       },
@@ -4079,7 +4079,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(discord_rest_request_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(discord_rest_request_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
@@ -4099,7 +4099,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.99, sum by (le) (rate(discord_rest_request_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.99, sum by (le) (rate(discord_rest_request_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p99",
                         "queryType": "MetricsQL"
                       },
@@ -4211,7 +4211,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "topk(10, sum by (route) (increase(discord_rest_requests_total{job=~\"$job\"}[$__range])))",
+                        "expr": "topk(10, sum by (route) (increase(discord_rest_requests_total{job=~\"$job\",cluster=~\"$cluster\"}[$__range])))",
                         "legendFormat": "{{route}}",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -4301,7 +4301,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (route) (rate(discord_rest_errors_total{job=~\"$job\"}[$__rate_interval])) / sum by (route) (rate(discord_rest_requests_total{job=~\"$job\"}[$__rate_interval]))",
+                        "expr": "sum by (route) (rate(discord_rest_errors_total{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])) / sum by (route) (rate(discord_rest_requests_total{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval]))",
                         "legendFormat": "{{route}}",
                         "queryType": "MetricsQL"
                       },
@@ -4420,7 +4420,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "discord_rest_invalid_requests{job=~\"$job\"}",
+                        "expr": "sum(discord_rest_invalid_requests{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "invalid",
                         "queryType": "MetricsQL"
                       },
@@ -4540,8 +4540,8 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "discord_rest_global_remaining{job=~\"$job\"}",
-                        "legendFormat": "remaining",
+                        "expr": "discord_rest_global_remaining{job=~\"$job\",cluster=~\"$cluster\"}",
+                        "legendFormat": "cluster {{cluster}}",
                         "queryType": "MetricsQL"
                       },
                       "version": "v0"
@@ -4652,7 +4652,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "discord_rest_buckets{job=~\"$job\"}",
+                        "expr": "sum(discord_rest_buckets{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "buckets",
                         "queryType": "MetricsQL"
                       },
@@ -4672,7 +4672,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "discord_rest_hashes{job=~\"$job\"}",
+                        "expr": "sum(discord_rest_hashes{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "hashes",
                         "queryType": "MetricsQL"
                       },
@@ -4784,7 +4784,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (route) (rate(discord_rest_rate_limits_total{job=~\"$job\"}[$__rate_interval]))",
+                        "expr": "sum by (route) (rate(discord_rest_rate_limits_total{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval]))",
                         "legendFormat": "{{route}}",
                         "queryType": "MetricsQL"
                       },
@@ -4902,7 +4902,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.5, sum by (le) (rate(discord_rest_rate_limit_wait_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.5, sum by (le) (rate(discord_rest_rate_limit_wait_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p50",
                         "queryType": "MetricsQL"
                       },
@@ -4922,7 +4922,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(discord_rest_rate_limit_wait_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(discord_rest_rate_limit_wait_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
@@ -5034,7 +5034,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "bottomk(10, min by (route) (discord_rest_bucket_remaining{job=~\"$job\"} / discord_rest_bucket_limit{job=~\"$job\"}))",
+                        "expr": "bottomk(10, min by (route) (discord_rest_bucket_remaining{job=~\"$job\",cluster=~\"$cluster\"} / discord_rest_bucket_limit{job=~\"$job\",cluster=~\"$cluster\"}))",
                         "legendFormat": "{{route}}",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -5134,7 +5134,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(increase(discord_rest_global_rate_limits_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum(increase(discord_rest_global_rate_limits_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "global",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -5247,7 +5247,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "time() - max by (name) (job_last_success_timestamp_seconds{job=~\"$job\"})",
+                        "expr": "time() - min by (name) (job_last_success_timestamp_seconds{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "Since success",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -5270,7 +5270,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "max by (name) (job_interval_seconds{job=~\"$job\"})",
+                        "expr": "max by (name) (job_interval_seconds{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "Interval",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -5293,7 +5293,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "max by (name) (job_last_duration_seconds{job=~\"$job\"})",
+                        "expr": "max by (name) (job_last_duration_seconds{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "Last duration",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -5316,7 +5316,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (name) (increase(job_runs_total{job=~\"$job\"}[$__range]))",
+                        "expr": "sum by (name) (increase(job_runs_total{job=~\"$job\",cluster=~\"$cluster\"}[$__range]))",
                         "legendFormat": "Runs",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -5339,7 +5339,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (name) (increase(job_failures_total{job=~\"$job\"}[$__range]))",
+                        "expr": "sum by (name) (increase(job_failures_total{job=~\"$job\",cluster=~\"$cluster\"}[$__range]))",
                         "legendFormat": "Failures",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -5362,7 +5362,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (name) (increase(job_skips_total{job=~\"$job\"}[$__range]))",
+                        "expr": "sum by (name) (increase(job_skips_total{job=~\"$job\",cluster=~\"$cluster\"}[$__range]))",
                         "legendFormat": "Skips",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -5516,7 +5516,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (name) (increase(job_failures_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum by (name) (increase(job_failures_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "{{name}}",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -5629,7 +5629,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "job_last_duration_seconds{job=~\"$job\"}",
+                        "expr": "max by (name) (job_last_duration_seconds{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "{{name}}",
                         "queryType": "MetricsQL"
                       },
@@ -5741,7 +5741,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.5, sum by (le) (rate(reminder_delivery_lag_ms_bucket{job=~\"$job\"}[30m])))",
+                        "expr": "histogram_quantile(0.5, sum by (le) (rate(reminder_delivery_lag_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[30m])))",
                         "legendFormat": "p50",
                         "queryType": "MetricsQL"
                       },
@@ -5761,7 +5761,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (le) (rate(reminder_delivery_lag_ms_bucket{job=~\"$job\"}[30m])))",
+                        "expr": "histogram_quantile(0.95, sum by (le) (rate(reminder_delivery_lag_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[30m])))",
                         "legendFormat": "p95",
                         "queryType": "MetricsQL"
                       },
@@ -5881,7 +5881,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum(increase(reminders_dropped_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum(increase(reminders_dropped_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "dropped",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -5994,7 +5994,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "label_replace(rate(cache_entries{job=~\"$job\",cache=~\"[^:]+:hits\"}[$__rate_interval]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\") / (label_replace(rate(cache_entries{job=~\"$job\",cache=~\"[^:]+:hits\"}[$__rate_interval]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\") + label_replace(rate(cache_entries{job=~\"$job\",cache=~\"[^:]+:misses\"}[$__rate_interval]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\"))",
+                        "expr": "sum by (cache) (label_replace(rate(cache_entries{job=~\"$job\",cluster=~\"$cluster\",cache=~\"[^:]+:hits\"}[$__rate_interval]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\")) / (sum by (cache) (label_replace(rate(cache_entries{job=~\"$job\",cluster=~\"$cluster\",cache=~\"[^:]+:hits\"}[$__rate_interval]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\")) + sum by (cache) (label_replace(rate(cache_entries{job=~\"$job\",cluster=~\"$cluster\",cache=~\"[^:]+:misses\"}[$__rate_interval]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\")))",
                         "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL"
                       },
@@ -6107,7 +6107,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(cache_entries{job=~\"$job\",cache=~\"[^:]+:misses\"}[$__rate_interval])",
+                        "expr": "sum by (cache) (label_replace(rate(cache_entries{job=~\"$job\",cluster=~\"$cluster\",cache=~\"[^:]+:misses\"}[$__rate_interval]),\"cache\",\"$1\",\"cache\",\"([^:]+):.*\"))",
                         "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL"
                       },
@@ -6219,7 +6219,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "cache_entries{job=~\"$job\",cache=~\"[^:]+:size\"}",
+                        "expr": "sum by (cache) (cache_entries{job=~\"$job\",cluster=~\"$cluster\",cache=~\"[^:]+:size\"})",
                         "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -6309,7 +6309,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "discord_cache_entries{job=~\"$job\"}",
+                        "expr": "sum by (cache) (discord_cache_entries{job=~\"$job\",cluster=~\"$cluster\"})",
                         "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL",
                         "instant": true,
@@ -6399,7 +6399,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "media_files{job=~\"$job\"}",
+                        "expr": "media_files{job=~\"$job\",cluster=~\"$cluster\"}",
                         "legendFormat": "{{state}}",
                         "queryType": "MetricsQL"
                       },
@@ -6511,7 +6511,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "media_bytes{job=~\"$job\"}",
+                        "expr": "media_bytes{job=~\"$job\",cluster=~\"$cluster\"}",
                         "legendFormat": "{{state}}",
                         "queryType": "MetricsQL"
                       },
@@ -6623,7 +6623,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "histogram_quantile(0.95, sum by (op, le) (rate(storage_operation_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])))",
+                        "expr": "histogram_quantile(0.95, sum by (op, le) (rate(storage_operation_duration_ms_bucket{job=~\"$job\",cluster=~\"$cluster\"}[$__rate_interval])))",
                         "legendFormat": "{{op}}",
                         "queryType": "MetricsQL"
                       },
@@ -6735,7 +6735,7 @@
                       "group": "victoriametrics-metrics-datasource",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum by (op) (increase(storage_operation_errors_total{job=~\"$job\"}[1h]))",
+                        "expr": "sum by (op) (increase(storage_operation_errors_total{job=~\"$job\",cluster=~\"$cluster\"}[1h]))",
                         "legendFormat": "{{op}}",
                         "queryType": "MetricsQL",
                         "interval": "1h"
@@ -7856,6 +7856,39 @@
           "regex": "",
           "skipUrlSync": false,
           "sort": "alphabeticalAsc"
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allowCustomValue": true,
+          "allValue": ".+",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "hide": "dontHide",
+          "includeAll": true,
+          "multi": false,
+          "name": "cluster",
+          "options": [],
+          "query": {
+            "datasource": {
+              "name": "${vm}"
+            },
+            "group": "victoriametrics-metrics-datasource",
+            "kind": "DataQuery",
+            "spec": {
+              "qryType": 1,
+              "label": "cluster",
+              "query": "label_values(uptime_seconds{job=~\"$job\"}, cluster)"
+            },
+            "version": "v0"
+          },
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": "numericalAsc"
         }
       }
     ]

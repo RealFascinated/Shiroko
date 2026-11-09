@@ -1,4 +1,5 @@
 import type { Client } from "discord.js";
+import type { Metric } from "@/metrics/metric";
 import type { JobSchedule } from "./schedule";
 
 export interface JobInfo {
@@ -23,6 +24,10 @@ export default abstract class Job {
     this.id = info.id;
     this.schedule = info.schedule;
     this.runOnReady = info.runOnReady ?? false;
+  }
+
+  public get metrics(): Metric<any>[] {
+    return [];
   }
 
   public abstract run(client: Client): Promise<void>;

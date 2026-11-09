@@ -1,6 +1,8 @@
+import { ownedByCluster } from "@/cluster/shard-sql";
 import { db } from "@/db/index";
 import { guildAfkSchema } from "@/db/schemas/guild-afk";
 import { TimeUnit } from "@/lib/time";
+import type { Client } from "discord.js";
 import { and, eq } from "drizzle-orm";
 
 const NOTICE_COOLDOWN_MS = TimeUnit.toMillis(TimeUnit.Minute, 1);
@@ -13,8 +15,9 @@ export interface AfkState {
 /**
  * Who is AFK, per guild. Every message asks "is the author away?", so the
  * rows are mirrored in memory (loaded on ready, kept current by `set` and
- * `clear`) instead of read from the database each time. The bot is a single
- * process, so the table stays the source of truth only across restarts.
+ * `clear`) instead of read from the database each time. Only the cluster that
+ * owns a guild ever reads or writes its rows, so each cluster mirrors just its
+ * own guilds and the table stays the source of truth only across restarts.
  */
 class AfkService {
   private readonly states: Map<string, AfkState> = new Map();
@@ -25,9 +28,12 @@ class AfkService {
     return `${guildId}:${userId}`;
   }
 
-  public async load(): Promise<void> {
+  public async load(client: Client): Promise<void> {
     this.states.clear();
-    for (const row of await db.select().from(guildAfkSchema)) {
+    for (const row of await db
+      .select()
+      .from(guildAfkSchema)
+      .where(ownedByCluster(guildAfkSchema.guildId, client))) {
       this.states.set(this.key(row.guildId, row.userId), { reason: row.reason, since: row.since });
     }
   }

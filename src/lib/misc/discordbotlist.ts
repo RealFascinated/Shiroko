@@ -1,6 +1,6 @@
+import { cachedUserCount, guildCount, voiceConnectionCount } from "@/cluster/cluster";
 import { EventHandler } from "@/event/event-handler";
 import PostCommandLoadEvent from "@/event/events/post-command-load.event";
-import { getVoiceConnection } from "@discordjs/voice";
 import type { ApplicationCommandDataResolvable, Client } from "discord.js";
 import { BotListManager, postBotList } from "./bot-list";
 
@@ -51,22 +51,21 @@ export class DiscordBotListManager extends BotListManager {
     await postBotList(this.api, `/${botId}/commands`, commands);
   }
 
-  protected statistics(client: Client): { path: string; body: unknown } | null {
+  protected async statistics(client: Client): Promise<{ path: string; body: unknown } | null> {
     const botId = client.user?.id;
-    if (!botId) {
+    const [guilds, users, voiceConnections] = await Promise.all([
+      guildCount(client),
+      cachedUserCount(client),
+      voiceConnectionCount(client),
+    ]);
+    if (!botId || guilds === null || users === null || voiceConnections === null) {
       return null;
-    }
-    let voiceConnections = 0;
-    for (const guild of client.guilds.cache.values()) {
-      if (getVoiceConnection(guild.id)) {
-        voiceConnections++;
-      }
     }
     return {
       path: `/${botId}/stats`,
       body: {
-        guilds: client.guilds.cache.size,
-        users: client.users.cache.size,
+        guilds,
+        users,
         voice_connections: voiceConnections,
       },
     };

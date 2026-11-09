@@ -1,3 +1,4 @@
+import { cachedUserCount, guildCount } from "@/cluster/cluster";
 import Command, { type ExecuteContext } from "@/command/command";
 import { Constants } from "@/constants";
 import { db } from "@/db/index";
@@ -30,18 +31,22 @@ export default class BotStatsCommand extends Command {
     const [userCount] = await db.select({ value: sql<number>`count(*)` }).from(globalUsersSchema);
     const commandCalls = await CommandCallService.total();
     const { heap_size_limit: heapMax } = getHeapStatistics();
+    const [guilds, users] = await Promise.all([guildCount(ctx.client), cachedUserCount(ctx.client)]);
+    const cluster = ctx.client.cluster;
 
     const sections: string[][] = [
       [
         `**🌐 Bot**`,
-        `**Servers:** ${formatCount(ctx.client.guilds.cache.size)}`,
-        `**Users:** ${formatCount(ctx.client.users.cache.size)}`,
+        `**Servers:** ${guilds === null ? "-" : formatCount(guilds)}`,
+        `**Users:** ${users === null ? "-" : formatCount(users)}`,
         `**Users Seen:** ${formatCount(userCount?.value ?? 0)}`,
         `**Commands:** ${formatCount(ctx.client.application.commands.cache.size)}`,
         `**Commands Run:** ${formatCount(commandCalls)}`,
       ],
       [
         `**⚡ Status**`,
+        `**Cluster:** ${cluster.id} of ${cluster.count}`,
+        `**Shard:** ${ctx.guild?.shardId ?? 0} of ${cluster.info.TOTAL_SHARDS}`,
         `**Latency:** ${ctx.client.ws.ping}ms`,
         `**RAM:** ${Math.round(process.memoryUsage().rss / 1024 ** 2)}/${Math.round(heapMax / 1024 ** 2)} MB`,
         `**Uptime:** ${formatDuration(process.uptime() * 1000)}`,

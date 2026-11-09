@@ -1,3 +1,4 @@
+import { guildCount } from "@/cluster/cluster";
 import { EventHandler } from "@/event/event-handler";
 import BotReadyEvent from "@/event/events/bot-ready.event";
 import type { Client } from "discord.js";
@@ -31,12 +32,16 @@ export class TopggManager extends BotListManager {
     await this.startPolling(event.client);
   }
 
-  protected statistics(client: Client): { path: string; body: unknown } {
+  protected async statistics(client: Client): Promise<{ path: string; body: unknown } | null> {
+    const servers = await guildCount(client);
+    if (servers === null) {
+      return null;
+    }
     return {
       path: "/projects/@me/metrics",
       body: {
-        server_count: client.guilds.cache.size,
-        shard_count: client.shard?.count ?? 1,
+        server_count: servers,
+        shard_count: client.cluster.info.TOTAL_SHARDS,
       },
     };
   }

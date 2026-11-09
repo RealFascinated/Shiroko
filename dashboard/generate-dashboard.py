@@ -23,8 +23,8 @@ VIZ_VERSION = "13.2.2"
 # existing dashboard, so a fixed uid lets re-imports apply as updates.
 DASHBOARD_UID = "ad9gqmf"
 
-# Every series selector: `=~` so the variable's All option (`.+`) matches.
-SEL = 'job=~"$job"'
+# Every series selector: `=~` so the variables' All option (`.+`) matches.
+SEL = 'job=~"$job",cluster=~"$cluster"'
 RATE = "[$__rate_interval]"
 
 DEFAULT_ANNOTATIONS = [
@@ -63,7 +63,7 @@ DEFAULT_ANNOTATIONS = [
                     "expr": f"uptime_seconds{{{SEL}}} < 120",
                     "step": "60s",
                     "titleFormat": "Restart",
-                    "textFormat": "{{job}}",
+                    "textFormat": "cluster {{cluster}}",
                 },
                 "version": "v0",
             },
@@ -131,6 +131,37 @@ JOB_VARIABLE = {
     },
 }
 
+# The `cluster` label variable: every process pushes its cluster id, so a
+# single cluster can be inspected on its own. Totals sum whatever is selected.
+CLUSTER_VARIABLE = {
+    "kind": "QueryVariable",
+    "spec": {
+        "allowCustomValue": True,
+        "allValue": ".+",
+        "current": {"text": "All", "value": "$__all"},
+        "hide": "dontHide",
+        "includeAll": True,
+        "multi": False,
+        "name": "cluster",
+        "options": [],
+        "query": {
+            "datasource": {"name": "${vm}"},
+            "group": VM_PLUGIN,
+            "kind": "DataQuery",
+            "spec": {
+                "qryType": 1,
+                "label": "cluster",
+                "query": 'label_values(uptime_seconds{job=~"$job"}, cluster)',
+            },
+            "version": "v0",
+        },
+        "refresh": "onDashboardLoad",
+        "regex": "",
+        "skipUrlSync": False,
+        "sort": "numericalAsc",
+    },
+}
+
 GREEN = [(None, "green")]
 BLUE = [(None, "blue")]
 
@@ -162,7 +193,7 @@ def cache_rate(measure: str) -> str:
     matching) collapses to empty.
     """
     series = m("cache_entries", f'cache=~"[^:]+:{measure}"')
-    return f'label_replace(rate({series}{RATE}),"cache","$1","cache","([^:]+):.*")'
+    return f'sum by (cache) (label_replace(rate({series}{RATE}),"cache","$1","cache","([^:]+):.*"))'
 
 
 def stat(title: str, expr: str, unit: str, thresholds: list, desc: str) -> dict:
@@ -176,12 +207,12 @@ CATEGORIES = [
     {
         "title": "📊 Overview",
         "panels": [
-            stat("Uptime", f"max({m('uptime_seconds')})", "s", [(None, "orange"), (3600, "green")], "Time since the process started. Orange for the first hour after a restart."),
+            stat("Uptime", f"min({m('uptime_seconds')})", "s", [(None, "orange"), (3600, "green")], "Time since the most recently started cluster started. Orange for the first hour after any cluster restarts."),
             stat("Guilds", f"sum({m('guilds')})", "short", BLUE, "Guilds the bot is currently in."),
             stat("Gateway ping", f"max({m('gateway_latency_ms')})", "ms", [(None, "green"), (250, "yellow"), (500, "red")], "Websocket heartbeat round trip."),
             stat("Event loop p95", quantile(0.95, "event_loop_ms", window="[5m]"), "ms", [(None, "green"), (50, "yellow"), (200, "red")], "p95 event loop delay over 5 minutes. High values mean something is blocking the loop."),
             stat("CPU", f"max({m('process_cpu_usage')})", "percent", [(None, "green"), (50, "yellow"), (80, "red")], "Process CPU usage."),
-            stat("Heap used", f"max({m('process_ram_used')}) / max({m('process_ram_total')}) * 100", "percent", [(None, "green"), (70, "yellow"), (90, "red")], "Heap used as a share of the heap size limit."),
+            stat("Heap used", f"max({m('process_ram_used')} / {m('process_ram_total')}) * 100", "percent", [(None, "green"), (70, "yellow"), (90, "red")], "Heap used as a share of the heap size limit, for the fullest cluster."),
             stat("Commands / min", counted(f"sum(rate({m('command_duration_ms_count')}[5m])) * 60"), "short", BLUE, "Slash and context menu commands handled per minute, over 5 minutes."),
             stat("Command errors (24h)", counted(f"sum(increase({m('command_errors_total')}[24h]))"), "short", [(None, "green"), (1, "red")], "Command handlers that threw in the last 24 hours."),
             stat("Ack p95", quantile(0.95, "discord_interaction_ack_ms", window="[15m]"), "ms", [(None, "green"), (1500, "yellow"), (2500, "red")], "p95 time from interaction creation to our first response, over 15 minutes. Discord expires interactions at 3s."),
@@ -289,7 +320,7 @@ CATEGORIES = [
             {
                 "title": "Gateway heartbeat latency",
                 "expr": m("gateway_latency_ms"),
-                "legend": "latency",
+                "legend": "cluster {{cluster}}",
                 "unit": "ms",
                 "min": 0,
                 "width": 12,
@@ -325,7 +356,7 @@ CATEGORIES = [
     {
         "title": "🏠 Guilds & users",
         "panels": [
-            {"title": "Guild count", "expr": f"last_over_time({m('guilds')}[1h])", "legend": "guilds", "unit": "short", "width": 8, "desc": "Guilds the bot is in."},
+            {"title": "Guild count", "expr": f"sum(last_over_time({m('guilds')}[1h]))", "legend": "guilds", "unit": "short", "width": 8, "desc": "Guilds the bot is in."},
             {"title": "Distinct users seen", "expr": f"last_over_time({m('seen_users')}[1h])", "legend": "users", "unit": "short", "width": 8, "desc": "Users with a global user row."},
             {
                 "title": "Guild joins and leaves per day",
@@ -343,10 +374,10 @@ CATEGORIES = [
     {
         "title": "🧠 Runtime",
         "panels": [
-            {"title": "CPU usage", "expr": m("process_cpu_usage"), "legend": "cpu", "unit": "percent", "min": 0, "max": 100, "width": 8, "desc": "Process CPU usage."},
+            {"title": "CPU usage", "expr": m("process_cpu_usage"), "legend": "cluster {{cluster}}", "unit": "percent", "min": 0, "max": 100, "width": 8, "desc": "Process CPU usage."},
             {
                 "title": "Heap used vs limit",
-                "queries": [(m("process_ram_used"), "used"), (m("process_ram_total"), "limit")],
+                "queries": [(m("process_ram_used"), "used {{cluster}}"), (m("process_ram_total"), "limit {{cluster}}")],
                 "unit": "bytes",
                 "min": 0,
                 "width": 8,
@@ -355,7 +386,7 @@ CATEGORIES = [
             {
                 "title": "Memory by kind",
                 "expr": m("process_memory_bytes"),
-                "legend": "{{kind}}",
+                "legend": "{{kind}} {{cluster}}",
                 "unit": "bytes",
                 "min": 0,
                 "width": 8,
@@ -398,12 +429,12 @@ CATEGORIES = [
         "panels": [
             {
                 "title": "Pool connections",
-                "expr": m("db_pool_connections"),
+                "expr": f"sum by (state) ({m('db_pool_connections')})",
                 "legend": "{{state}}",
                 "unit": "short",
                 "min": 0,
                 "width": 8,
-                "desc": "Postgres pool connections. Any sustained waiting means the pool is exhausted.",
+                "desc": "Postgres pool connections, summed across clusters (each holds its own pool). Any sustained waiting means a pool is exhausted.",
             },
             {"title": "Query latency", "queries": quantiles("db_query_duration_ms"), "unit": "ms", "min": 0, "width": 8, "desc": "Postgres query duration measured at the pool."},
             {
@@ -460,7 +491,7 @@ CATEGORIES = [
             },
             {
                 "title": "Invalid requests (window)",
-                "expr": m("discord_rest_invalid_requests"),
+                "expr": f"sum({m('discord_rest_invalid_requests')})",
                 "legend": "invalid",
                 "unit": "short",
                 "min": 0,
@@ -468,10 +499,10 @@ CATEGORIES = [
                 "thresholds": [(None, "transparent"), (5000, "yellow"), (9000, "red")],
                 "desc": "401/403/429 responses in Discord's 10 minute window. 10,000 gets the bot IP banned for an hour.",
             },
-            {"title": "Global requests remaining", "expr": m("discord_rest_global_remaining"), "legend": "remaining", "unit": "short", "min": 0, "width": 8, "desc": "Requests left in the current global (50/s) window."},
+            {"title": "Global requests remaining", "expr": m("discord_rest_global_remaining"), "legend": "cluster {{cluster}}", "unit": "short", "min": 0, "width": 8, "desc": "Requests left in the current global (50/s) window."},
             {
                 "title": "Buckets and hashes tracked",
-                "queries": [(m("discord_rest_buckets"), "buckets"), (m("discord_rest_hashes"), "hashes")],
+                "queries": [(f"sum({m('discord_rest_buckets')})", "buckets"), (f"sum({m('discord_rest_hashes')})", "hashes")],
                 "unit": "short",
                 "min": 0,
                 "width": 8,
@@ -534,7 +565,7 @@ CATEGORIES = [
                 "viz": "table",
                 "title": "Jobs",
                 "queries": [
-                    (f"time() - max by (name) ({m('job_last_success_timestamp_seconds')})", "Since success"),
+                    (f"time() - min by (name) ({m('job_last_success_timestamp_seconds')})", "Since success"),
                     (f"max by (name) ({m('job_interval_seconds')})", "Interval"),
                     (f"max by (name) ({m('job_last_duration_seconds')})", "Last duration"),
                     (f"sum by (name) (increase({m('job_runs_total')}[$__range]))", "Runs"),
@@ -557,7 +588,7 @@ CATEGORIES = [
                 "minStep": "1h",
                 "desc": "Job runs that threw.",
             },
-            {"title": "Last run duration", "expr": m("job_last_duration_seconds"), "legend": "{{name}}", "unit": "s", "min": 0, "width": 12, "desc": "Wall time of each job's most recent run."},
+            {"title": "Last run duration", "expr": f"max by (name) ({m('job_last_duration_seconds')})", "legend": "{{name}}", "unit": "s", "min": 0, "width": 12, "desc": "Wall time of each job's most recent run."},
             {
                 "title": "Reminder delivery lag",
                 "queries": [(quantile(0.5, "reminder_delivery_lag_ms", window="[30m]"), "p50"), (quantile(0.95, "reminder_delivery_lag_ms", window="[30m]"), "p95")],
@@ -599,7 +630,7 @@ CATEGORIES = [
             },
             {
                 "title": "Loads per second",
-                "expr": f"rate({m('cache_entries', 'cache=~\"[^:]+:misses\"')}{RATE})",
+                "expr": cache_rate("misses"),
                 "legend": "{{cache}}",
                 "unit": "ops",
                 "min": 0,
@@ -609,7 +640,7 @@ CATEGORIES = [
             {
                 "viz": "bargauge",
                 "title": "Entries",
-                "expr": m("cache_entries", 'cache=~"[^:]+:size"'),
+                "expr": f"sum by (cache) ({m('cache_entries', 'cache=~\"[^:]+:size\"')})",
                 "legend": "{{cache}}",
                 "unit": "short",
                 "width": 12,
@@ -618,7 +649,7 @@ CATEGORIES = [
             {
                 "viz": "bargauge",
                 "title": "Discord cache entries",
-                "expr": m("discord_cache_entries"),
+                "expr": f"sum by (cache) ({m('discord_cache_entries')})",
                 "legend": "{{cache}}",
                 "unit": "short",
                 "width": 12,
@@ -929,7 +960,7 @@ def build() -> dict:
             "tags": ["arona", "metrics"],
             "timeSettings": DEFAULT_TIME_SETTINGS,
             "title": "Arona",
-            "variables": [VM_VARIABLE, JOB_VARIABLE],
+            "variables": [VM_VARIABLE, JOB_VARIABLE, CLUSTER_VARIABLE],
         },
     }
 
@@ -943,31 +974,43 @@ ALERT_JOB = 'job="arona"'
 ALERTS = [
     ("arona-down", "Bot down", f"absent_over_time(uptime_seconds{{{ALERT_JOB}}}[5m])", "gt", 0, "2m", "critical", "Arona has not pushed metrics for 5 minutes."),
     (
+        # Fewer clusters pushing than configured: one is dead or stuck
+        # respawning while the rest keep `arona-down` quiet.
+        "arona-cluster-down",
+        "Cluster down",
+        f"max(last_over_time(cluster_count{{{ALERT_JOB}}}[1h])) - count(max by (cluster) (last_over_time(uptime_seconds{{{ALERT_JOB}}}[3m])))",
+        "gt",
+        0,
+        "2m",
+        "critical",
+        "{{ $values.B.Value }} cluster(s) have not pushed metrics for 3 minutes.",
+    ),
+    (
         "arona-job-stale",
         "Job stale",
-        f"(time() - max by (name) (job_last_success_timestamp_seconds{{{ALERT_JOB}}})) - max by (name) (2 * job_interval_seconds{{{ALERT_JOB}}} + 300)",
+        f"(time() - max by (name, cluster) (job_last_success_timestamp_seconds{{{ALERT_JOB}}})) - max by (name, cluster) (2 * job_interval_seconds{{{ALERT_JOB}}} + 300)",
         "gt",
         0,
         "0s",
         "warning",
-        "Job {{ $labels.name }} has not succeeded for over two of its periods.",
+        "Job {{ $labels.name }} on cluster {{ $labels.cluster }} has not succeeded for over two of its periods.",
     ),
     ("arona-job-failures", "Job failing", f"sum by (name) (increase(job_failures_total{{{ALERT_JOB}}}[1h]))", "gt", 0, "0s", "warning", "Job {{ $labels.name }} threw in the last hour."),
-    ("arona-invalid-requests", "Invalid request ban risk", f"max(discord_rest_invalid_requests{{{ALERT_JOB}}})", "gt", 5000, "0s", "critical", "Over half of Discord's 10,000 invalid requests per 10 minutes used; the IP ban is near."),
+    ("arona-invalid-requests", "Invalid request ban risk", f"sum(discord_rest_invalid_requests{{{ALERT_JOB}}})", "gt", 5000, "0s", "critical", "Over half of Discord's 10,000 invalid requests per 10 minutes used; the IP ban is near."),
     ("arona-rate-limits", "Sustained rate limiting", f"sum(increase(discord_rest_rate_limits_total{{{ALERT_JOB}}}[10m]))", "gt", 50, "10m", "warning", "More than 50 requests per 10 minutes are queueing behind rate limits."),
     ("arona-expired-interactions", "Interactions expiring", f"sum(increase(discord_interactions_expired_total{{{ALERT_JOB}}}[15m]))", "gt", 3, "0s", "warning", "Several interactions in 15 minutes were answered after Discord's 3s window."),
     (
         "arona-event-loop",
         "Event loop blocked",
-        f"histogram_quantile(0.95, sum by (le) (rate(event_loop_ms_bucket{{{ALERT_JOB}}}[5m])))",
+        f"histogram_quantile(0.95, sum by (cluster, le) (rate(event_loop_ms_bucket{{{ALERT_JOB}}}[5m])))",
         "gt",
         200,
         "10m",
         "warning",
-        "Event loop p95 delay has been above 200ms for 10 minutes.",
+        "Cluster {{ $labels.cluster }} event loop p95 delay has been above 200ms for 10 minutes.",
     ),
-    ("arona-db-pool", "Database pool exhausted", f'max(db_pool_connections{{{ALERT_JOB},state="waiting"}})', "gt", 0, "5m", "warning", "Queries have been waiting on a Postgres connection for 5 minutes."),
-    ("arona-heap", "Heap near limit", f"max(process_ram_used{{{ALERT_JOB}}}) / max(process_ram_total{{{ALERT_JOB}}})", "gt", 0.9, "10m", "warning", "Heap use has been above 90% of the limit for 10 minutes."),
+    ("arona-db-pool", "Database pool exhausted", f'max by (cluster) (db_pool_connections{{{ALERT_JOB},state="waiting"}})', "gt", 0, "5m", "warning", "Cluster {{ $labels.cluster }} queries have been waiting on a Postgres connection for 5 minutes."),
+    ("arona-heap", "Heap near limit", f"max by (cluster) (process_ram_used{{{ALERT_JOB}}} / process_ram_total{{{ALERT_JOB}}})", "gt", 0.9, "10m", "warning", "Cluster {{ $labels.cluster }} heap use has been above 90% of the limit for 10 minutes."),
 ]
 
 

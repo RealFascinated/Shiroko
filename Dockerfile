@@ -10,4 +10,4 @@ RUN bun install --frozen-lockfile --production
 COPY . .
 
 # Inject the token at runtime: docker run -e DISCORD_BOT_TOKEN=... arona-bot
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "run", "src/manager.ts"]

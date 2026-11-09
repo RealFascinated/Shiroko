@@ -2,7 +2,7 @@ import { type Client } from "discord.js";
 import { GaugeMetric } from "../gauge";
 
 /**
- * Number of guilds the bot is in. Mirror of the presence text.
+ * Number of guilds this cluster is in; the dashboard sums clusters for the total.
  */
 export class GuildsMetric extends GaugeMetric {
   public override readonly collectIntervalMs: number = 5_000;

@@ -1,11 +1,11 @@
-import type { ApplicationCommandDataResolvable, Client } from "discord.js";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
+import type { ApplicationCommandDataResolvable, Client, ClientApplication } from "discord.js";
+import { ClusterClient, getInfo } from "discord-hybrid-sharding";
 import { CacheListeners } from "./cache/cache-listeners";
+import { isPrimary } from "./cluster/cluster";
 import CommandManager, { SlashCommandListener } from "./command/index";
 import ComponentManager from "./component/index";
 import { Constants } from "./constants";
 import ContextMenuCommandManager, { ContextMenuCommandListener } from "./context-menu/index";
-import { db, pool } from "./db/index";
 import EventBridge from "./event/event-bridge";
 import { EventBus } from "./event/event-bus";
 import { EventHandler } from "./event/event-handler";
@@ -15,103 +15,32 @@ import GuildJoinedEvent from "./event/events/guild-joined.event";
 import GuildLeftEvent from "./event/events/guild-left.event";
 import PostCommandLoadEvent from "./event/events/post-command-load.event";
 import { discordClient } from "./client";
-import { featureSettings } from "./feature/feature-settings";
 import registerFeatures from "./feature/index";
 import { env } from "./lib/env";
 import { DiscordBotListManager } from "./lib/misc/discordbotlist";
 import { TopbotManager } from "./lib/misc/topbot";
 import { TopggManager } from "./lib/misc/topgg";
-import { formatDuration } from "./lib/time";
 import JobManager from "./jobs/index";
-import BirthdaySweepJob from "./jobs/impl/birthday-sweep";
-import ComponentSweepJob from "./jobs/impl/component-sweep";
-import MediaSweepJob from "./jobs/impl/media-sweep";
-import MediaSyncJob from "./jobs/impl/media-sync";
-import PresenceJob from "./jobs/impl/presence";
-import ReminderSweepJob from "./jobs/impl/reminder-sweep";
-import { DbListeners } from "./metrics/db-listeners";
-import { EventVolumeListeners } from "./metrics/event-volume-listeners";
 import { VictoriaMetricsExporter } from "./metrics/exporter";
-import { CacheMetricsMetric } from "./metrics/impl/cache";
-import { CommandCallsMetric } from "./metrics/impl/command-calls";
-import { CommandDurationMetric, CommandErrorsMetric } from "./metrics/impl/commands";
-import { ProcessCpuUsageMetric } from "./metrics/impl/cpu-usage";
-import { DiscordCacheMetric } from "./metrics/impl/discord-cache";
-import { DiscordEventsMetric } from "./metrics/impl/discord-events";
-import { EventLoopMetric } from "./metrics/impl/event-loop-delay";
-import { GatewayLatencyMetric } from "./metrics/impl/gateway-latency";
-import { GuildsMetric } from "./metrics/impl/guild-count";
-import { MediaBytesMetric, MediaFilesMetric } from "./metrics/impl/media";
-import { ProcessRamTotalMetric } from "./metrics/impl/process-ram-total";
-import { ProcessRamUsedMetric } from "./metrics/impl/process-ram-used";
-import { SeenUsersMetric } from "./metrics/impl/seen-users";
-import { UptimeMetric } from "./metrics/impl/uptime-seconds";
-import { ProcessMemoryMetric } from "./metrics/impl/process-memory";
-import { GatewayListeners } from "./metrics/gateway-listeners";
 import { MetricManager } from "./metrics/index";
-import { RestListeners } from "./metrics/rest-listeners";
 import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
-import SettingsManager from "./settings/index";
 import Audit from "./audit/audit";
-import StorageService from "./storage/storage";
 
-const beforeMigrate = Date.now();
-await migrate(db, { migrationsFolder: "./drizzle" });
-console.log(`Migrations complete in ${formatDuration(Date.now() - beforeMigrate)}`);
-
-await StorageService.init();
+const clusterInfo = getInfo();
+discordClient.options.shards = clusterInfo.SHARD_LIST;
+discordClient.options.shardCount = clusterInfo.TOTAL_SHARDS;
+discordClient.cluster = new ClusterClient(discordClient);
 
 new EventBridge(discordClient).registerHandlers();
 
-export const metricManager = new MetricManager();
-metricManager.register(new GuildsMetric(discordClient));
-metricManager.register(new GatewayLatencyMetric(discordClient));
-metricManager.register(new SeenUsersMetric());
-metricManager.register(new ProcessRamUsedMetric());
-metricManager.register(new ProcessRamTotalMetric());
-metricManager.register(new ProcessMemoryMetric());
-metricManager.register(new ProcessCpuUsageMetric());
-metricManager.register(new UptimeMetric());
-metricManager.register(new EventLoopMetric());
-metricManager.register(new CacheMetricsMetric());
-metricManager.register(new DiscordCacheMetric(discordClient));
-metricManager.register(new MediaFilesMetric());
-metricManager.register(new MediaBytesMetric());
-metricManager.register(new CommandCallsMetric());
-const discordEventsMetric = metricManager.register(new DiscordEventsMetric());
-new EventVolumeListeners(discordEventsMetric);
-const commandDuration = metricManager.register(new CommandDurationMetric());
-const commandErrors = metricManager.register(new CommandErrorsMetric());
-
-const restListeners = new RestListeners(discordClient);
-const reminderSweep = new ReminderSweepJob();
-for (const metric of [
-  ...restListeners.metrics,
-  ...new DbListeners(pool).metrics,
-  ...new GatewayListeners().metrics,
-  ...EventBus.metrics,
-  ...StorageService.metrics,
-  ...reminderSweep.metrics,
-]) {
-  metricManager.register(metric);
-}
-
-const jobManager = new JobManager();
-jobManager.register(new PresenceJob());
-jobManager.register(new BirthdaySweepJob());
-jobManager.register(reminderSweep);
-jobManager.register(new ComponentSweepJob());
-jobManager.register(new MediaSweepJob());
-jobManager.register(new MediaSyncJob());
-for (const metric of jobManager.metrics) {
-  metricManager.register(metric);
-}
+export const metricManager = new MetricManager(discordClient, new JobManager(discordClient));
 
 /**
- * Guild lifecycle logging and one-time command sync on ready. Lives here
- * because it's the entry-level wiring: ready-sync pushes the command set
- * to Discord and logs join/leave.
+ * Guild lifecycle logging and command sync on ready. Lives here because it's
+ * the entry-level wiring: the primary cluster pushes the command set to
+ * Discord, the others read back the ids it registered, and join/leave is
+ * logged.
  */
 class LifecycleListeners extends EventListener {
   constructor() {
@@ -119,14 +48,26 @@ class LifecycleListeners extends EventListener {
     EventBus.subscribe(this);
   }
 
+  /**
+   * The manager spawns the next cluster only after `triggerReady`, so the
+   * primary's sync lands before any other cluster reads the ids back. It runs
+   * in `finally` so a failed sync can't stall the remaining clusters.
+   */
   @EventHandler(BotReadyEvent)
   public async onBotReady(event: BotReadyEvent): Promise<void> {
     const client = event.client;
-    console.log(`Ready! Logged in as ${client.user?.tag}`);
-
-    const commands = await this.syncCommands(client);
-    console.log(`Synced ${commands.length} command(s)`);
-    await EventBus.post(new PostCommandLoadEvent(client, commands));
+    console.log(`Ready! Logged in as ${client.user?.tag} (cluster ${client.cluster.id})`);
+    try {
+      if (isPrimary(client)) {
+        const commands = await this.syncCommands(client);
+        console.log(`Synced ${commands.length} command(s)`);
+        await EventBus.post(new PostCommandLoadEvent(client, commands));
+      } else {
+        await this.fetchCommandIds(client);
+      }
+    } finally {
+      client.cluster.triggerReady();
+    }
   }
 
   /**
@@ -139,42 +80,60 @@ class LifecycleListeners extends EventListener {
       throw new Error("Application is not available");
     }
     const globalCommands = [...CommandManager.buildGlobal(), ...ContextMenuCommandManager.build()];
-    await application.commands.set(globalCommands);
-    CommandManager.applyApplicationCommandIds(application.commands.cache);
-    await this.syncPrivateCommands(client);
+    CommandManager.applyApplicationCommandIds(await application.commands.set(globalCommands));
+    await this.syncPrivateCommands(application);
     return globalCommands;
   }
 
   /**
-   * Register the private commands as guild commands on `PRIVATE_COMMANDS_GUILD_ID`. No-op when
+   * Register the private commands as guild commands on `PRIVATE_COMMANDS_GUILD_ID`. Goes through
+   * REST rather than the guild cache, since that guild may live on another cluster. No-op when
    * there are none; warns when they exist but the guild is unreachable.
    */
-  private async syncPrivateCommands(client: Client): Promise<void> {
+  private async syncPrivateCommands(application: ClientApplication): Promise<void> {
     const privateCommands = CommandManager.buildPrivate();
     if (privateCommands.length === 0) {
       return;
     }
-    const guild = env.PRIVATE_COMMANDS_GUILD_ID
-      ? client.guilds.cache.get(env.PRIVATE_COMMANDS_GUILD_ID)
-      : undefined;
-    if (!guild) {
+    if (!env.PRIVATE_COMMANDS_GUILD_ID) {
       console.warn(
-        `Skipped ${privateCommands.length} private command(s): PRIVATE_COMMANDS_GUILD_ID is unset or the bot is not in that guild.`
+        `Skipped ${privateCommands.length} private command(s): PRIVATE_COMMANDS_GUILD_ID is unset.`
       );
       return;
     }
-    await guild.commands.set(privateCommands);
-    CommandManager.applyApplicationCommandIds(guild.commands.cache);
-    console.log(
-      `Synced ${privateCommands.length} private command(s) to guild ${env.PRIVATE_COMMANDS_GUILD_ID}`
-    );
+    try {
+      CommandManager.applyApplicationCommandIds(
+        await application.commands.set(privateCommands, env.PRIVATE_COMMANDS_GUILD_ID)
+      );
+      console.log(
+        `Synced ${privateCommands.length} private command(s) to guild ${env.PRIVATE_COMMANDS_GUILD_ID}`
+      );
+    } catch (error) {
+      console.warn(
+        `Skipped ${privateCommands.length} private command(s): the bot cannot reach guild ${env.PRIVATE_COMMANDS_GUILD_ID}.`,
+        error
+      );
+    }
+  }
+
+  private async fetchCommandIds(client: Client): Promise<void> {
+    const application = client.application;
+    if (!application) {
+      throw new Error("Application is not available");
+    }
+    CommandManager.applyApplicationCommandIds(await application.commands.fetch());
+    if (env.PRIVATE_COMMANDS_GUILD_ID && CommandManager.buildPrivate().length > 0) {
+      CommandManager.applyApplicationCommandIds(
+        await application.commands.fetch({ guildId: env.PRIVATE_COMMANDS_GUILD_ID })
+      );
+    }
   }
 
   @EventHandler(GuildJoinedEvent)
   public async onGuildJoined(event: GuildJoinedEvent): Promise<void> {
     const client = event.guildData.client;
     console.log(
-      `Joined "${event.guildData.name}" (${event.guildData.memberCount} members); now in ${client.guilds.cache.size} guild(s)`
+      `Joined "${event.guildData.name}" (${event.guildData.memberCount} members); cluster ${client.cluster.id} now in ${client.guilds.cache.size} guild(s)`
     );
   }
 
@@ -182,7 +141,7 @@ class LifecycleListeners extends EventListener {
   public async onGuildLeft(event: GuildLeftEvent): Promise<void> {
     const client = event.guildData.client;
     console.log(
-      `Left "${event.guildData.name}" (${event.guildData.memberCount} members); now in ${client.guilds.cache.size} guild(s)`
+      `Left "${event.guildData.name}" (${event.guildData.memberCount} members); cluster ${client.cluster.id} now in ${client.guilds.cache.size} guild(s)`
     );
   }
 }
@@ -193,17 +152,16 @@ new CacheListeners();
 new PanelManager();
 new ComponentManager();
 new ContextMenuCommandManager();
-new SlashCommandListener(commandDuration, commandErrors);
-new ContextMenuCommandListener(commandDuration, commandErrors);
+new SlashCommandListener(metricManager.commandDuration, metricManager.commandErrors);
+new ContextMenuCommandListener(metricManager.commandDuration, metricManager.commandErrors);
 
 registerFeatures();
-SettingsManager.register(featureSettings());
 new Audit();
 
 if (env.VM_PUSH_URL) {
   const exporter = new VictoriaMetricsExporter(metricManager, {
     url: env.VM_PUSH_URL,
-    job: Constants.botName,
+    labels: { job: Constants.botName, cluster: String(discordClient.cluster.id) },
     intervalMs: Number(env.VM_PUSH_INTERVAL_MS ?? 60_000),
   });
   exporter.start();
@@ -214,25 +172,28 @@ if (env.VM_PUSH_URL) {
   console.log("VM_PUSH_URL not set; metrics collection is on, push is off");
 }
 
-if (env.DISCORDBOTLIST_TOKEN) {
-  new DiscordBotListManager({ token: env.DISCORDBOTLIST_TOKEN });
-  console.log("Publishing commands and hourly statistics to discordbotlist.com");
-} else {
-  console.log("DISCORDBOTLIST_TOKEN not set; discordbotlist.com publishing is off");
-}
+// The bot-wide totals are the same from every cluster, so one publisher is enough.
+if (isPrimary(discordClient)) {
+  if (env.DISCORDBOTLIST_TOKEN) {
+    new DiscordBotListManager({ token: env.DISCORDBOTLIST_TOKEN });
+    console.log("Publishing commands and hourly statistics to discordbotlist.com");
+  } else {
+    console.log("DISCORDBOTLIST_TOKEN not set; discordbotlist.com publishing is off");
+  }
 
-if (env.TOPBOT_TOKEN) {
-  new TopbotManager({ token: env.TOPBOT_TOKEN });
-  console.log("Publishing half-hourly statistics to topbot.gg");
-} else {
-  console.log("TOPBOT_TOKEN not set; topbot.gg publishing is off");
-}
+  if (env.TOPBOT_TOKEN) {
+    new TopbotManager({ token: env.TOPBOT_TOKEN });
+    console.log("Publishing half-hourly statistics to topbot.gg");
+  } else {
+    console.log("TOPBOT_TOKEN not set; topbot.gg publishing is off");
+  }
 
-if (env.TOPGG_TOKEN) {
-  new TopggManager({ token: env.TOPGG_TOKEN });
-  console.log("Publishing half-hourly statistics to top.gg");
-} else {
-  console.log("TOPGG_TOKEN not set; top.gg publishing is off");
+  if (env.TOPGG_TOKEN) {
+    new TopggManager({ token: env.TOPGG_TOKEN });
+    console.log("Publishing half-hourly statistics to top.gg");
+  } else {
+    console.log("TOPGG_TOKEN not set; top.gg publishing is off");
+  }
 }
 
 discordClient.login(env.DISCORD_BOT_TOKEN);

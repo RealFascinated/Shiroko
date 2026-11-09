@@ -16,6 +16,9 @@ export const env = createEnv({
     VM_PUSH_INTERVAL_MS: type("string | undefined"),
     /** Guild that private commands register into as guild commands. */
     PRIVATE_COMMANDS_GUILD_ID: type("string | undefined"),
+    /** Total gateway shards, unset = Discord's recommendation. Not `TOTAL_SHARDS`: the cluster manager sets that in each cluster's env. */
+    SHARD_COUNT: type("string | undefined"),
+    SHARDS_PER_CLUSTER: type("string | undefined"),
     DISCORDBOTLIST_TOKEN: type("string | undefined"),
     TOPBOT_TOKEN: type("string | undefined"),
     TOPGG_TOKEN: type("string | undefined"),

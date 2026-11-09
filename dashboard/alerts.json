@@ -72,6 +72,70 @@
           "isPaused": false
         },
         {
+          "uid": "arona-cluster-down",
+          "title": "Cluster down",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "ffbmdvoh37lkwe",
+              "model": {
+                "expr": "max(last_over_time(cluster_count{job=\"arona\"}[1h])) - count(max by (cluster) (last_over_time(uptime_seconds{job=\"arona\"}[3m])))",
+                "instant": true,
+                "range": false,
+                "queryType": "MetricsQL",
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                },
+                "refId": "B"
+              }
+            },
+            {
+              "refId": "C",
+              "datasourceUid": "__expr__",
+              "model": {
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    }
+                  }
+                ],
+                "refId": "C"
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "2m",
+          "annotations": {
+            "summary": "{{ $values.B.Value }} cluster(s) have not pushed metrics for 3 minutes."
+          },
+          "labels": {
+            "severity": "critical"
+          },
+          "isPaused": false
+        },
+        {
           "uid": "arona-job-stale",
           "title": "Job stale",
           "condition": "C",
@@ -84,7 +148,7 @@
               },
               "datasourceUid": "ffbmdvoh37lkwe",
               "model": {
-                "expr": "(time() - max by (name) (job_last_success_timestamp_seconds{job=\"arona\"})) - max by (name) (2 * job_interval_seconds{job=\"arona\"} + 300)",
+                "expr": "(time() - max by (name, cluster) (job_last_success_timestamp_seconds{job=\"arona\"})) - max by (name, cluster) (2 * job_interval_seconds{job=\"arona\"} + 300)",
                 "instant": true,
                 "range": false,
                 "queryType": "MetricsQL",
@@ -128,7 +192,7 @@
           "execErrState": "Error",
           "for": "0s",
           "annotations": {
-            "summary": "Job {{ $labels.name }} has not succeeded for over two of its periods."
+            "summary": "Job {{ $labels.name }} on cluster {{ $labels.cluster }} has not succeeded for over two of its periods."
           },
           "labels": {
             "severity": "warning"
@@ -212,7 +276,7 @@
               },
               "datasourceUid": "ffbmdvoh37lkwe",
               "model": {
-                "expr": "max(discord_rest_invalid_requests{job=\"arona\"})",
+                "expr": "sum(discord_rest_invalid_requests{job=\"arona\"})",
                 "instant": true,
                 "range": false,
                 "queryType": "MetricsQL",
@@ -404,7 +468,7 @@
               },
               "datasourceUid": "ffbmdvoh37lkwe",
               "model": {
-                "expr": "histogram_quantile(0.95, sum by (le) (rate(event_loop_ms_bucket{job=\"arona\"}[5m])))",
+                "expr": "histogram_quantile(0.95, sum by (cluster, le) (rate(event_loop_ms_bucket{job=\"arona\"}[5m])))",
                 "instant": true,
                 "range": false,
                 "queryType": "MetricsQL",
@@ -448,7 +512,7 @@
           "execErrState": "Error",
           "for": "10m",
           "annotations": {
-            "summary": "Event loop p95 delay has been above 200ms for 10 minutes."
+            "summary": "Cluster {{ $labels.cluster }} event loop p95 delay has been above 200ms for 10 minutes."
           },
           "labels": {
             "severity": "warning"
@@ -468,7 +532,7 @@
               },
               "datasourceUid": "ffbmdvoh37lkwe",
               "model": {
-                "expr": "max(db_pool_connections{job=\"arona\",state=\"waiting\"})",
+                "expr": "max by (cluster) (db_pool_connections{job=\"arona\",state=\"waiting\"})",
                 "instant": true,
                 "range": false,
                 "queryType": "MetricsQL",
@@ -512,7 +576,7 @@
           "execErrState": "Error",
           "for": "5m",
           "annotations": {
-            "summary": "Queries have been waiting on a Postgres connection for 5 minutes."
+            "summary": "Cluster {{ $labels.cluster }} queries have been waiting on a Postgres connection for 5 minutes."
           },
           "labels": {
             "severity": "warning"
@@ -532,7 +596,7 @@
               },
               "datasourceUid": "ffbmdvoh37lkwe",
               "model": {
-                "expr": "max(process_ram_used{job=\"arona\"}) / max(process_ram_total{job=\"arona\"})",
+                "expr": "max by (cluster) (process_ram_used{job=\"arona\"} / process_ram_total{job=\"arona\"})",
                 "instant": true,
                 "range": false,
                 "queryType": "MetricsQL",
@@ -576,7 +640,7 @@
           "execErrState": "Error",
           "for": "10m",
           "annotations": {
-            "summary": "Heap use has been above 90% of the limit for 10 minutes."
+            "summary": "Cluster {{ $labels.cluster }} heap use has been above 90% of the limit for 10 minutes."
           },
           "labels": {
             "severity": "warning"

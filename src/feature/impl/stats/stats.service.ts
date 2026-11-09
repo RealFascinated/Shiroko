@@ -1,3 +1,4 @@
+import { ownedByCluster } from "@/cluster/shard-sql";
 import { db } from "@/db/index";
 import GlobalUsersManager from "@/user/global-users-manager";
 import { messageEventsSchema } from "@/db/schemas/message-events";
@@ -199,8 +200,12 @@ export default class StatsService {
     }
   }
 
-  public async closeStaleSessions(): Promise<number> {
-    const stale = await db.select().from(voiceSessionsSchema).where(isNull(voiceSessionsSchema.leftAt));
+  /** Scoped to this cluster's shards so a cluster restarting never closes another cluster's live sessions. */
+  public async closeStaleSessions(client: Client): Promise<number> {
+    const stale = await db
+      .select()
+      .from(voiceSessionsSchema)
+      .where(and(isNull(voiceSessionsSchema.leftAt), ownedByCluster(voiceSessionsSchema.guildId, client)));
     // The real leave time is unknown, and closing at "now" would count the
     // whole downtime as voice time, so an orphaned session records no duration.
     for (const row of stale) {
@@ -376,7 +381,7 @@ export default class StatsService {
    */
   public async recoverOpenSessions(client: Client): Promise<void> {
     try {
-      const staleClosed = await this.closeStaleSessions();
+      const staleClosed = await this.closeStaleSessions(client);
       if (staleClosed > 0) {
         console.log(`Closed ${staleClosed} stale voice session(s)`);
       }

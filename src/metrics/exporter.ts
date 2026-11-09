@@ -5,8 +5,8 @@ import type { MetricManager, MetricSnapshot } from "./index";
 export interface ExporterOptions {
   /** VictoriaMetrics base URL, e.g. `http://localhost:8428`. */
   readonly url: string;
-  /** `job` label attached to every series. */
-  readonly job: string;
+  /** Labels attached to every series, e.g. `job` and `cluster`. */
+  readonly labels: Readonly<Record<string, string>>;
   /** Milliseconds between pushes. Default 60_000. */
   readonly intervalMs?: number;
 }
@@ -112,7 +112,7 @@ function formatValue(value: number): string {
  */
 export class VictoriaMetricsExporter {
   private readonly url: string;
-  private readonly job: string;
+  private readonly labels: Readonly<Record<string, string>>;
   private readonly intervalMs: number;
   private timer: Timer | undefined;
 
@@ -122,7 +122,7 @@ export class VictoriaMetricsExporter {
   ) {
     // Base URL only; the import path is fixed by the protocol.
     this.url = options.url.replace(/\/+$/, "") + "/api/v1/import/prometheus";
-    this.job = options.job;
+    this.labels = options.labels;
     this.intervalMs = options.intervalMs ?? 60_000;
   }
 
@@ -144,7 +144,7 @@ export class VictoriaMetricsExporter {
         headers: {
           "Content-Type": "text/plain",
         },
-        body: encodePushPayload(this.manager.snapshot(), { job: this.job }),
+        body: encodePushPayload(this.manager.snapshot(), this.labels),
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
       if (!res.ok) {

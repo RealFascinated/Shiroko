@@ -56,10 +56,10 @@ export abstract class BotListManager extends EventListener {
   }
 
   /** The statistics request for `client`, or null when it cannot be built yet. */
-  protected abstract statistics(client: Client): { path: string; body: unknown } | null;
+  protected abstract statistics(client: Client): Promise<{ path: string; body: unknown } | null>;
 
   protected async pushStatistics(client: Client): Promise<void> {
-    const request = this.statistics(client);
+    const request = await this.statistics(client);
     if (!request) {
       return;
     }

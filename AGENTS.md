@@ -1,6 +1,6 @@
 # Agents
 
-`Behavior`, `Commits`, `Bun`, `Libraries`, `APIs`, and `Testing` are generic engineering rules (Bun-first) that apply to any repo. `Shell` is a rule about this workstation, not the repo. `Code Style` and `Verify` assume a TypeScript/Bun project. `Commands`, `Permissions`, `Events`, and `Database` are specific to this project (the Arona Discord bot).
+`Behavior`, `Commits`, `Bun`, `Libraries`, `APIs`, and `Testing` are generic engineering rules (Bun-first) that apply to any repo. `Shell` is a rule about this workstation, not the repo. `Code Style` and `Verify` assume a TypeScript/Bun project. `Commands`, `Permissions`, `Events`, `Database`, and `Clustering` are specific to this project (the Arona Discord bot).
 
 ## Behavior
 
@@ -190,6 +190,18 @@ Drizzle ORM wraps the `pg` driver (`drizzle-orm/node-postgres`). `db` is exporte
 - `drizzle/meta/` is machine-generated and prettier-ignored; don't hand-edit it.
 - Writes use drizzle upserts (`onConflictDoUpdate`/`onConflictDoNothing` with `.returning()`); a read that a caller must survive a conflict uses the returning row's presence as the verdict. See `src/user/guild-users-manager.ts` for the atomic-claim pattern.
 - Exception to the "use `Bun.sql`" rule: drizzle's `pg` driver is permitted. Drizzle is an ORM layer, not raw `pg` usage.
+
+## Clustering
+
+The bot always runs as clusters via `discord-hybrid-sharding`; there is no single-process mode. `src/manager.ts` is the entry point (`bun run dev`, Docker CMD): it runs migrations and storage checks once, then spawns cluster processes. Each cluster runs `src/index.ts` (the worker), which owns a set of shards and therefore only the guilds on them. Running `src/index.ts` directly fails by design. `SHARD_COUNT` (default: Discord's recommendation) and `SHARDS_PER_CLUSTER` configure the split.
+
+- Bot-wide totals (guilds, users, voice connections) come only from `src/cluster/cluster.ts`, which sums across clusters and returns `null` until every cluster answers. Never publish `client.guilds.cache.size` as the bot's size.
+- Work over the whole database rather than this cluster's guilds runs on cluster 0 only, behind `isPrimary`: DB-wide jobs in `JobManager`'s constructor, DB-backed metrics in `MetricManager`'s, bot-list publishing in `src/index.ts`. Work over local caches runs on every cluster.
+- A manager registers its own contents in its constructor (`JobManager` its jobs, `MetricManager` its metrics, and a job's own metrics via `Job.metrics`); `src/index.ts` only constructs it. Never call `register` on a manager from outside it.
+- A startup sweep over guild-keyed rows scopes itself with `ownedByCluster(column, client)` (`src/cluster/shard-sql.ts`), or one cluster restarting would touch another cluster's live rows.
+- Guild-scoped in-memory caches need no cross-process invalidation: only the cluster owning a guild reads or writes its rows.
+- Command sync runs on the primary; the other clusters fetch the registered ids. The manager spawns each next cluster only after `client.cluster.triggerReady()`.
+- DB budget: clusters × pg's default pool of 10 connections must stay under Postgres `max_connections`.
 
 # Code Style
 
