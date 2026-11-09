@@ -1,3 +1,4 @@
+import { formatCount } from "@/lib/format";
 import { discordTimestamp } from "@/lib/time";
 import { definePlaceholder, type GuildPlaceholderContext, type Placeholder } from "../placeholder";
 
@@ -30,7 +31,7 @@ const guildPlaceholders: ReadonlyArray<Placeholder<GuildPlaceholderContext>> = [
   definePlaceholder({
     key: "member_count",
     description: "The guild's member count, including bots.",
-    resolve: context => context.guild.memberCount,
+    resolve: context => formatCount(context.guild.memberCount),
   }),
   definePlaceholder({
     key: "channel_count",
