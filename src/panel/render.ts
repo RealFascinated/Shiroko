@@ -10,6 +10,7 @@ import {
   MessageFlags,
   ModalBuilder,
   RoleSelectMenuBuilder,
+  SectionBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
   StringSelectMenuBuilder,
@@ -29,8 +30,10 @@ import {
   type PanelContext,
   type PanelControl,
   type PanelView,
+  type ToggleChecklist,
   type ToggleControl,
   type ViewControl,
+  toggleChecklists,
 } from "./panel";
 import { getPath } from "./path";
 
@@ -111,43 +114,111 @@ function viewSelectRow<C extends object>(
 }
 
 /**
- * The buttons and selects that edit a view, in declaration order. Dialog
- * and toggle controls become buttons, chunked into rows of five; each
- * choice control takes a row of its own, since a select menu cannot share
- * one.
+ * The controls that edit a view, added to the container in declaration
+ * order. A dialog or a lone toggle is a section whose button sits beside
+ * its label and value; a choice is its label over a select; grouped
+ * toggles are one checklist, placed where the group's first toggle is
+ * declared. View buttons open reference content rather than editing
+ * anything, so they share a row at the end.
  */
-function controlComponents<C extends object>(
+function addControls<C extends object>(
+  container: ContainerBuilder,
   panel: Panel<C>,
   view: PanelView<C>,
   config: C,
   context: PanelContext
-): Array<ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>> {
-  const buttons: ButtonBuilder[] = [];
-  const selects: Array<ActionRowBuilder<StringSelectMenuBuilder>> = [];
+): void {
+  const controls = view.controls(config, context);
+  const checklists = toggleChecklists(controls);
+  const viewButtons: ButtonBuilder[] = [];
 
-  for (const control of view.controls(config, context)) {
-    if (control.kind === "choice") {
-      selects.push(choiceRow(panel, view, control, config, context));
-      continue;
-    }
+  for (const control of controls) {
     if (control.kind === "view") {
-      buttons.push(viewButton(panel, view, control));
+      viewButtons.push(viewButton(panel, view, control));
       continue;
     }
-    buttons.push(
-      control.kind === "toggle"
-        ? toggleButton(panel, view, control, config, context)
-        : dialogButton(panel, view, control, config, context)
+    if (control.kind === "choice") {
+      container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(controlText(control.label, null, control.description))
+      );
+      container.addActionRowComponents(choiceRow(panel, view, control, config, context));
+      continue;
+    }
+    if (control.kind === "toggle" && control.group !== undefined) {
+      for (const checklist of checklists.filter(candidate => candidate.toggles[0] === control)) {
+        container.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(checklistText(checklist, config))
+        );
+        container.addActionRowComponents(checklistRow(panel, view, checklist, config));
+      }
+      continue;
+    }
+    const value = control.kind === "dialog" ? displayValue(control, config, context) : null;
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(controlText(control.label, value, control.description))
+        )
+        .setButtonAccessory(
+          control.kind === "toggle"
+            ? toggleButton(panel, view, control, config, context)
+            : dialogButton(panel, view, control, config, context)
+        )
     );
   }
 
-  const rows: Array<ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>> = [];
-  for (let index = 0; index < buttons.length; index += BUTTONS_PER_ROW) {
-    rows.push(
-      new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(index, index + BUTTONS_PER_ROW))
+  for (let index = 0; index < viewButtons.length; index += BUTTONS_PER_ROW) {
+    container.addActionRowComponents(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(viewButtons.slice(index, index + BUTTONS_PER_ROW))
     );
   }
-  return [...rows, ...selects];
+}
+
+function controlText(label: string, value: string | null, description: string | undefined): string {
+  const lines = [`**${label}**`];
+  if (value !== null) {
+    lines.push(value);
+  }
+  if (description) {
+    lines.push(`-# ${description}`);
+  }
+  return lines.join("\n");
+}
+
+function checklistText<C>(checklist: ToggleChecklist<C>, config: C): string {
+  return [
+    `**${checklist.label}**`,
+    ...checklist.toggles.map(
+      toggle => `${getPath(config, toggle.key) === true ? "✅" : "⬛"} ${toggle.label}`
+    ),
+  ].join("\n");
+}
+
+function checklistRow<C extends object>(
+  panel: Panel<C>,
+  view: PanelView<C>,
+  checklist: ToggleChecklist<C>,
+  config: C
+): ActionRowBuilder<StringSelectMenuBuilder> {
+  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(panelCustomId(panel.segment, view.segment, "toggles", checklist.id))
+      .setPlaceholder("None enabled")
+      .setMinValues(0)
+      .setMaxValues(checklist.toggles.length)
+      .addOptions(
+        checklist.toggles.map(toggle => {
+          const option = new StringSelectMenuOptionBuilder()
+            .setLabel(toggle.label.slice(0, 100))
+            .setValue(toggle.key)
+            .setDefault(getPath(config, toggle.key) === true);
+          if (toggle.description !== undefined) {
+            option.setDescription(toggle.description.slice(0, 100));
+          }
+          return option;
+        })
+      )
+  );
 }
 
 function dialogButton<C extends object>(
@@ -158,7 +229,7 @@ function dialogButton<C extends object>(
   context: PanelContext
 ): ButtonBuilder {
   const value = getPath(config, control.key);
-  const caption = control.button?.(value, config, context) ?? `✏️ ${control.label}`;
+  const caption = control.button?.(value, config, context) ?? "Edit";
   return new ButtonBuilder()
     .setCustomId(panelCustomId(panel.segment, view.segment, "dialog", control.key))
     .setLabel(caption.slice(0, 80))
@@ -175,7 +246,7 @@ function toggleButton<C extends object>(
   const on = getPath(config, control.key) === true;
   return new ButtonBuilder()
     .setCustomId(panelCustomId(panel.segment, view.segment, "toggle", control.key))
-    .setLabel(`${control.label}: ${control.state(on, config, context)}`.slice(0, 80))
+    .setLabel(control.state(on, config, context).slice(0, 80))
     .setStyle(on ? ButtonStyle.Success : ButtonStyle.Secondary);
 }
 
@@ -219,7 +290,7 @@ function choiceRow<C extends object>(
   );
 }
 
-function fieldLines<C extends object>(
+function headerLines<C extends object>(
   panel: Panel<C>,
   view: PanelView<C>,
   config: C,
@@ -234,20 +305,6 @@ function fieldLines<C extends object>(
   }
   for (const line of view.summary?.(config, context) ?? []) {
     lines.push(line);
-  }
-  for (const control of view.controls(config, context)) {
-    // A view control's button already names what it opens, so it gets no
-    // value line; its description still renders.
-    if (control.kind !== "view") {
-      lines.push(`**${control.label}:** ${displayValue(control, config, context)}`);
-    }
-    if (control.description) {
-      lines.push(`-# ${control.description}`);
-    }
-  }
-  const footer = panel.footer?.(config, context);
-  if (footer) {
-    lines.push("", `-# ${footer}`);
   }
   return lines;
 }
@@ -266,19 +323,22 @@ export async function renderPanel<C extends object>(
   }
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      [`## ${panel.title}`, ...fieldLines(panel, view, config, context)].join("\n")
+      [`## ${panel.title}`, ...headerLines(panel, view, config, context)].join("\n")
     )
   );
-  container.addSeparatorComponents(
-    new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
-  );
-
   const switcher = viewSelectRow(panel, view, config, context);
   if (switcher) {
     container.addActionRowComponents(switcher);
   }
-  for (const row of controlComponents(panel, view, config, context)) {
-    container.addActionRowComponents(row);
+  if (view.controls(config, context).length > 0) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+    addControls(container, panel, view, config, context);
+  }
+  const footer = panel.footer?.(config, context);
+  if (footer) {
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${footer}`));
   }
 
   // Sections that a view control carries are opened on button press, not

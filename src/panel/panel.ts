@@ -23,6 +23,12 @@ export interface ToggleControl<C> {
    */
   state(value: boolean, config: C, context: PanelContext): string;
   /**
+   * Toggles sharing a group render together as one checklist (a
+   * multi-select) under this heading instead of a button each, so a view
+   * with many switches stays compact.
+   */
+  group?: string;
+  /**
    * Validate the finalized value before it is stored; return an error
    * message, or `null` when valid. Runs after any transform, so it sees
    * the value as it will be persisted.
@@ -109,6 +115,39 @@ export interface ViewControl<C> {
 
 export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogControl<C> | ViewControl<C>;
 
+/** Discord's cap on a select menu's options. */
+export const SELECT_OPTIONS_MAX = 25;
+
+export interface ToggleChecklist<C> {
+  /** The first toggle's key: unique within the view, so it is the checklist's custom-id path. */
+  id: string;
+  label: string;
+  toggles: ToggleControl<C>[];
+}
+
+/**
+ * A view's grouped toggles as checklists, one per group, split into
+ * select-sized chunks. The renderer and the router both derive them from
+ * the controls, so a press always resolves to the checklist it was drawn
+ * from.
+ */
+export function toggleChecklists<C>(controls: readonly PanelControl<C>[]): ToggleChecklist<C>[] {
+  const groups = new Map<string, ToggleControl<C>[]>();
+  for (const control of controls) {
+    if (control.kind === "toggle" && control.group !== undefined) {
+      groups.set(control.group, [...(groups.get(control.group) ?? []), control]);
+    }
+  }
+  const checklists: ToggleChecklist<C>[] = [];
+  for (const [label, toggles] of groups) {
+    for (let index = 0; index < toggles.length; index += SELECT_OPTIONS_MAX) {
+      const chunk = toggles.slice(index, index + SELECT_OPTIONS_MAX);
+      checklists.push({ id: chunk[0]!.key, label, toggles: chunk });
+    }
+  }
+  return checklists;
+}
+
 /**
  * A read-only block rendered below a view's controls.
  *
@@ -164,7 +203,7 @@ export const PANEL_PREFIX = "panel";
 export interface PanelCustomId {
   segment: string;
   viewSegment: string;
-  kind: "root" | "toggle" | "choice" | "dialog" | "view";
+  kind: "root" | "toggle" | "choice" | "dialog" | "view" | "toggles";
   /** The dotted config path the component edits; views and view buttons carry none. */
   path: string | null;
 }
@@ -200,7 +239,7 @@ export function parsePanelCustomId(customId: string): PanelCustomId | null {
   if (
     extra.length > 0 ||
     !path ||
-    (kind !== "toggle" && kind !== "choice" && kind !== "dialog" && kind !== "view")
+    (kind !== "toggle" && kind !== "choice" && kind !== "dialog" && kind !== "view" && kind !== "toggles")
   ) {
     return null;
   }

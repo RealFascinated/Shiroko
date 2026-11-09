@@ -38,6 +38,14 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
     denied: () => "You don't have permission to edit the welcomer.",
   };
 
+  public override intro(config: WelcomerSettingsData): readonly string[] {
+    return [
+      config.channelId
+        ? `🟢 Welcoming new members in <#${config.channelId}>.`
+        : "🔴 Off. Choose a channel to start welcoming new members.",
+    ];
+  }
+
   public async getConfig(guild: Guild): Promise<WelcomerSettingsData> {
     return welcomerSettings.values(guild.id);
   }
@@ -135,15 +143,14 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
 export const welcomerPanel = new WelcomerPanel();
 
 /**
- * A message body rendered for a field line. A multi-line body becomes a
- * fenced code block, which needs the fence at the start of its own line;
- * a single-line body is wrapped in inline code, and an empty body reads
- * as unset rather than as empty code.
+ * A message body rendered under its label. A multi-line body becomes a
+ * fenced code block; a single-line body is wrapped in inline code, and an
+ * empty body reads as unset rather than as empty code.
  */
 function formatParagraph(value: unknown): string {
   const text = String(value ?? "");
   if (text.includes("\n")) {
-    return "\n```\n" + text + "\n```";
+    return "```\n" + text + "\n```";
   }
   return text.length > 0 ? "`" + text + "`" : "*(none)*";
 }
@@ -154,7 +161,30 @@ function formatParagraph(value: unknown): string {
  * has no title.
  */
 export function controlsFor(message: WelcomerSettingsData): PanelControl<WelcomerSettingsData>[] {
-  const controls: PanelControl<WelcomerSettingsData>[] = [];
+  const controls: PanelControl<WelcomerSettingsData>[] = [
+    {
+      kind: "choice",
+      key: "mode",
+      label: "Format",
+      options: () => [
+        {
+          value: "embed",
+          label: "Embed",
+          description: "A rich embed with a title, colour, and the member's avatar",
+        },
+        { value: "simple", label: "Simple", description: "A plain text message" },
+        { value: "card", label: "Card", description: "A text message over a generated welcome image" },
+      ],
+    },
+    {
+      kind: "dialog",
+      key: "channelId",
+      input: "channel",
+      label: "Channel",
+      hint: "Where this message is sent. Clear the selection to disable it.",
+      format: value => (typeof value === "string" ? `<#${value}>` : "*(none)*"),
+    },
+  ];
   const colorControl: PanelControl<WelcomerSettingsData> = {
     kind: "dialog",
     key: "color",
@@ -201,33 +231,16 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
   }
 
   controls.push({
-    kind: "dialog",
-    key: "channelId",
-    input: "channel",
-    label: "Channel",
-    hint: "Where this message is sent. Clear the selection to disable it.",
-    format: value => (typeof value === "string" ? `<#${value}>` : "*(none)*"),
-  });
-  controls.push({
-    kind: "choice",
-    key: "mode",
-    label: "Format",
-    options: () => [
-      { value: "embed", label: "Embed" },
-      { value: "simple", label: "Simple" },
-      { value: "card", label: "Card" },
-    ],
-  });
-  controls.push({
     kind: "toggle",
     key: "ping",
     label: "Ping member",
+    description: "Mention the new member so they get a notification.",
     state: value => (value ? "On" : "Off"),
   });
   controls.push({
     kind: "view",
     key: "placeholders",
-    label: "Placeholders",
+    label: "📖 Placeholders",
   });
   return controls;
 }

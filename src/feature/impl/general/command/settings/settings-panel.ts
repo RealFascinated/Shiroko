@@ -113,18 +113,19 @@ function toControls(module: SettingsModule<any>, moduleId: string): PanelControl
 function collectControls(
   key: string,
   descriptor: RuntimeFieldDescriptor,
-  controls: PanelControl<SettingsHubConfig>[]
+  controls: PanelControl<SettingsHubConfig>[],
+  group?: string
 ): void {
   if (descriptor.type === "group") {
     for (const field of descriptor.fields ?? []) {
-      collectControls(`${key}.${field.key}`, field, controls);
+      collectControls(`${key}.${field.key}`, field, controls, descriptor.label);
     }
     return;
   }
   if (descriptor.type === "map") {
     return;
   }
-  controls.push(controlFor(key, descriptor));
+  controls.push(controlFor(key, descriptor, group));
 }
 
 /** A read-only note for each map setting, naming where it is edited. */
@@ -134,7 +135,11 @@ function mapSummaries(module: SettingsModule<any>): string[] {
     .map(descriptor => `-# **${descriptor.label}:** edited with the feature's own command.`);
 }
 
-function controlFor(key: string, descriptor: RuntimeFieldDescriptor): PanelControl<SettingsHubConfig> {
+function controlFor(
+  key: string,
+  descriptor: RuntimeFieldDescriptor,
+  group: string | undefined
+): PanelControl<SettingsHubConfig> {
   const description = descriptor.description;
 
   switch (descriptor.type) {
@@ -145,6 +150,7 @@ function controlFor(key: string, descriptor: RuntimeFieldDescriptor): PanelContr
         label: descriptor.label,
         description,
         state: value => (value ? "On" : "Off"),
+        group,
       };
 
     case "choice":

@@ -16,6 +16,7 @@ import {
   type PanelContext,
   type PanelCustomId,
   type PanelView,
+  toggleChecklists,
 } from "./panel";
 import { getPath } from "./path";
 import {
@@ -93,6 +94,32 @@ async function dispatch(
   }
 
   const view = panel.viewFor(config, decoded.viewSegment);
+
+  // A checklist edits several toggles at once; only the ones whose state
+  // the pick changed are written, each as its own setting.
+  if (decoded.kind === "toggles") {
+    const checklist = toggleChecklists(view.controls(config, context)).find(
+      candidate => candidate.id === decoded.path
+    );
+    if (!checklist || !interaction.isStringSelectMenu()) {
+      return;
+    }
+    const changes = checklist.toggles
+      .map(toggle => ({ toggle, next: interaction.values.includes(toggle.key) }))
+      .filter(({ toggle, next }) => (getPath(config, toggle.key) === true) !== next);
+    for (const { toggle, next } of changes) {
+      const problem = toggle.validateValue?.(next, config, context);
+      if (problem) {
+        await deny(interaction, problem);
+        return;
+      }
+    }
+    for (const { toggle, next } of changes) {
+      await panel.updateConfig(context.guild, view, toggle.key, next, context.user.id);
+    }
+    await repaint(panel, context, view.segment, interaction);
+    return;
+  }
   const control = view
     .controls(config, context)
     .find(candidate => candidate.kind === decoded.kind && candidate.key === decoded.path);

@@ -60,6 +60,13 @@ class RecordingPanel extends Panel<DemoConfig> {
         controls: () => [
           { kind: "toggle", key: "nested.on", label: "On", state: v => (v ? "On" : "Off") },
           {
+            kind: "toggle",
+            key: "nested.extra",
+            label: "Extra",
+            group: "Flags",
+            state: v => (v ? "On" : "Off"),
+          },
+          {
             kind: "choice",
             key: "nested.mode",
             label: "Mode",
@@ -256,6 +263,16 @@ describe("panel router dispatch", () => {
     expect(seen).toBe("v");
   });
 
+  test("a checklist writes only the toggles whose state changed", async () => {
+    const panel = new RecordingPanel();
+    const interaction = stubInteraction({
+      customId: panelCustomId(panel.segment, "v", "toggles", "nested.extra"),
+      isStringSelectMenu: () => true,
+      values: ["nested.extra"],
+    });
+    expect(await route(panel, interaction)).toBe(true);
+    expect(panel.writes).toEqual([["nested.extra", true, "7"]]);
+  });
 
   test("a choice select writes the selected value", async () => {
     const panel = new RecordingPanel();
