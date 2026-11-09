@@ -42,7 +42,7 @@ describe("welcomeBack", () => {
   test("says how long they were away", () => {
     const now = since.getTime() + (2 * 60 + 30) * 60_000;
     expect(welcomeBack("Bob", { reason: null, since }, now)).toBe(
-      "👋 Welcome back **Bob**, I removed your AFK. You were away for 2h, 30m."
+      "👋 Welcome back **Bob**. You were away for 2h, 30m."
     );
   });
 });

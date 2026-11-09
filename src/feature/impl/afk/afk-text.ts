@@ -13,12 +13,12 @@ export function afkNotice(entries: { name: string; state: AfkState }[]): string 
   return entries
     .slice(0, MAX_NOTICED)
     .map(({ name, state }) => {
-      const reason = state.reason ? `: ${state.reason}` : "";
+      const reason = state.reason ? `: **${state.reason}**` : "";
       return `💤 **${escapeMarkdown(name)}** is AFK${reason} · since <t:${Math.floor(state.since.getTime() / 1000)}:R>`;
     })
     .join("\n");
 }
 
 export function welcomeBack(name: string, state: AfkState, now: number = Date.now()): string {
-  return `👋 Welcome back **${escapeMarkdown(name)}**, I removed your AFK. You were away for ${formatDuration(now - state.since.getTime())}.`;
+  return `👋 Welcome back **${escapeMarkdown(name)}**. You were away for ${formatDuration(now - state.since.getTime())}.`;
 }
