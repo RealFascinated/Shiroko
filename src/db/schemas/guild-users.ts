@@ -1,4 +1,4 @@
-import { pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { index, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 import { globalUsersSchema } from "./global-users";
 
 export const guildUsersSchema = pgTable(
@@ -11,7 +11,10 @@ export const guildUsersSchema = pgTable(
     lastMessageAt: timestamp("last_message_at", { withTimezone: true }),
     firstSeen: timestamp("first_seen", { withTimezone: true }).notNull().defaultNow(),
   },
-  table => [primaryKey({ columns: [table.guildId, table.userId] })]
+  table => [
+    primaryKey({ columns: [table.guildId, table.userId] }),
+    index("guild_users_user_id_idx").on(table.userId),
+  ]
 );
 
 export type GuildUserSchema = typeof guildUsersSchema.$inferSelect;

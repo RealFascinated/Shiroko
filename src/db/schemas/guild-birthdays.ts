@@ -14,6 +14,7 @@ export const guildBirthdaysSchema = pgTable(
   },
   table => [
     primaryKey({ columns: [table.guildId, table.userId] }),
+    index("guild_birthdays_user_id_idx").on(table.userId),
     // The sweep and `upcoming` match on month and day, not the full date, so
     // the index is on the extracts rather than the column itself.
     index("guild_birthdays_month_day_idx").on(

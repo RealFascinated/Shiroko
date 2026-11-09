@@ -13,6 +13,7 @@ export const userLevelsSchema = pgTable(
   },
   table => [
     primaryKey({ columns: [table.guildId, table.userId] }),
+    index("user_levels_user_id_idx").on(table.userId),
     index("user_levels_guild_xp_idx").on(table.guildId, table.xp.desc()),
   ]
 );

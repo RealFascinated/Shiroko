@@ -20,7 +20,10 @@ export const remindersSchema = pgTable(
     remindAt: timestamp("remind_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  table => [index("reminders_remind_at_idx").on(table.remindAt)]
+  table => [
+    index("reminders_remind_at_idx").on(table.remindAt),
+    index("reminders_user_id_idx").on(table.userId),
+  ]
 );
 
 export type ReminderSchema = typeof remindersSchema.$inferSelect;

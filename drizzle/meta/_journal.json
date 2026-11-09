@@ -260,6 +260,13 @@
       "when": 1791556906959,
       "tag": "0036_useful_nitro",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794201977745,
+      "tag": "0037_clumsy_the_captain",
+      "breakpoints": true
     }
   ]
 }
