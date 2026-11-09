@@ -7,6 +7,7 @@ import MemberNicknameUpdatedEvent from "../../event/events/member-nickname-updat
 import MemberRolesUpdatedEvent from "../../event/events/member-roles-updated.event";
 import MemberTimeoutUpdatedEvent from "../../event/events/member-timeout-updated.event";
 import MemberUnbannedEvent from "../../event/events/member-unbanned.event";
+import { show } from "../fields";
 import { formatValue, GuildHistoryKind, type GuildHistoryDraft, type HistoryEntry } from "../history-kind";
 
 export class MemberJoinKind extends GuildHistoryKind<MemberGuildJoinEvent> {
@@ -18,8 +19,8 @@ export class MemberJoinKind extends GuildHistoryKind<MemberGuildJoinEvent> {
     return { guild: member.guild, subjectId: member.id, oldValue: null, newValue: source };
   }
 
-  public override describe(row: HistoryEntry): string {
-    return `**${this.label}** ${this.mention(row.subjectId)} via ${formatValue(row.newValue)}`;
+  protected override details(row: HistoryEntry): string[] {
+    return [`**Via**: ${formatValue(row.newValue)}`];
   }
 }
 
@@ -42,8 +43,13 @@ export class MemberLeaveKind extends GuildHistoryKind<MemberGuildLeaveEvent> {
     };
   }
 
-  public override describe(row: HistoryEntry): string {
-    return `**${row.actorId ? "Kicked" : this.label}** ${this.mention(row.subjectId)}`;
+  protected override title(row: HistoryEntry): string {
+    return row.actorId ? "Kicked" : this.label;
+  }
+
+  protected override details(row: HistoryEntry): string[] {
+    const { roleIds = [] } = (row.oldValue ?? {}) as { roleIds?: string[] };
+    return roleIds.length > 0 ? [`**Roles**: ${roleIds.map(id => `<@&${id}>`).join(" ")}`] : [];
   }
 }
 
@@ -93,6 +99,10 @@ export class NicknameKind extends GuildHistoryKind<MemberNicknameUpdatedEvent> {
       newValue: newMember.nickname,
     };
   }
+
+  protected override details(row: HistoryEntry): string[] {
+    return [`${show(row.oldValue)} → ${show(row.newValue)}`];
+  }
 }
 
 /** Old/new hold the role ids that were added and removed; the roles a member ended up with are the replay of these. */
@@ -111,10 +121,13 @@ export class RolesKind extends GuildHistoryKind<MemberRolesUpdatedEvent> {
     };
   }
 
-  public override describe(row: HistoryEntry): string {
+  protected override details(row: HistoryEntry): string[] {
     const { added = [], removed = [] } = (row.newValue ?? {}) as { added?: string[]; removed?: string[] };
-    const changes = [...added.map(id => `+<@&${id}>`), ...removed.map(id => `-<@&${id}>`)];
-    return `**${this.label}** ${this.mention(row.subjectId)}: ${changes.join(" ")}`;
+    const roles = (ids: string[]): string => ids.map(id => `<@&${id}>`).join(" ");
+    return [
+      ...(added.length > 0 ? [`**Added**: ${roles(added)}`] : []),
+      ...(removed.length > 0 ? [`**Removed**: ${roles(removed)}`] : []),
+    ];
   }
 }
 
@@ -132,6 +145,14 @@ export class TimeoutKind extends GuildHistoryKind<MemberTimeoutUpdatedEvent> {
       newValue: timeoutUntil?.toISOString() ?? null,
     };
   }
+
+  protected override details(row: HistoryEntry): string[] {
+    return [
+      typeof row.newValue === "string"
+        ? `Timed out until <t:${Math.floor(new Date(row.newValue).getTime() / 1000)}:f>`
+        : "Timeout removed",
+    ];
+  }
 }
 
 export class BoostKind extends GuildHistoryKind<MemberBoostUpdatedEvent> {
@@ -141,5 +162,9 @@ export class BoostKind extends GuildHistoryKind<MemberBoostUpdatedEvent> {
 
   public draft({ newMember, boosted }: MemberBoostUpdatedEvent): GuildHistoryDraft {
     return { guild: newMember.guild, subjectId: newMember.id, oldValue: !boosted, newValue: boosted };
+  }
+
+  protected override details(row: HistoryEntry): string[] {
+    return [row.newValue ? "Started boosting" : "Stopped boosting"];
   }
 }

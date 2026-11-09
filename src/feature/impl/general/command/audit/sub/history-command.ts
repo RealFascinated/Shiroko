@@ -41,19 +41,18 @@ export default abstract class HistoryCommand extends Command {
     const { title, fetchPage: fetch } = this.source(context);
     const fetchPage = (page: number) => fetch(page, ENTRIES_PER_PAGE, kind);
     const render = async (page: Page<HistoryEntry>) => {
-      const lines = await Promise.all(
-        page.rows.map(async row => {
-          const when = `<t:${Math.floor(row.createdAt.getTime() / 1000)}:R>`;
-          const by = row.actorId ? ` by <@${row.actorId}>` : "";
-          const described = await (USER_KIND_BY_ID[row.kind] ?? GUILD_KIND_BY_ID[row.kind])?.describe(row);
-          return `${when} ${described ?? `\`${row.kind}\``}${by}`;
-        })
+      const entries = await Promise.all(
+        page.rows.map(
+          async row =>
+            (await (USER_KIND_BY_ID[row.kind] ?? GUILD_KIND_BY_ID[row.kind])?.describe(row)) ??
+            `\`${row.kind}\``
+        )
       );
       return {
         embeds: [
           baseEmbed(commandName)
             .setTitle(title)
-            .setDescription(lines.join("\n") || "Nothing recorded yet."),
+            .setDescription(entries.join("\n\n") || "Nothing recorded yet."),
         ],
       };
     };

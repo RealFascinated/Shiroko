@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { diffFields, formatChange, type HistoryEntry } from "./history-kind";
+import { diffFields, type HistoryEntry } from "./history-kind";
 import { GUILD_KIND_BY_ID, USER_KIND_BY_ID } from "./kinds";
 
 const at = new Date("2026-01-01T00:00:00Z");
+const when = "<t:1767225600:R>";
 
 function guildRow(kind: string, oldValue: unknown, newValue: unknown, actorId: string | null = null) {
   return {
@@ -28,11 +29,13 @@ describe("diffFields", () => {
   test("is null when nothing changed", () => {
     expect(diffFields({ name: "a" }, { name: "a" })).toBeNull();
   });
-});
 
-describe("formatChange", () => {
-  test("renders null as none", () => {
-    expect(formatChange({ oldValue: null, newValue: "x" })).toBe("*none* → `x`");
+  test("an empty string and null are the same unset value", () => {
+    expect(diffFields({ topic: null }, { topic: "" })).toBeNull();
+    expect(diffFields({ topic: null, name: "a" }, { topic: "", name: "b" })).toEqual({
+      oldValue: { name: "a" },
+      newValue: { name: "b" },
+    });
   });
 });
 
@@ -47,23 +50,49 @@ describe("user kinds", () => {
   });
 
   test("describes a row", async () => {
-    const row = { oldValue: "a", newValue: "b" } as HistoryEntry;
-    expect(await USER_KIND_BY_ID.username!.describe(row)).toBe("**Username**: `a` → `b`");
+    const row = { oldValue: "a", newValue: "b", actorId: null, createdAt: at } as HistoryEntry;
+    expect(await USER_KIND_BY_ID.username!.describe(row)).toBe(`**Username** · ${when}\n> \`a\` → \`b\``);
   });
 });
 
 describe("guild kinds", () => {
+  test("a channel update lists only what changed, with readable values", async () => {
+    const row = guildRow(
+      "channel_update",
+      { name: "test-bob", slowmode: 0 },
+      { name: "test", slowmode: 30 },
+      "7"
+    );
+    expect(await GUILD_KIND_BY_ID.channel_update!.describe(row)).toBe(
+      `**Channel updated** <#42> · ${when} · by <@7>\n> **Name**: \`test-bob\` → \`test\`\n> **Slowmode**: Off → 30s`
+    );
+  });
+
+  test("a snapshot skips unset fields", async () => {
+    const row = guildRow("channel_create", null, { name: "new", topic: null, nsfw: false });
+    expect(await GUILD_KIND_BY_ID.channel_create!.describe(row)).toBe(
+      `**Channel created** <#42> · ${when}\n> **Name**: \`new\`\n> **Age-restricted**: Off`
+    );
+  });
+
+  test("a permission change names the permissions", async () => {
+    const row = guildRow("role_update", { permissions: "0" }, { permissions: "8" });
+    expect(await GUILD_KIND_BY_ID.role_update!.describe(row)).toContain("**Permissions**: +Administrator");
+  });
+
   test("roles lists additions and removals", async () => {
     const row = guildRow("roles", null, { added: ["1"], removed: ["2"] });
-    expect(await GUILD_KIND_BY_ID.roles!.describe(row)).toBe("**Roles** <@42>: +<@&1> -<@&2>");
+    expect(await GUILD_KIND_BY_ID.roles!.describe(row)).toBe(
+      `**Roles** <@42> · ${when}\n> **Added**: <@&1>\n> **Removed**: <@&2>`
+    );
   });
 
   test("a leave with an audit actor reads as a kick", async () => {
     expect(await GUILD_KIND_BY_ID.member_leave!.describe(guildRow("member_leave", null, null, "7"))).toBe(
-      "**Kicked** <@42>"
+      `**Kicked** <@42> · ${when} · by <@7>`
     );
     expect(await GUILD_KIND_BY_ID.member_leave!.describe(guildRow("member_leave", null, null))).toBe(
-      "**Left** <@42>"
+      `**Left** <@42> · ${when}`
     );
   });
 

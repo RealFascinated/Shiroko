@@ -50,12 +50,12 @@ abstract class AssetKind<
     };
   }
 
-  public override async describe(row: HistoryEntry): Promise<string> {
+  protected override async details(row: HistoryEntry): Promise<string[]> {
     const [before, after] = await Promise.all([
       this.side(row.subjectId, row.oldValue),
       this.side(row.subjectId, row.newValue),
     ]);
-    return `**${this.label}**: ${before} → ${after}`;
+    return [`${before} → ${after}`];
   }
 
   private async side(userId: string, value: JsonValue | null): Promise<string> {
