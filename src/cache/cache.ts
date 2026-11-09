@@ -41,6 +41,8 @@ export interface CacheStats {
  * "this guild has no stored setting") is a hit, not a miss. Loads stamp the
  * cache only if nothing wrote the same scope while the load was in flight,
  * so an in-flight read can never resurrect an entry a write just dropped.
+ * Concurrent misses for the same key share one load, unless a write landed
+ * since that load started (its result would already be stale).
  */
 export class Cache<V> {
   public readonly name: string;
@@ -49,6 +51,9 @@ export class Cache<V> {
   private readonly store: LRUCache<string, { value: V; scopes: readonly ScopeTag[] }>;
   /** Bumped per scope on every mutation; in-flight loads compare against it. */
   private readonly generations: Map<ScopeTag, number> = new Map<ScopeTag, number>();
+  private readonly inflight: Map<string, { generation: number; promise: Promise<V> }> = new Map();
+  // Bumped by `clear`, which has no scope to tag.
+  private epoch: number = 0;
   private hits: number = 0;
   private misses: number = 0;
 
@@ -66,9 +71,8 @@ export class Cache<V> {
   }
 
   /**
-   * Read through the cache, loading on a miss. Concurrent misses for
-   * different keys run in parallel; the same key is not deduplicated
-   * (callers that need that can share the promise themselves).
+   * Read through the cache, loading on a miss. Concurrent misses for the
+   * same key share one loader call; different keys load in parallel.
    */
   public async load(key: CacheKey, loader: () => Promise<V>): Promise<V> {
     const existing = this.store.get(key.key);
@@ -78,6 +82,22 @@ export class Cache<V> {
     }
     this.misses++;
     const generation = this.generationForScopes(key.scopes);
+    const pending = this.inflight.get(key.key);
+    if (pending?.generation === generation) {
+      return pending.promise;
+    }
+    const entry = { generation, promise: this.runLoad(key, loader, generation) };
+    this.inflight.set(key.key, entry);
+    try {
+      return await entry.promise;
+    } finally {
+      if (this.inflight.get(key.key) === entry) {
+        this.inflight.delete(key.key);
+      }
+    }
+  }
+
+  private async runLoad(key: CacheKey, loader: () => Promise<V>, generation: number): Promise<V> {
     const value = await loader();
     if (this.generationForScopes(key.scopes) === generation) {
       this.store.set(key.key, { value, scopes: key.scopes });
@@ -116,6 +136,7 @@ export class Cache<V> {
   }
 
   public clear(): void {
+    this.epoch++;
     this.store.clear();
   }
 
@@ -130,7 +151,7 @@ export class Cache<V> {
   }
 
   private generationForScopes(scopes: readonly ScopeTag[]): number {
-    let total = 0;
+    let total = this.epoch;
     for (const scope of scopes) {
       total += this.generations.get(scope) ?? 0;
     }

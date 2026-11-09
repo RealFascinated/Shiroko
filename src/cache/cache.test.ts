@@ -73,4 +73,47 @@ describe("Cache", () => {
     expect(stats.misses).toBe(1);
     expect(stats.size).toBe(1);
   });
+
+  test("concurrent misses share one load", async () => {
+    const cache = newCache();
+    let calls = 0;
+    const loader = async (): Promise<number> => {
+      calls++;
+      await Bun.sleep(5);
+      return 7;
+    };
+    const key = guildKey("g1");
+    const results = await Promise.all([cache.load(key, loader), cache.load(key, loader)]);
+    expect(results).toEqual([7, 7]);
+    expect(calls).toBe(1);
+  });
+
+  test("a load started after a write does not join the stale in-flight load", async () => {
+    const cache = newCache();
+    const key = guildKey("g1");
+    let value = 1;
+    const loader = async (): Promise<number> => {
+      const read = value;
+      await Bun.sleep(5);
+      return read;
+    };
+    const first = cache.load(key, loader);
+    value = 2;
+    cache.invalidate(key);
+    expect(await cache.load(key, loader)).toBe(2);
+    expect(await first).toBe(1);
+    expect(await cache.load(key, loader)).toBe(2);
+  });
+
+  test("clear stops an in-flight load from stamping the cache", async () => {
+    const cache = newCache();
+    const key = guildKey("g1");
+    const pending = cache.load(key, async () => {
+      await Bun.sleep(5);
+      return 1;
+    });
+    cache.clear();
+    await pending;
+    expect(cache.peek(key)).toBeUndefined();
+  });
 });
