@@ -47,7 +47,7 @@ export default class LeaderboardSubCommand extends Command {
 
   /**
    * Format one row of the page. `position` is the 1-based position in the
-   * full ranking, so a 10-per-page board's second page starts at 11. The top
+   * full ranking, so a 15-per-page board's second page starts at 16. The top
    * three wear medals, and the caller's own row is marked.
    */
   protected renderRow(row: LeaderboardRow, position: number, callerId: string): string {
