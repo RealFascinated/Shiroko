@@ -22,6 +22,7 @@ export const logTypes = {
   ban: { label: "Bans" },
   invite: { label: "Invites" },
   server_update: { label: "Server Update" },
+  config_change: { label: "Config Changes" },
 } as const;
 
 export type LogType = keyof typeof logTypes;

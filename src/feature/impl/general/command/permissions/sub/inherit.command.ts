@@ -28,7 +28,10 @@ export default class PermissionsInheritCommand extends Command {
     }
     const parent = args.role("parent");
     try {
-      const effective = await Permissions.setParent(guild.id, role.id, parent?.id ?? null);
+      const effective = await Permissions.setParent(guild, role.id, parent?.id ?? null, {
+        guild,
+        userId: ctx.user.id,
+      });
       return ctx.reply({
         embeds: [
           baseEmbed(commandName)

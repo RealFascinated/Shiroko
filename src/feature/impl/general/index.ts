@@ -1,6 +1,7 @@
 import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
 import PanelManager from "@/panel/index";
+import AuditLogCommand from "./command/audit-log/audit-log.command";
 import BotStatsCommand from "./command/botstats.command";
 import FeatureCommand from "./command/feature/feature.command";
 import GuildInfoCommand from "./command/guildinfo.command";
@@ -28,6 +29,7 @@ export default class GeneralFeature extends Feature {
     this.registerCommand(new HelpCommand());
     this.registerCommand(new LeaderboardCommand());
     this.registerCommand(new FeatureCommand());
+    this.registerCommand(new AuditLogCommand());
     this.registerCommand(new PermissionsCommand());
     this.registerCommand(new SettingsCommand());
   }

@@ -1,5 +1,6 @@
 import { PermissionFlagsBits, type Guild, type GuildMember } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
+import AuditLog, { type AuditActor } from "../audit/audit-log";
 import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { guildKey } from "../cache/key";
@@ -9,7 +10,6 @@ import { EventBus } from "../event/event-bus";
 import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
 import RoleDeletedEvent from "../event/events/role-deleted.event";
-import RoleUpdatedEvent from "../event/events/role-updated.event";
 import { loadPage, type Page } from "../lib/pagination";
 
 /**
@@ -28,6 +28,7 @@ export const PermissionFlags = Object.freeze({
   WELCOMER_COMMAND: 1n << 6n,
   LOGGING_COMMAND: 1n << 7n,
   LEVELS_COMMAND: 1n << 9n,
+  AUDIT_LOG_COMMAND: 1n << 10n,
   // 1n << 8n was retired with the YouTube feature; never reuse a retired bit.
 } as const satisfies Record<string, bigint>);
 
@@ -43,6 +44,7 @@ export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: st
   { flag: PermissionFlags.WELCOMER_COMMAND, label: "Welcomer Command" },
   { flag: PermissionFlags.LOGGING_COMMAND, label: "Logging Command" },
   { flag: PermissionFlags.LEVELS_COMMAND, label: "Levels Command" },
+  { flag: PermissionFlags.AUDIT_LOG_COMMAND, label: "Audit Log Command" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];
@@ -108,24 +110,34 @@ export default class Permissions {
    * cached config. Returns the new effective flags for the role.
    */
   public static async setRole(
-    guildId: string,
+    guild: Guild,
     roleId: string,
     ownFlags: bigint,
-    parentRoleId: string | null = null
+    parentRoleId: string | null,
+    actor: AuditActor
   ): Promise<bigint> {
+    const guildId = guild.id;
     await Permissions.assertNoCycle(guildId, roleId, parentRoleId);
-    await db
-      .insert(permissionRolesSchema)
-      .values({
-        guildId,
-        roleId,
-        flags: String(ownFlags),
-        parentRoleId,
-      })
-      .onConflictDoUpdate({
-        target: [permissionRolesSchema.guildId, permissionRolesSchema.roleId],
-        set: { flags: String(ownFlags), parentRoleId },
-      });
+    await AuditLog.write(actor, "permissions", roleId, async tx => {
+      const [existing] = await tx
+        .select()
+        .from(permissionRolesSchema)
+        .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId)))
+        .for("update");
+      const oldValue = existing ? { flags: existing.flags, parentRoleId: existing.parentRoleId } : null;
+      const newValue = { flags: String(ownFlags), parentRoleId };
+      if (Bun.deepEquals(oldValue, newValue)) {
+        return null;
+      }
+      await tx
+        .insert(permissionRolesSchema)
+        .values({ guildId, roleId, ...newValue })
+        .onConflictDoUpdate({
+          target: [permissionRolesSchema.guildId, permissionRolesSchema.roleId],
+          set: newValue,
+        });
+      return { oldValue, newValue };
+    });
     Permissions.invalidateGuild(guildId);
     return Permissions.roleEffectiveFlags(guildId, roleId);
   }
@@ -135,24 +147,37 @@ export default class Permissions {
    * role has no row yet). Returns the role's new effective flags.
    */
   public static async setParent(
-    guildId: string,
+    guild: Guild,
     roleId: string,
-    parentRoleId: string | null
+    parentRoleId: string | null,
+    actor: AuditActor
   ): Promise<bigint> {
     // Validate before any DB access so a clean rejection doesn't touch the DB.
-    await Permissions.assertNoCycle(guildId, roleId, parentRoleId);
-    const current = await Permissions.roleOwnFlags(guildId, roleId);
-    return Permissions.setRole(guildId, roleId, current, parentRoleId);
+    await Permissions.assertNoCycle(guild.id, roleId, parentRoleId);
+    const current = await Permissions.roleOwnFlags(guild.id, roleId);
+    return Permissions.setRole(guild, roleId, current, parentRoleId, actor);
   }
 
   /**
    * Delete a role's row entirely; the role then resolves to no flags.
    * Descendants pointing at it become dangling-parent → no inherited flags.
    */
-  public static async clearRole(guildId: string, roleId: string): Promise<void> {
-    await db
-      .delete(permissionRolesSchema)
-      .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId)));
+  public static async clearRole(guild: Guild, roleId: string, actor: AuditActor): Promise<void> {
+    const guildId = guild.id;
+    await AuditLog.write(actor, "permissions", roleId, async tx => {
+      const [existing] = await tx
+        .select()
+        .from(permissionRolesSchema)
+        .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId)))
+        .for("update");
+      if (!existing) {
+        return null;
+      }
+      await tx
+        .delete(permissionRolesSchema)
+        .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId)));
+      return { oldValue: { flags: existing.flags, parentRoleId: existing.parentRoleId }, newValue: null };
+    });
     Permissions.invalidateGuild(guildId);
   }
 
@@ -161,8 +186,9 @@ export default class Permissions {
    * deleted. Descendants of the deleted role become standalone. Returns the
    * updated rows.
    */
-  public static async onRoleDeleted(guildId: string, roleId: string): Promise<void> {
-    await Permissions.clearRole(guildId, roleId);
+  public static async onRoleDeleted(guild: Guild, roleId: string): Promise<void> {
+    const guildId = guild.id;
+    await Permissions.clearRole(guild, roleId, { guild, userId: null });
     await db
       .update(permissionRolesSchema)
       .set({ parentRoleId: null, updatedAt: new Date() })
@@ -358,13 +384,8 @@ export class PermissionsListeners extends EventListener {
     EventBus.subscribe(this);
   }
 
-  @EventHandler(RoleUpdatedEvent)
-  public async onRoleUpdated(event: RoleUpdatedEvent): Promise<void> {
-    await Permissions.clearRole(event.guildData.id, event.roleId);
-  }
-
   @EventHandler(RoleDeletedEvent)
   public async onRoleDeleted(event: RoleDeletedEvent): Promise<void> {
-    await Permissions.onRoleDeleted(event.guildData.id, event.roleId);
+    await Permissions.onRoleDeleted(event.guildData, event.roleId);
   }
 }

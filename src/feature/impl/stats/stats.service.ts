@@ -181,10 +181,12 @@ export default class StatsService {
     }
   }
 
-  public async closeStaleSessions(now: Date = new Date()): Promise<number> {
+  public async closeStaleSessions(): Promise<number> {
     const stale = await db.select().from(voiceSessionsSchema).where(isNull(voiceSessionsSchema.leftAt));
+    // The real leave time is unknown, and closing at "now" would count the
+    // whole downtime as voice time, so an orphaned session records no duration.
     for (const row of stale) {
-      await this.finishSession(row.id, row.joinedAt, now);
+      await this.finishSession(row.id, row.joinedAt, row.joinedAt);
     }
     this.openSessions.clear();
     return stale.length;

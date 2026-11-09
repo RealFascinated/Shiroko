@@ -86,6 +86,10 @@ export class SlashCommandListener extends EventListener {
     const command = CommandManager.getCommand(commandName);
     if (!command) {
       console.log(`Unknown command: ${commandName}`);
+      await interaction.reply({
+        content: "That command is no longer available.",
+        flags: MessageFlags.Ephemeral,
+      });
       return;
     }
     const subCommandName = interaction.options.getSubcommand(false);
@@ -93,6 +97,10 @@ export class SlashCommandListener extends EventListener {
 
     const guild = interaction.guild;
     if (!guild && !(resolved ?? command).userInstallable) {
+      await interaction.reply({
+        content: "This command can only be used in a server.",
+        flags: MessageFlags.Ephemeral,
+      });
       return;
     }
 
@@ -139,6 +147,15 @@ export class SlashCommandListener extends EventListener {
       });
     } catch (error) {
       console.error(`Error executing command "${commandName}":`, error);
+      const failure = {
+        content: "Something went wrong running that command.",
+        flags: MessageFlags.Ephemeral,
+      } as const;
+      await (
+        interaction.deferred || interaction.replied
+          ? interaction.followUp(failure)
+          : interaction.reply(failure)
+      ).catch(() => null);
     }
   }
 }

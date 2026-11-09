@@ -1,3 +1,6 @@
+/** Upper bound on any outbound request, so a hung server cannot stall its caller. */
+export const FETCH_TIMEOUT_MS = 10_000;
+
 /**
  * Options for {@link fetchJson}.
  */
@@ -17,7 +20,7 @@ export interface FetchJsonOptions {
  */
 export async function fetchJson<T>(path: string, options: FetchJsonOptions = {}): Promise<T> {
   const url = `${options.baseUrl ?? ""}${path}`;
-  const res = await fetch(url, { headers: options.headers });
+  const res = await fetch(url, { headers: options.headers, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!res.ok) {
     throw new Error(`request failed (${res.status}): ${url}`);
   }

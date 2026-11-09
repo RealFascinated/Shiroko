@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import AuditLog, { type AuditActor } from "../audit/audit-log";
 import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { guildKey } from "../cache/key";
@@ -36,22 +37,41 @@ export default class GuildSettings {
   }
 
   /**
-   * Upsert a value; passing `null` deletes the row (back to default).
+   * Upsert a value; passing `null` deletes the row (back to default). The
+   * change is audited, and writing the value a row already holds does
+   * nothing.
    */
-  public static async set(guildId: string, key: string, value: JsonValue | null): Promise<void> {
-    if (value === null) {
-      await db
-        .delete(guildSettingsSchema)
-        .where(and(eq(guildSettingsSchema.guildId, guildId), eq(guildSettingsSchema.key, key)));
-    } else {
-      await db
-        .insert(guildSettingsSchema)
-        .values({ guildId, key, value })
-        .onConflictDoUpdate({
-          target: [guildSettingsSchema.guildId, guildSettingsSchema.key],
-          set: { value, updatedAt: now },
-        });
-    }
+  public static async set(
+    guildId: string,
+    key: string,
+    value: JsonValue | null,
+    actor: AuditActor
+  ): Promise<void> {
+    await AuditLog.write(actor, "settings", key, async tx => {
+      const [existing] = await tx
+        .select({ value: guildSettingsSchema.value })
+        .from(guildSettingsSchema)
+        .where(and(eq(guildSettingsSchema.guildId, guildId), eq(guildSettingsSchema.key, key)))
+        .for("update");
+      const oldValue = existing?.value ?? null;
+      if (Bun.deepEquals(oldValue, value)) {
+        return null;
+      }
+      if (value === null) {
+        await tx
+          .delete(guildSettingsSchema)
+          .where(and(eq(guildSettingsSchema.guildId, guildId), eq(guildSettingsSchema.key, key)));
+      } else {
+        await tx
+          .insert(guildSettingsSchema)
+          .values({ guildId, key, value })
+          .onConflictDoUpdate({
+            target: [guildSettingsSchema.guildId, guildSettingsSchema.key],
+            set: { value, updatedAt: now },
+          });
+      }
+      return { oldValue, newValue: value };
+    });
     GuildSettings.CACHE.invalidate(guildKey(guildId));
   }
 }

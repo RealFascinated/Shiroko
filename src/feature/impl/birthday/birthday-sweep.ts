@@ -119,7 +119,9 @@ async function swapRoles(guild: Guild, roleId: string, celebrants: ResolvedCeleb
   }
 
   const celebrantIds = new Set(celebrants.map(({ member }) => member.id));
-  for (const member of guild.members.cache.values()) {
+  // The cache only holds members the gateway has sent, so a holder who is
+  // not cached would keep the role forever.
+  for (const member of (await guild.members.fetch()).values()) {
     if (!member.roles.cache.has(roleId) || celebrantIds.has(member.id)) {
       continue;
     }

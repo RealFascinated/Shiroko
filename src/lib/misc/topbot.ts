@@ -3,6 +3,7 @@ import { EventHandler } from "@/event/event-handler";
 import { EventListener } from "@/event/event-listener";
 import BotReadyEvent from "@/event/events/bot-ready.event";
 import type { Client } from "discord.js";
+import { FETCH_TIMEOUT_MS } from "../fetch";
 
 const API_BASE_URL = "https://topbot.gg/api/v1/bots";
 const STATS_INTERVAL_MS = 30 * 60 * 1000;
@@ -60,6 +61,7 @@ export class TopbotManager extends EventListener {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
       if (!res.ok) {
         console.error(

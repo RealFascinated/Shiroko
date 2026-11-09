@@ -41,7 +41,7 @@ export default class FeatureCommand extends Command {
       );
     }
     const enabled = ctx.options.getBoolean("enabled", true);
-    await GuildFeatures.setFeatureEnabled(guild, featureId, enabled);
+    await GuildFeatures.setFeatureEnabled(guild, featureId, enabled, ctx.user.id);
     const feature = Feature.get(featureId);
     const name = feature?.name ?? featureId;
     const line = enabled ? `**${name}** is now **enabled**.` : `**${name}** is now **disabled**.`;

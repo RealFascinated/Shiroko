@@ -3,8 +3,9 @@ import ComponentReceivedEvent from "@/event/events/component-received.event";
 import { EventBus } from "@/event/event-bus";
 import { EventHandler } from "@/event/event-handler";
 import { EventListener } from "@/event/event-listener";
-import type { Interaction } from "discord.js";
+import { MessageFlags, type Interaction } from "discord.js";
 import type Component from "./component";
+import { parseComponentCustomId } from "./component";
 import { runComponentSweep } from "./component-sweep";
 import { handleComponentInteraction } from "./router";
 
@@ -68,6 +69,21 @@ export default class ComponentManager extends EventListener {
 
   @EventHandler(ComponentReceivedEvent)
   public async onComponentReceived(event: ComponentReceivedEvent): Promise<void> {
-    await ComponentManager.route(event.interaction);
+    const { interaction } = event;
+    if (await ComponentManager.route(interaction)) {
+      return;
+    }
+    // Only presses on a component's own custom id are answered; panel ids
+    // share this event and are the panel router's to handle.
+    if (
+      (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) &&
+      parseComponentCustomId(interaction.customId) &&
+      !interaction.replied &&
+      !interaction.deferred
+    ) {
+      await interaction
+        .reply({ content: "This button has expired or isn't yours to press.", flags: MessageFlags.Ephemeral })
+        .catch(() => undefined);
+    }
   }
 }

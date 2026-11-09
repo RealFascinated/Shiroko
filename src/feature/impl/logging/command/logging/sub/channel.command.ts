@@ -24,7 +24,7 @@ export default class ChannelCommand extends Command {
         )
       );
     }
-    await loggingService.setChannelId(guild, channel.id);
+    await loggingService.setChannelId(guild, channel.id, ctx.user.id);
     return ctx.reply({
       embeds: [
         baseEmbed(commandName)

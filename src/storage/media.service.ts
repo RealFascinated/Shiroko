@@ -1,6 +1,7 @@
-import { and, eq, isNotNull, isNull, lt, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lt, ne } from "drizzle-orm";
 import { db } from "../db/index";
 import { mediaSchema } from "../db/schemas/media";
+import { FETCH_TIMEOUT_MS } from "../lib/fetch";
 import {
   assetContentType,
   assetExtension,
@@ -167,21 +168,27 @@ export default class MediaService {
     previous: AssetChange,
     current: AssetChange
   ): Promise<{ beforeUrl: string | null; afterUrl: string | null }> {
-    if (previous.hash !== current.hash) {
-      if (previous.hash && previous.sourceUrl) {
-        await MediaService.backfill({ userId, kind, hash: previous.hash, sourceUrl: previous.sourceUrl });
+    try {
+      if (previous.hash !== current.hash) {
+        if (previous.hash && previous.sourceUrl) {
+          await MediaService.backfill({ userId, kind, hash: previous.hash, sourceUrl: previous.sourceUrl });
+        }
+        if (current.hash && current.sourceUrl) {
+          await MediaService.store({ userId, kind, hash: current.hash, sourceUrl: current.sourceUrl });
+        } else {
+          await MediaService.supersede(userId, kind);
+        }
       }
-      if (current.hash && current.sourceUrl) {
-        await MediaService.store({ userId, kind, hash: current.hash, sourceUrl: current.sourceUrl });
-      } else {
-        await MediaService.supersede(userId, kind);
-      }
+      const [beforeUrl, afterUrl] = await Promise.all([
+        previous.hash ? MediaService.storedUrl(kind, userId, previous.hash) : null,
+        current.hash ? MediaService.storedUrl(kind, userId, current.hash) : null,
+      ]);
+      return { beforeUrl, afterUrl };
+    } catch (error) {
+      // Called from gateway handlers, where a rejection would be unhandled.
+      console.error(`Failed to capture ${kind} change for ${userId}:`, error);
+      return { beforeUrl: null, afterUrl: null };
     }
-    const [beforeUrl, afterUrl] = await Promise.all([
-      previous.hash ? MediaService.storedUrl(kind, userId, previous.hash) : null,
-      current.hash ? MediaService.storedUrl(kind, userId, current.hash) : null,
-    ]);
-    return { beforeUrl, afterUrl };
   }
 
   /**
@@ -215,20 +222,23 @@ export default class MediaService {
       .select({ userId: mediaSchema.userId, kind: mediaSchema.kind, filename: mediaSchema.filename })
       .from(mediaSchema)
       .where(predicate);
+    const deleted: string[] = [];
     for (const asset of expired) {
-      await StorageService.deleteFile(StorageBucket.Media, asset.filename);
+      if (await StorageService.deleteFile(StorageBucket.Media, asset.filename)) {
+        deleted.push(asset.filename);
+      }
     }
-    if (expired.length === 0) {
+    if (deleted.length === 0) {
       return 0;
     }
-    await db.delete(mediaSchema).where(predicate);
-    return expired.length;
+    await db.delete(mediaSchema).where(and(predicate, inArray(mediaSchema.filename, deleted)));
+    return deleted.length;
   }
 
   private static async upload(options: StoreMediaOptions): Promise<number | null> {
     const filename = mediaKey(options.kind, options.userId, options.hash);
     try {
-      const response = await fetch(options.sourceUrl);
+      const response = await fetch(options.sourceUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (!response.ok) {
         return null;
       }

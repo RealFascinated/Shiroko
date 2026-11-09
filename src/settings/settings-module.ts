@@ -1,5 +1,6 @@
 import type { JsonValue } from "../db/schemas/guild-settings";
 import type { FeatureIds } from "../feature/feature-ids";
+import type { AuditActor } from "../audit/audit-log";
 import GuildSettings from "./guild-settings";
 
 /**
@@ -219,9 +220,10 @@ export default class SettingsModule<C> {
   public async set<P extends WritablePaths<C>>(
     guildId: string,
     path: P,
-    value: PathValue<C, P>
+    value: PathValue<C, P>,
+    actor: AuditActor
   ): Promise<void> {
-    await GuildSettings.set(guildId, `${this.id}.${path}`, value as JsonValue);
+    await GuildSettings.set(guildId, `${this.id}.${path}`, value as JsonValue, actor);
   }
 
   public async entries<K extends MapKeys<C>>(guildId: string, key: K): Promise<C[K]> {
@@ -236,15 +238,21 @@ export default class SettingsModule<C> {
     guildId: string,
     key: K,
     entryKey: string,
-    value: MapEntry<C[K]>
+    value: MapEntry<C[K]>,
+    actor: AuditActor
   ): Promise<void> {
     const { entry } = this.mapDescriptors(key);
-    await writeEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry, value);
+    await writeEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry, value, actor);
   }
 
-  public async removeEntry<K extends MapKeys<C>>(guildId: string, key: K, entryKey: string): Promise<void> {
+  public async removeEntry<K extends MapKeys<C>>(
+    guildId: string,
+    key: K,
+    entryKey: string,
+    actor: AuditActor
+  ): Promise<void> {
     const { entry } = this.mapDescriptors(key);
-    await clearEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry);
+    await clearEntry(guildId, `${this.id}.${String(key)}.${entryKey}`, entry, actor);
   }
 
   private field(key: string): RuntimeFieldDescriptor | undefined {
@@ -332,26 +340,37 @@ async function writeEntry(
   guildId: string,
   key: string,
   entry: RuntimeFieldDescriptor,
-  value: unknown
+  value: unknown,
+  actor: AuditActor
 ): Promise<void> {
   if (entry.type === "group") {
     const record = value as Record<string, unknown>;
     for (const child of entry.fields ?? []) {
-      await GuildSettings.set(guildId, `${key}.${child.key}`, (record[child.key] ?? null) as JsonValue);
+      await GuildSettings.set(
+        guildId,
+        `${key}.${child.key}`,
+        (record[child.key] ?? null) as JsonValue,
+        actor
+      );
     }
     return;
   }
-  await GuildSettings.set(guildId, key, value as JsonValue);
+  await GuildSettings.set(guildId, key, value as JsonValue, actor);
 }
 
-async function clearEntry(guildId: string, key: string, entry: RuntimeFieldDescriptor): Promise<void> {
+async function clearEntry(
+  guildId: string,
+  key: string,
+  entry: RuntimeFieldDescriptor,
+  actor: AuditActor
+): Promise<void> {
   if (entry.type === "group") {
     for (const child of entry.fields ?? []) {
-      await GuildSettings.set(guildId, `${key}.${child.key}`, null);
+      await GuildSettings.set(guildId, `${key}.${child.key}`, null, actor);
     }
     return;
   }
-  await GuildSettings.set(guildId, key, null);
+  await GuildSettings.set(guildId, key, null, actor);
 }
 
 /**

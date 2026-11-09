@@ -24,7 +24,6 @@ import { TopbotManager } from "./lib/misc/topbot";
 import { TopggManager } from "./lib/misc/topgg";
 import { PresenceListener } from "./lib/presence";
 import { formatDuration } from "./lib/time";
-import { VoiceKeepaliveListener } from "./lib/voice";
 import { EventVolumeListeners } from "./metrics/event-volume-listeners";
 import { VictoriaMetricsExporter } from "./metrics/exporter";
 import { CacheMetricsMetric } from "./metrics/impl/cache";
@@ -170,9 +169,6 @@ class LifecycleListeners extends EventListener {
     );
   }
 }
-
-const VOICE_CHANNEL_ID = "1446633266160603268";
-new VoiceKeepaliveListener(VOICE_CHANNEL_ID);
 
 new LifecycleListeners();
 new PresenceListener();

@@ -1,3 +1,4 @@
+import { FETCH_TIMEOUT_MS } from "@/lib/fetch";
 import type { HistogramValue } from "./histogram";
 import type { MetricManager, MetricSnapshot } from "./index";
 
@@ -86,7 +87,8 @@ function formatValue(value: number): string {
  * format (no snappy, no protobuf; the body is plain text).
  *
  * Failure handling is deliberately simple: one attempt per interval, an
- * error is logged and the next interval retries with fresh values. Metrics
+ * error is logged (never thrown, since `setInterval` callers are not awaited)
+ * and the next interval retries with fresh values. Metrics
  * are read-only during serialization, so a failed push never corrupts the
  * registry.
  */
@@ -118,19 +120,21 @@ export class VictoriaMetricsExporter {
   }
 
   private async push(): Promise<void> {
-    const payload = encodePushPayload(this.manager.snapshot(), { job: this.job });
-    const res = await fetch(this.url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain",
-      },
-      body: payload,
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.error(
-        `VictoriaMetrics push failed: ${res.status} ${res.statusText}\n${detail}\nBody sent:\n${payload}`
-      );
+    try {
+      const res = await fetch(this.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain",
+        },
+        body: encodePushPayload(this.manager.snapshot(), { job: this.job }),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        console.error(`VictoriaMetrics push failed: ${res.status} ${res.statusText}\n${detail}`);
+      }
+    } catch (error) {
+      console.error("VictoriaMetrics push failed:", error);
     }
   }
 }

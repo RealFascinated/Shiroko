@@ -161,12 +161,18 @@ export default class LevelsService {
     return rewards.find(reward => reward.type === "Role" && reward.level > atLevel) ?? null;
   }
 
-  public async setRewardRole(guild: Guild, level: number, roleId: string): Promise<void> {
-    await levelsSettings.setEntry(guild.id, "rewards", String(level), { type: "Role", roleId });
+  public async setRewardRole(guild: Guild, level: number, roleId: string, userId: string): Promise<void> {
+    await levelsSettings.setEntry(
+      guild.id,
+      "rewards",
+      String(level),
+      { type: "Role", roleId },
+      { guild, userId }
+    );
   }
 
-  public async removeReward(guildId: string, level: number): Promise<void> {
-    await levelsSettings.removeEntry(guildId, "rewards", String(level));
+  public async removeReward(guild: Guild, level: number, userId: string): Promise<void> {
+    await levelsSettings.removeEntry(guild.id, "rewards", String(level), { guild, userId });
   }
 
   public async rewards(guildId: string): Promise<RewardRow[]> {
@@ -253,8 +259,6 @@ export default class LevelsService {
     if (amount <= 0) {
       return this.getLevel(guild.id, userId);
     }
-    const before = await this.getLevel(guild.id, userId);
-
     // Atomic upsert: the DB owns the xp total under concurrency; level
     // derives from the returned total.
     const [row] = await db
@@ -276,10 +280,11 @@ export default class LevelsService {
       level: persistedLevel,
     };
 
-    // Emit every level crossed. The pre-grant level is derived from the
-    // pre-grant xp (which clamps new users to level 1) so a first grant
-    // that jumps multiple levels still emits 1→2.
-    const startLevel = levelForXp(before.xp);
+    // Emit every level crossed. The pre-grant xp comes from the upserted
+    // total, not a separate read, so concurrent grants cannot both claim the
+    // same crossing; `levelForXp` clamps new users to level 1, so a first
+    // grant that jumps multiple levels still emits 1→2.
+    const startLevel = levelForXp(row.xp - amount);
     for (let lvl = startLevel + 1; lvl <= persisted.level; lvl++) {
       await EventBus.post(new LevelUpEvent({ userId, guild, prevLevel: lvl - 1, newLevel: lvl, xp: row.xp }));
     }

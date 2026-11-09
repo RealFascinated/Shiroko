@@ -29,7 +29,7 @@ export default class ToggleCommand extends Command {
       );
     }
     const enabled = ctx.options.getBoolean("enabled", true);
-    await loggingService.setEnabled(guild, logType, enabled);
+    await loggingService.setEnabled(guild, logType, enabled, ctx.user.id);
     const label = logTypes[logType].label;
     return ctx.reply({
       embeds: [

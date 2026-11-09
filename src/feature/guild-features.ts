@@ -20,9 +20,13 @@ export default class GuildFeatures {
   public static async setFeatureEnabled(
     guild: Guild,
     featureId: FeatureIds,
-    enabled: boolean
+    enabled: boolean,
+    userId: string
   ): Promise<boolean> {
-    await featureSettings().set(guild.id, `enabled.${`${featureId}` as FeatureId}`, enabled);
+    await featureSettings().set(guild.id, `enabled.${`${featureId}` as FeatureId}`, enabled, {
+      guild,
+      userId,
+    });
     return enabled;
   }
 }

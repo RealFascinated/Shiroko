@@ -32,7 +32,9 @@ const BUS_HANDLERS = new Map<new (...args: any[]) => Event, HandlerEntry[]>();
  *
  * Dispatch is synchronous: each handler's returned promise is awaited
  * before the next handler runs, so bus post calls are `await`able and
- * state changes (e.g. derived events) happen in order.
+ * state changes (e.g. derived events) happen in order. A handler that
+ * throws is logged and skipped; `post` never rejects, so the gateway's
+ * fire-and-forget posts cannot become unhandled rejections.
  */
 export class EventBus {
   private static readonly HANDLERS: Map<new (...args: any[]) => Event, HandlerEntry[]> = BUS_HANDLERS;
@@ -109,7 +111,11 @@ export class EventBus {
       if (!(await EventBus.gate(entry, event))) {
         continue;
       }
-      await entry.handler(event);
+      try {
+        await entry.handler(event);
+      } catch (error) {
+        console.error(`Event handler ${entry.listener.constructor.name}.${entry.method} failed:`, error);
+      }
     }
   }
 

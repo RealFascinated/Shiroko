@@ -1,5 +1,7 @@
 import type Event from "@/event/event";
 import { EventBus } from "@/event/event-bus";
+import { AUDIT_KINDS } from "@/audit/kinds";
+import AuditEntryRecordedEvent from "@/event/events/audit-entry-recorded.event";
 import AutoModActionExecutedEvent from "@/event/events/automod-action-executed.event";
 import AutoModRuleCreatedEvent from "@/event/events/automod-rule-created.event";
 import AutoModRuleDeletedEvent from "@/event/events/automod-rule-deleted.event";
@@ -311,6 +313,20 @@ export default class LoggingFeature extends Feature {
         ...changes,
       ]);
       await channel.send({ embeds: [embed] });
+    });
+
+    this.handleEvent(AuditEntryRecordedEvent, "config_change", async (event, channel) => {
+      const { entry } = event;
+      const actor = entry.actorId ? `<@${entry.actorId}>` : "The bot";
+      await channel.send({
+        embeds: [
+          this.baseLogEmbed(String(entry.id), [
+            `${actor} changed the configuration.`,
+            "",
+            AUDIT_KINDS[entry.kind]?.describe(entry) ?? `\`${entry.key}\` changed`,
+          ]),
+        ],
+      });
     });
 
     this.handleEvent(ChannelCreatedEvent, "channel", async (event, channel) => {

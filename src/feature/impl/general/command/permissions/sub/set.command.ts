@@ -29,7 +29,10 @@ export default class PermissionsSetCommand extends Command {
     const flags = parseFlags([flagChoice]);
     const parent = args.role("parent");
     try {
-      const effective = await Permissions.setRole(guild.id, role.id, flags, parent ? parent.id : null);
+      const effective = await Permissions.setRole(guild, role.id, flags, parent ? parent.id : null, {
+        guild,
+        userId: ctx.user.id,
+      });
       return ctx.reply({
         embeds: [
           baseEmbed(commandName)

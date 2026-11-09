@@ -35,7 +35,7 @@ export default class RewardRemoveCommand extends Command {
       );
     }
 
-    await levelsService.removeReward(guild.id, level);
+    await levelsService.removeReward(guild, level, ctx.user.id);
     const role = reward.roleId ? `<@&${reward.roleId}>` : "*(no role)*";
     return ctx.reply({
       embeds: [

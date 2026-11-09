@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import type { Guild } from "discord.js";
 
 /**
  * Rows the mocked `permission_roles` table returns for any guild, plus how
@@ -19,8 +20,19 @@ function writeResult(): Promise<unknown> & { returning: () => Promise<unknown[]>
   return promise;
 }
 
+/** The transaction handle: the row lock reads one row, writes are no-ops. */
+const tx = {
+  select: () => ({ from: () => ({ where: () => ({ for: async () => table.rows.slice(0, 1) }) }) }),
+  insert: () => ({
+    values: () => ({ onConflictDoUpdate: writeResult, returning: async () => [{ id: 1 }] }),
+  }),
+  delete: () => ({ where: writeResult }),
+};
+
 mock.module("../db/index", () => ({
+  now: {},
   db: {
+    transaction: async (run: (handle: typeof tx) => Promise<unknown>) => run(tx),
     select: () => ({
       from: () => ({
         where: async () => {
@@ -36,6 +48,9 @@ mock.module("../db/index", () => ({
 }));
 
 const { default: Permissions } = await import("./permissions");
+
+const guild = { id: "g1" } as Guild;
+const actor = { guild, userId: "u1" };
 
 describe("Permissions guild config cache", () => {
   beforeEach(() => {
@@ -88,7 +103,7 @@ describe("Permissions guild config cache", () => {
     table.rows = [{ roleId: "r1", flags: "2", parentRoleId: null }];
     await Permissions.loadGuild("g1");
     expect(table.reads).toBe(1);
-    await Permissions.clearRole("g1", "r1");
+    await Permissions.clearRole(guild, "r1", actor);
     table.rows = [];
     const configs = await Permissions.loadGuild("g1");
     expect(table.reads).toBe(2);
@@ -98,7 +113,7 @@ describe("Permissions guild config cache", () => {
   test("a parent change drops the cached config", async () => {
     table.rows = [{ roleId: "r1", flags: "2", parentRoleId: null }];
     await Permissions.loadGuild("g1");
-    await Permissions.setParent("g1", "r1", null);
+    await Permissions.setParent(guild, "r1", null, actor);
     await Permissions.loadGuild("g1");
     expect(table.reads).toBeGreaterThan(1);
   });

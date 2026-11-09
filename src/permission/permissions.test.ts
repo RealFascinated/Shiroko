@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { Guild } from "discord.js";
 import Permissions, { flagLabels, hasFlags, PermissionFlags } from "./permissions";
 
 const FEATURE = PermissionFlags.FEATURE_COMMAND;
@@ -73,6 +74,9 @@ describe("resolveEffective", () => {
 
 describe("assertNoCycle (via setParent)", () => {
   test("rejects self-parent", async () => {
-    await expect(Permissions.setParent("g", "a", "a")).rejects.toThrow(/own parent/);
+    const guild = { id: "g" } as Guild;
+    await expect(Permissions.setParent(guild, "a", "a", { guild, userId: "u" })).rejects.toThrow(
+      /own parent/
+    );
   });
 });

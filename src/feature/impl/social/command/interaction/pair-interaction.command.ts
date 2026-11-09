@@ -62,8 +62,8 @@ export default abstract class PairInteractionCommand extends ComponentCommand<In
       return ctx.reply({ content: `You can't ${this.verb} yourself! :(`, flags: MessageFlags.Ephemeral });
     }
     const targetUser = await GlobalUsersManager.getUser(target);
-    const count = await SocialService.incrementInteraction(user.id, targetUser.id, this.interactionType);
     const gif = await getGif(this.gifCategory);
+    const count = await SocialService.incrementInteraction(user.id, targetUser.id, this.interactionType);
     const embed = this.buildEmbed(commandName, user.id, target.id, count, gif);
 
     const response = await ctx.reply({ embeds: [embed] });
@@ -95,8 +95,8 @@ export default abstract class PairInteractionCommand extends ComponentCommand<In
     await interaction.update({ components: [] });
 
     const presser = await GlobalUsersManager.getUser(interaction.user);
-    const count = await SocialService.incrementInteraction(presser.id, payload.actorId, this.interactionType);
     const gif = await getGif(this.gifCategory);
+    const count = await SocialService.incrementInteraction(presser.id, payload.actorId, this.interactionType);
     const embed = this.buildEmbed(payload.commandName, presser.id, payload.actorId, count, gif);
     await interaction.followUp({ embeds: [embed] });
   }

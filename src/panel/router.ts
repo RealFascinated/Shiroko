@@ -128,7 +128,7 @@ async function dispatch(
       await deny(interaction, problem);
       return;
     }
-    await panel.updateConfig(context.guild, view, control.key, selected);
+    await panel.updateConfig(context.guild, view, control.key, selected, context.user.id);
     await repaint(panel, context, view.segment, interaction);
     return;
   }
@@ -142,7 +142,7 @@ async function dispatch(
     await deny(interaction, problem);
     return;
   }
-  await panel.updateConfig(context.guild, view, control.key, next);
+  await panel.updateConfig(context.guild, view, control.key, next, context.user.id);
   await repaint(panel, context, view.segment, interaction);
 }
 
@@ -179,7 +179,7 @@ async function submitDialog(
     await deny(interaction, problem);
     return;
   }
-  await panel.updateConfig(context.guild, view, control.key, value);
+  await panel.updateConfig(context.guild, view, control.key, value, context.user.id);
   if (!interaction.message) {
     return;
   }

@@ -40,7 +40,7 @@ export default class AddCommand extends Command {
       );
     }
 
-    const wasNew = await autorolesService.add(guild.id, role.id);
+    const wasNew = await autorolesService.add(guild, role.id, ctx.user.id);
     return ctx.reply({
       embeds: [
         baseEmbed(commandName)

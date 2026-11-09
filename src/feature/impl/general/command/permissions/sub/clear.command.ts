@@ -20,7 +20,7 @@ export default class PermissionsClearCommand extends Command {
         ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A role is required."))
       );
     }
-    await Permissions.clearRole(guild.id, role.id);
+    await Permissions.clearRole(guild, role.id, { guild, userId: ctx.user.id });
     return ctx.reply({
       embeds: [
         baseEmbed(commandName)

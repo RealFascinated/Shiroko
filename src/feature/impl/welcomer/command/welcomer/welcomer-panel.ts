@@ -46,10 +46,14 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
     guild: Guild,
     _view: PanelView<WelcomerSettingsData>,
     key: string,
-    value: unknown
+    value: unknown,
+    userId: string
   ): Promise<void> {
     // A control key is the setting key, so the write names one setting.
-    await welcomerSettings.set(guild.id, key as WritablePaths<WelcomerSettingsData>, value as never);
+    await welcomerSettings.set(guild.id, key as WritablePaths<WelcomerSettingsData>, value as never, {
+      guild,
+      userId,
+    });
   }
 
   public override accent(config: WelcomerSettingsData): number {

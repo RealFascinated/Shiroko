@@ -57,7 +57,8 @@ export default class SettingsPanel extends Panel<SettingsHubConfig> {
     guild: Guild,
     _view: PanelView<SettingsHubConfig>,
     key: string,
-    value: unknown
+    value: unknown,
+    userId: string
   ): Promise<void> {
     const dot = key.indexOf(".");
     if (dot <= 0) {
@@ -67,7 +68,7 @@ export default class SettingsPanel extends Panel<SettingsHubConfig> {
     if (!module) {
       return;
     }
-    await module.set(guild.id, key.slice(dot + 1) as never, value as never);
+    await module.set(guild.id, key.slice(dot + 1) as never, value as never, { guild, userId });
   }
 
   public views(config: SettingsHubConfig): readonly PanelView<SettingsHubConfig>[] {

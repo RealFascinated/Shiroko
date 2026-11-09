@@ -37,13 +37,18 @@ export default class StatsFeature extends Feature {
     if (!guild || !globalUser) {
       return;
     }
-    await statsService.recordMessage({
-      id: message.id,
-      userId: globalUser.id,
-      guildId: guild.id,
-      channelId: message.channelId,
-      createdAt: message.createdAt,
-    });
+    try {
+      await statsService.recordMessage({
+        id: message.id,
+        userId: globalUser.id,
+        guildId: guild.id,
+        channelId: message.channelId,
+        createdAt: message.createdAt,
+      });
+    } catch (error) {
+      console.error(`Failed to record message ${message.id}:`, error);
+      return;
+    }
     await EventBus.post(
       new MessageRecordedEvent({
         userId: globalUser.id,

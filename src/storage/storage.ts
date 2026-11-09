@@ -72,11 +72,13 @@ export default class StorageService {
     }
   }
 
-  public static async deleteFile(bucket: StorageBucket, filename: string): Promise<void> {
+  public static async deleteFile(bucket: StorageBucket, filename: string): Promise<boolean> {
     try {
       await StorageService.clientFor(bucket).delete(filename);
+      return true;
     } catch (error) {
       console.error(`Failed to delete file from storage: ${bucket}/${filename} (${error})`);
+      return false;
     }
   }
 

@@ -7,16 +7,16 @@ export default class LoggingService {
     return loggingSettings.get(guild.id, "channelId");
   }
 
-  public async setChannelId(guild: Guild, channelId: string): Promise<void> {
-    await loggingSettings.set(guild.id, "channelId", channelId);
+  public async setChannelId(guild: Guild, channelId: string, userId: string): Promise<void> {
+    await loggingSettings.set(guild.id, "channelId", channelId, { guild, userId });
   }
 
   public async isEnabled(guild: Guild, logType: LogType): Promise<boolean> {
     return loggingSettings.get(guild.id, `enabled.${logType}`);
   }
 
-  public async setEnabled(guild: Guild, logType: LogType, enabled: boolean): Promise<void> {
-    await loggingSettings.set(guild.id, `enabled.${logType}`, enabled);
+  public async setEnabled(guild: Guild, logType: LogType, enabled: boolean, userId: string): Promise<void> {
+    await loggingSettings.set(guild.id, `enabled.${logType}`, enabled, { guild, userId });
   }
 
   /**

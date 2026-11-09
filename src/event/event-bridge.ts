@@ -317,7 +317,7 @@ export default class EventBridge {
       void EventBus.post(new RoleDeletedEvent(role));
     });
 
-    client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
+    client.on(Events.GuildMemberUpdate, (oldMember, newMember) => {
       // `roles.cache` includes @everyone for both members, so it cancels out
       // and never shows as a spurious addition or removal.
       const oldRoleIds = new Set(oldMember.roles.cache.keys());
@@ -326,17 +326,6 @@ export default class EventBridge {
       const removed = oldMember.roles.cache.filter(role => !newRoleIds.has(role.id));
       if (added.size > 0 || removed.size > 0) {
         void EventBus.post(new MemberRolesUpdatedEvent(oldMember, newMember, added, removed));
-      }
-      if (oldMember.avatar !== newMember.avatar && !newMember.user.bot) {
-        const { beforeUrl, afterUrl } = await MediaService.capture(
-          newMember.user.id,
-          MediaKind.Avatar,
-          assetChange(MediaKind.Avatar, oldMember.user),
-          assetChange(MediaKind.Avatar, newMember.user)
-        );
-        await EventBus.post(
-          new UserAvatarUpdatedEvent(newMember.guild, oldMember.user, newMember.user, beforeUrl, afterUrl)
-        );
       }
       if (oldMember.nickname !== newMember.nickname) {
         void EventBus.post(new MemberNicknameUpdatedEvent(oldMember, newMember));

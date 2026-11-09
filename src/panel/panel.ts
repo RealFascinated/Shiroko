@@ -235,9 +235,16 @@ export default abstract class Panel<C extends object> {
    * Persist one edited setting. The engine knows the view and the exact
    * control key that changed, so a panel writes a single setting rather
    * than re-storing its whole config, exactly like the settings store
-   * (one row per `<namespace>.<key>`).
+   * (one row per `<namespace>.<key>`). `userId` is the member who made
+   * the edit, for the audit log.
    */
-  public abstract updateConfig(guild: Guild, view: PanelView<C>, key: string, value: unknown): Promise<void>;
+  public abstract updateConfig(
+    guild: Guild,
+    view: PanelView<C>,
+    key: string,
+    value: unknown,
+    userId: string
+  ): Promise<void>;
 
   /**
    * The panel's views. The first is the one shown on open.

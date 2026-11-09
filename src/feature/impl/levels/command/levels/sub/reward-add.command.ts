@@ -55,7 +55,7 @@ export default class RewardAddCommand extends Command {
       );
     }
 
-    await levelsService.setRewardRole(guild, level, role.id);
+    await levelsService.setRewardRole(guild, level, role.id, ctx.user.id);
     return ctx.reply({
       embeds: [
         baseEmbed(commandName)

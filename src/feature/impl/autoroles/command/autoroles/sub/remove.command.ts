@@ -21,7 +21,7 @@ export default class RemoveCommand extends Command {
       );
     }
 
-    const removed = await autorolesService.remove(guild.id, role.id);
+    const removed = await autorolesService.remove(guild, role.id, ctx.user.id);
     if (!removed) {
       return ctx.reply(
         ephemeralErrorReply(

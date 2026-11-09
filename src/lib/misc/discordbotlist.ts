@@ -4,6 +4,7 @@ import { EventListener } from "@/event/event-listener";
 import PostCommandLoadEvent from "@/event/events/post-command-load.event";
 import { getVoiceConnection } from "@discordjs/voice";
 import type { ApplicationCommandDataResolvable, Client } from "discord.js";
+import { FETCH_TIMEOUT_MS } from "../fetch";
 
 const API_BASE_URL = "https://discordbotlist.com/api/v1/bots";
 const STATS_INTERVAL_MS = 60 * 60 * 1000;
@@ -87,6 +88,7 @@ export class DiscordBotListManager extends EventListener {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
       if (!res.ok) {
         console.error(

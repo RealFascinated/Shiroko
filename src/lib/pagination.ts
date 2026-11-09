@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  MessageFlags,
   type BaseMessageOptions,
   type ButtonInteraction,
   type InteractionResponse,
@@ -157,6 +158,12 @@ export function createPager<T>(options: PagerOptions<T>): Pager<T> {
     const collector = response.createMessageComponentCollector({ time: PAGE_WINDOW_MS });
     collector.on("collect", async (button: ButtonInteraction) => {
       if (button.user.id !== userId) {
+        await button
+          .reply({
+            content: "Only the person who ran this command can turn its pages.",
+            flags: MessageFlags.Ephemeral,
+          })
+          .catch(() => undefined);
         return;
       }
       let target = current.page;
@@ -177,11 +184,17 @@ export function createPager<T>(options: PagerOptions<T>): Pager<T> {
       if (target === current.page || target < 1 || target > pageCount) {
         return;
       }
-      current = await fetchPage(target);
-      await button.update(await payload(current));
+      try {
+        current = await fetchPage(target);
+        await button.update(await payload(current));
+      } catch (error) {
+        console.error(`Failed to turn page for pager "${namespace}":`, error);
+      }
     });
     collector.on("end", async () => {
-      await response.edit({ components: [] });
+      // The reply's interaction token lives 15 minutes, shorter than the
+      // collector window, so this edit usually fails; the nav bar then simply stays.
+      await response.edit({ components: [] }).catch(() => undefined);
     });
   };
   return { payload, attach };
