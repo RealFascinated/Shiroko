@@ -2,7 +2,7 @@ import type GlobalUser from "@/user/global-user";
 import { describe, expect, test } from "bun:test";
 import { EmbedBuilder, type Guild } from "discord.js";
 import Panel, { type PanelContext, type PanelView } from "./panel";
-import { displayValue, renderPanel, renderPanelEmbeds, renderPanelViewSection } from "./render";
+import { displayValue, renderPanel, renderPanelEmbeds, UNSET_VALUE } from "./render";
 
 /** A two-view panel over a nested config, exercising every control kind. */
 interface DemoConfig {
@@ -27,7 +27,14 @@ class DemoPanel extends Panel<DemoConfig> {
         label: "First",
         segment: "first",
         controls: () => [
-          { kind: "dialog", key: "first.name", input: "text", label: "Name", description: "A display name" },
+          {
+            kind: "dialog",
+            key: "first.name",
+            input: "text",
+            label: "Name",
+            description: "A display name",
+            placeholders: { catalog: () => "- `{user_name}`: The name." },
+          },
           { kind: "toggle", key: "first.on", label: "Enabled", state: v => (v ? "On" : "Off") },
           {
             kind: "choice",
@@ -38,18 +45,12 @@ class DemoPanel extends Panel<DemoConfig> {
               { value: "4", label: "Four" },
             ],
           },
-          { kind: "view", key: "help", label: "Help" },
         ],
         sections: () => [
           {
             id: "preview",
             kind: "text" as const,
             render: (config, ctx) => Promise.resolve(`preview of ${ctx.user.id} ${config.first.name}`),
-          },
-          {
-            id: "help",
-            kind: "text" as const,
-            render: () => Promise.resolve("## Help\nreference content"),
           },
         ],
       },
@@ -168,9 +169,14 @@ class ChecklistPanel extends Panel<{ a: boolean; b: boolean }> {
 }
 
 describe("displayValue", () => {
-  test("formats a dialog's raw string", async () => {
+  test("shows a dialog's raw string as code", async () => {
     const control = { kind: "dialog" as const, key: "first.name", input: "text" as const, label: "Name" };
-    expect(displayValue(control, await new DemoPanel().getConfig(), context)).toBe("Alpha");
+    expect(displayValue(control, await new DemoPanel().getConfig(), context)).toBe("`Alpha`");
+  });
+
+  test("shows multi-line text as a code block", () => {
+    const control = { kind: "dialog" as const, key: "body", input: "paragraph" as const, label: "Body" };
+    expect(displayValue(control, { body: "a\nb" }, context)).toBe("```\na\nb\n```");
   });
 
   test("uses a dialog's formatter when present", async () => {
@@ -179,7 +185,7 @@ describe("displayValue", () => {
       key: "first.channel",
       input: "channel" as const,
       label: "Channel",
-      format: (value: unknown) => (typeof value === "string" ? `<#${value}>` : "*(none)*"),
+      format: (value: unknown) => `<#${value}>`,
     };
     expect(displayValue(control, await new DemoPanel().getConfig(), context)).toBe("<#9>");
   });
@@ -207,9 +213,17 @@ describe("displayValue", () => {
     expect(displayValue(control, await new DemoPanel().getConfig(), context)).toBe("Three");
   });
 
-  test("reports an unset value as none", () => {
-    const control = { kind: "dialog" as const, key: "missing", input: "text" as const, label: "Missing" };
-    expect(displayValue(control, {} as DemoConfig, context)).toBe("*(none)*");
+  test("reports every unset shape the same way, without calling the formatter", () => {
+    const control = {
+      kind: "dialog" as const,
+      key: "value",
+      input: "text" as const,
+      label: "Value",
+      format: (): string => "formatted",
+    };
+    for (const value of [null, undefined, "", []]) {
+      expect(displayValue(control, { value }, context)).toBe(UNSET_VALUE);
+    }
   });
 });
 
@@ -247,7 +261,7 @@ describe("renderPanel", () => {
     const rendered = await renderPanel(new DemoPanel(), context, "first");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
     expect(json).toContain("## Demo");
-    expect(json).toContain("**Name**\\nAlpha");
+    expect(json).toContain("**Name**\\n`Alpha`");
     expect(json).toContain("**Enabled**");
     expect(json).toContain("**Count**");
     expect(json).toContain("panel:demo:first:dialog:first.name");
@@ -255,13 +269,13 @@ describe("renderPanel", () => {
     expect(json).toContain("panel:demo:first:choice:first.count");
   });
 
-  test("renders grouped toggles as one checklist instead of a button each", async () => {
+  test("renders grouped toggles as a summary and on/off pickers instead of a button each", async () => {
     const rendered = await renderPanel(new ChecklistPanel(), context, "m");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
-    expect(json).toContain("panel:checklist:m:toggles:a");
+    expect(json).toContain("panel:checklist:m:enable:a");
+    expect(json).toContain("panel:checklist:m:disable:a");
     expect(json).not.toContain("panel:checklist:m:toggle:");
-    expect(json).toContain("✅ A");
-    expect(json).toContain("⬛ B");
+    expect(json).toContain("1 of 2 on · Off: B");
   });
 
   test("renders the view switcher when there is more than one view", async () => {
@@ -280,7 +294,7 @@ describe("renderPanel", () => {
   test("falls back to the first view for an unknown segment", async () => {
     const rendered = await renderPanel(new DemoPanel(), context, "gone");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
-    expect(json).toContain("**Name**\\nAlpha");
+    expect(json).toContain("**Name**\\n`Alpha`");
   });
 
   test("renders only the controls the current state offers", async () => {
@@ -296,29 +310,16 @@ describe("renderPanel", () => {
     expect(json).not.toContain('"custom_id":"panel:mode:m"');
   });
 
-  test("renders a view control as a button and hides its section", async () => {
+  test("adds a placeholders button for a template field", async () => {
     const rendered = await renderPanel(new DemoPanel(), context, "first");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
-    expect(json).toContain("panel:demo:first:view:help");
-    expect(json).toContain('"label":"Help"');
-    // The section the button opens must not also render under the controls.
-    expect(json).not.toContain("reference content");
-    expect(json).not.toContain("**Help:**");
+    expect(json).toContain("panel:demo:first:placeholders:first.name");
+    expect(json).toContain('"label":"📖 Placeholders"');
   });
 
   test("renders a control's description under its value line", async () => {
     const rendered = await renderPanel(new DemoPanel(), context, "first");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
     expect(json).toContain("A display name");
-  });
-
-  test("renderPanelViewSection returns the text section a view control opens", async () => {
-    const body = await renderPanelViewSection(new DemoPanel(), context, "first", "help");
-    expect(body).toContain("reference content");
-  });
-
-  test("renderPanelViewSection returns null for a missing or embed section", async () => {
-    expect(await renderPanelViewSection(new DemoPanel(), context, "first", "nope")).toBeNull();
-    expect(await renderPanelViewSection(new EmbedPanel(), context, "m", "preview")).toBeNull();
   });
 });

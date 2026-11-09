@@ -1,6 +1,7 @@
 import type { JsonValue } from "../db/schemas/guild-settings";
 import type { FeatureIds } from "../feature/feature-ids";
 import type { AuditActor } from "../audit/audit-writer";
+import type PlaceholderExecutor from "../placeholder/placeholder-executor";
 import GuildSettings from "./guild-settings";
 
 /**
@@ -62,9 +63,12 @@ type ScalarSpec<V, T extends ScalarSettingType> = V extends SettingValueMap[T]
        */
       validate?(value: V): string | null;
       /**
-       * Display formatting for the panel.
+       * Display formatting for the panel. Only called for a set value; the
+       * panel shows unset values itself.
        */
       format?(value: V): string;
+      /** The tokens a template string can contain, listed by the panel. */
+      placeholders?: Pick<PlaceholderExecutor, "catalog">;
     }
   : never;
 
@@ -153,6 +157,7 @@ export interface RuntimeFieldDescriptor {
   max?: number;
   validate?(value: unknown): string | null;
   format?(value: unknown): string;
+  placeholders?: Pick<PlaceholderExecutor, "catalog">;
   fields?: readonly RuntimeFieldDescriptor[];
   entry?: RuntimeFieldDescriptor;
 }
@@ -172,6 +177,7 @@ interface RawDescriptor {
   max?: number;
   validate?(value: unknown): string | null;
   format?(value: unknown): string;
+  placeholders?: Pick<PlaceholderExecutor, "catalog">;
   fields?: readonly unknown[];
   entry?: unknown;
 }
@@ -410,5 +416,6 @@ function toRuntimeValue(descriptor: RawDescriptor): Omit<RuntimeFieldDescriptor,
     max: descriptor.max,
     validate: descriptor.validate,
     format: descriptor.format,
+    placeholders: descriptor.placeholders,
   };
 }

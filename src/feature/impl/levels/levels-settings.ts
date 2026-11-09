@@ -1,5 +1,6 @@
 import { FeatureIds } from "@/feature/feature-ids";
 import SettingsModule from "@/settings/settings-module";
+import { levelUpPlaceholders } from "./level-up-placeholders";
 
 export interface LevelReward {
   type: string;
@@ -39,7 +40,7 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
     {
       key: "messageXpMin",
       label: "Message XP (min)",
-      description: "Each XP-granting message rolls a random amount between min and max",
+      description: "Each XP-granting message rolls a random amount between min and max.",
       type: "number",
       default: 15,
       min: 1,
@@ -48,7 +49,7 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
     {
       key: "messageCooldownMs",
       label: "Message cooldown",
-      description: "Minimum time between XP-granting messages",
+      description: "Minimum time between XP-granting messages.",
       type: "duration",
       default: 60_000,
       min: 10_000,
@@ -56,19 +57,19 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
     {
       key: "ignoredChannelIds",
       label: "Ignored channels",
-      description: "Channels or categories that never grant XP, including their threads; one per line",
+      description: "Channels or categories that never grant XP, including their threads. One per line.",
       type: "string-list",
       default: [],
-      format: ids => ids.map(id => `<#${id}>`).join(", ") || "None",
+      format: ids => ids.map(id => `<#${id}>`).join(", "),
     },
     { key: "announceChannelId", label: "Announce channel", type: "channel", default: null },
     {
       key: "levelUpMessage",
       label: "Level-up message",
-      description:
-        "Announced when a member levels up; supports placeholders like {user_mention}, {level}, and {current_xp}",
+      description: "Announced when a member levels up.",
       type: "string",
       default: "**{user_mention}** reached **level {level}**!",
+      placeholders: levelUpPlaceholders,
     },
     {
       key: "rewards",

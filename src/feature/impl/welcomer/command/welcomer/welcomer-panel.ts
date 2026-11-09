@@ -111,14 +111,6 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
                 },
               ]
             : []),
-          {
-            id: "placeholders",
-            kind: "text" as const,
-            render: async (): Promise<string> =>
-              ["## Placeholders", "-# The tokens this message can contain.", "", placeholders.catalog()].join(
-                "\n"
-              ),
-          },
         ],
       },
     ];
@@ -142,19 +134,6 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
 export const welcomerPanel = new WelcomerPanel();
 
 /**
- * A message body rendered under its label. A multi-line body becomes a
- * fenced code block; a single-line body is wrapped in inline code, and an
- * empty body reads as unset rather than as empty code.
- */
-function formatParagraph(value: unknown): string {
-  const text = String(value ?? "");
-  if (text.includes("\n")) {
-    return "```\n" + text + "\n```";
-  }
-  return text.length > 0 ? "`" + text + "`" : "*(none)*";
-}
-
-/**
  * The controls for the message. Only the fields its current mode uses are
  * offered, so a simple message has no title or colour control and a card
  * has its three lines in place of a description.
@@ -169,10 +148,10 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
         {
           value: "embed",
           label: "Embed",
-          description: "A rich embed with a title, colour, and the member's avatar",
+          description: "A rich embed with a title, colour, and the member's avatar.",
         },
-        { value: "simple", label: "Simple", description: "A plain text message" },
-        { value: "card", label: "Card", description: "A generated welcome image" },
+        { value: "simple", label: "Simple", description: "A plain text message." },
+        { value: "card", label: "Card", description: "A generated welcome image." },
       ],
     },
     {
@@ -181,7 +160,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       input: "channel",
       label: "Channel",
       hint: "Where this message is sent. Clear the selection to disable it.",
-      format: value => (typeof value === "string" ? `<#${value}>` : "*(none)*"),
+      format: value => `<#${value}>`,
     },
   ];
   const colorControl: PanelControl<WelcomerSettingsData> = {
@@ -202,7 +181,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       input: "text",
       label: "Title",
       hint: "Leave empty for no title.",
-      format: formatParagraph,
+      placeholders,
     });
     controls.push({
       kind: "dialog",
@@ -210,7 +189,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       input: "paragraph",
       label: "Description",
       hint: "Placeholders like {guild_name} and {user_mention} are replaced.",
-      format: formatParagraph,
+      placeholders,
       validate: input => (input.trim().length > 0 ? null : "The description cannot be empty."),
     });
     controls.push(colorControl);
@@ -222,7 +201,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
         input: "text",
         label: `Line ${key.slice(-1)}`,
         hint: "Placeholders like {user_name} and {member_count} are replaced.",
-        format: formatParagraph,
+        placeholders,
       });
     }
     controls.push(colorControl);
@@ -233,7 +212,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       input: "paragraph",
       label: "Description",
       hint: "Placeholders like {guild_name} and {user_mention} are replaced.",
-      format: formatParagraph,
+      placeholders,
       validate: input => (input.trim().length > 0 ? null : "The description cannot be empty."),
     });
   }
@@ -244,11 +223,6 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
     label: "Ping member",
     description: "Mention the new member so they get a notification.",
     state: value => (value ? "On" : "Off"),
-  });
-  controls.push({
-    kind: "view",
-    key: "placeholders",
-    label: "📖 Placeholders",
   });
   return controls;
 }

@@ -132,7 +132,7 @@ function collectControls(
 function mapSummaries(module: SettingsModule<any>): string[] {
   return module.runtimeDescriptors
     .filter(descriptor => descriptor.type === "map")
-    .map(descriptor => `-# **${descriptor.label}:** edited with the feature's own command.`);
+    .map(descriptor => `-# Edit **${descriptor.label}** with the feature's own command.`);
 }
 
 function controlFor(
@@ -186,7 +186,7 @@ function controlFor(
         validate: input => durationProblem(descriptor, input),
         validateValue: value => durationValueProblem(descriptor, value),
         transform: input => (input.trim() === "" ? null : parseDuration(input)),
-        format: value => (value === null ? "*(none)*" : formatDuration(Number(value))),
+        format: value => formatDuration(Number(value)),
       };
 
     case "string":
@@ -197,7 +197,7 @@ function controlFor(
         label: descriptor.label,
         description,
         hint: "Enter the value. Leave empty to reset to the default.",
-        format: value => (value === null ? "*(none)*" : String(value)),
+        placeholders: descriptor.placeholders,
       };
 
     case "string-list":
@@ -214,12 +214,7 @@ function controlFor(
             .split("\n")
             .map(line => line.trim())
             .filter(Boolean),
-        format: value =>
-          descriptor.format
-            ? descriptor.format(value)
-            : Array.isArray(value) && value.length > 0
-              ? (value as string[]).join(", ")
-              : "*(none)*",
+        format: value => descriptor.format?.(value) ?? (value as string[]).join(", "),
       };
 
     case "channel":
@@ -230,7 +225,7 @@ function controlFor(
         label: descriptor.label,
         description,
         hint: "Choose a channel, or clear the selection to unset it.",
-        format: value => (typeof value === "string" ? `<#${value}>` : "*(none)*"),
+        format: value => `<#${value}>`,
       };
 
     case "role":
@@ -241,7 +236,7 @@ function controlFor(
         label: descriptor.label,
         description,
         hint: "Choose a role, or clear the selection to unset it.",
-        format: value => (typeof value === "string" ? `<@&${value}>` : "*(none)*"),
+        format: value => `<@&${value}>`,
       };
 
     case "role-list":
@@ -253,8 +248,7 @@ function controlFor(
         description,
         hint: `Choose up to ${roleListLimit(descriptor)} roles. Remove all to clear.`,
         maxRoles: roleListLimit(descriptor),
-        format: value =>
-          Array.isArray(value) && value.length > 0 ? value.map(id => `<@&${id}>`).join(", ") : "*(none)*",
+        format: value => descriptor.format?.(value) ?? (value as string[]).map(id => `<@&${id}>`).join(", "),
       };
 
     default:

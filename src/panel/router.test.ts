@@ -81,10 +81,9 @@ class RecordingPanel extends Panel<DemoConfig> {
             input: "text",
             label: "Text",
             validate: input => (this.rejectText && input === "bad" ? "Nope." : null),
+            placeholders: { catalog: () => "- `{user_name}`: The name." },
           },
-          { kind: "view", key: "help", label: "Help" },
         ],
-        sections: () => [{ id: "help", kind: "text" as const, render: () => Promise.resolve("## Help") }],
       },
     ];
   }
@@ -263,10 +262,10 @@ describe("panel router dispatch", () => {
     expect(seen).toBe("v");
   });
 
-  test("a checklist writes only the toggles whose state changed", async () => {
+  test("a checklist pick writes only the toggles whose state it changes", async () => {
     const panel = new RecordingPanel();
     const interaction = stubInteraction({
-      customId: panelCustomId(panel.segment, "v", "toggles", "nested.extra"),
+      customId: panelCustomId(panel.segment, "v", "enable", "nested.extra"),
       isStringSelectMenu: () => true,
       values: ["nested.extra"],
     });
@@ -367,11 +366,11 @@ describe("panel router dispatch", () => {
     expect(resolvedUsers).toEqual(["7"]);
   });
 
-  test("a view button replies with its section contents and writes nothing", async () => {
+  test("a placeholders button replies with the field's catalog and writes nothing", async () => {
     const panel = new RecordingPanel();
     let replied: { components?: unknown[]; flags?: number } | null = null;
     const interaction = stubInteraction({
-      customId: panelCustomId(panel.segment, "v", "view", "help"),
+      customId: panelCustomId(panel.segment, "v", "placeholders", "nested.text"),
       isButton: () => true,
       reply: (payload: { components?: unknown[]; flags?: number }) => {
         replied = payload;
@@ -380,7 +379,7 @@ describe("panel router dispatch", () => {
     expect(await route(panel, interaction)).toBe(true);
     expect(panel.writes).toHaveLength(0);
     expect(replied).not.toBeNull();
-    expect(JSON.stringify(replied!.components)).toContain("## Help");
+    expect(JSON.stringify(replied!.components)).toContain("{user_name}");
     // A V2 container needs the flag; ephemeral keeps it to the presser.
     expect(replied!.flags).toBe((1 << 15) | (1 << 6));
   });

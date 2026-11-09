@@ -32,7 +32,6 @@ import {
   type PanelView,
   type ToggleChecklist,
   type ToggleControl,
-  type ViewControl,
   toggleChecklists,
 } from "./panel";
 import { getPath } from "./path";
@@ -59,31 +58,33 @@ export interface RenderedPanel {
   flags: MessageFlags.IsComponentsV2;
 }
 
+/** How every panel shows a value that is not set, so no panel invents its own. */
+export const UNSET_VALUE = "*Not set*";
+
 /**
- * A control's current value as display text: its formatter when it has
- * one, otherwise the raw value, with a blank placeholder when unset. A
- * `view` control has no value, so it is not accepted here.
+ * A control's current value as display text. Unset values (null, empty
+ * text, an empty list) read the same everywhere and never reach a
+ * formatter. Text without a formatter is shown as code, so a template's
+ * markdown and tokens read literally rather than rendering.
  */
-export function displayValue<C>(
-  control: Exclude<PanelControl<C>, ViewControl<C>>,
-  config: C,
-  context: PanelContext
-): string {
+export function displayValue<C>(control: PanelControl<C>, config: C, context: PanelContext): string {
   const raw = getPath(config, control.key);
-  if (control.kind === "dialog") {
-    if (control.format) {
-      return control.format(raw, config, context);
-    }
-    if (raw === null || raw === undefined) {
-      return "*(none)*";
-    }
-    return typeof raw === "string" ? raw : String(raw);
-  }
   if (control.kind === "toggle") {
     return control.state(raw === true, config, context);
   }
-  const option = control.options(config, context).find(candidate => candidate.value === raw);
-  return option?.label ?? "*(none)*";
+  if (raw === null || raw === undefined || raw === "" || (Array.isArray(raw) && raw.length === 0)) {
+    return UNSET_VALUE;
+  }
+  if (control.kind === "choice") {
+    return control.options(config, context).find(candidate => candidate.value === raw)?.label ?? UNSET_VALUE;
+  }
+  if (control.format) {
+    return control.format(raw, config, context);
+  }
+  if (typeof raw !== "string") {
+    return String(raw);
+  }
+  return raw.includes("\n") ? "```\n" + raw + "\n```" : "`" + raw + "`";
 }
 
 function viewSelectRow<C extends object>(
@@ -118,8 +119,9 @@ function viewSelectRow<C extends object>(
  * order. A dialog or a lone toggle is a section whose button sits beside
  * its label and value; a choice is its label over a select; grouped
  * toggles are one checklist, placed where the group's first toggle is
- * declared. View buttons open reference content rather than editing
- * anything, so they share a row at the end.
+ * declared. Placeholder buttons open reference content rather than
+ * editing anything, so they share a row at the end: one per distinct
+ * token set, named after its field only when the view has several.
  */
 function addControls<C extends object>(
   container: ContainerBuilder,
@@ -130,12 +132,11 @@ function addControls<C extends object>(
 ): void {
   const controls = view.controls(config, context);
   const checklists = toggleChecklists(controls);
-  const viewButtons: ButtonBuilder[] = [];
+  const catalogs = new Map<DialogControl<C>["placeholders"], DialogControl<C>>();
 
   for (const control of controls) {
-    if (control.kind === "view") {
-      viewButtons.push(viewButton(panel, view, control));
-      continue;
+    if (control.kind === "dialog" && control.placeholders && !catalogs.has(control.placeholders)) {
+      catalogs.set(control.placeholders, control);
     }
     if (control.kind === "choice") {
       container.addTextDisplayComponents(
@@ -149,7 +150,7 @@ function addControls<C extends object>(
         container.addTextDisplayComponents(
           new TextDisplayBuilder().setContent(checklistText(checklist, config))
         );
-        container.addActionRowComponents(checklistRow(panel, view, checklist, config));
+        container.addActionRowComponents(...checklistRows(panel, view, checklist, config));
       }
       continue;
     }
@@ -167,9 +168,17 @@ function addControls<C extends object>(
     );
   }
 
-  for (let index = 0; index < viewButtons.length; index += BUTTONS_PER_ROW) {
+  const placeholderButtons = [...catalogs.values()].map(control =>
+    new ButtonBuilder()
+      .setCustomId(panelCustomId(panel.segment, view.segment, "placeholders", control.key))
+      .setLabel((catalogs.size === 1 ? "📖 Placeholders" : `📖 ${control.label} placeholders`).slice(0, 80))
+      .setStyle(ButtonStyle.Secondary)
+  );
+  for (let index = 0; index < placeholderButtons.length; index += BUTTONS_PER_ROW) {
     container.addActionRowComponents(
-      new ActionRowBuilder<ButtonBuilder>().addComponents(viewButtons.slice(index, index + BUTTONS_PER_ROW))
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        placeholderButtons.slice(index, index + BUTTONS_PER_ROW)
+      )
     );
   }
 }
@@ -185,40 +194,67 @@ function controlText(label: string, value: string | null, description: string | 
   return lines.join("\n");
 }
 
+/**
+ * A checklist's heading and a one-line summary naming only the minority
+ * state, so a group of two dozen switches reads in one line rather than
+ * one line each.
+ */
 function checklistText<C>(checklist: ToggleChecklist<C>, config: C): string {
-  return [
-    `**${checklist.label}**`,
-    ...checklist.toggles.map(
-      toggle => `${getPath(config, toggle.key) === true ? "✅" : "⬛"} ${toggle.label}`
-    ),
-  ].join("\n");
+  const on = checklist.toggles.filter(toggle => getPath(config, toggle.key) === true);
+  const off = checklist.toggles.filter(toggle => getPath(config, toggle.key) !== true);
+  const total = checklist.toggles.length;
+  const names = (toggles: ToggleControl<C>[]): string => toggles.map(toggle => toggle.label).join(", ");
+  let summary: string;
+  if (off.length === 0) {
+    summary = `All ${total} on`;
+  } else if (on.length === 0) {
+    summary = `All ${total} off`;
+  } else if (off.length <= on.length) {
+    summary = `${on.length} of ${total} on · Off: ${names(off)}`;
+  } else {
+    summary = `${on.length} of ${total} on · On: ${names(on)}`;
+  }
+  return [`**${checklist.label}**`, `-# ${summary}`].join("\n");
 }
 
-function checklistRow<C extends object>(
+/**
+ * The checklist's two pickers: one offering only the toggles that are
+ * off, one only those that are on. Neither preselects anything, so each
+ * stays a one-line dropdown no matter how many switches are on, and a pick
+ * names exactly the switches to flip.
+ */
+function checklistRows<C extends object>(
   panel: Panel<C>,
   view: PanelView<C>,
   checklist: ToggleChecklist<C>,
   config: C
-): ActionRowBuilder<StringSelectMenuBuilder> {
-  return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId(panelCustomId(panel.segment, view.segment, "toggles", checklist.id))
-      .setPlaceholder("None enabled")
-      .setMinValues(0)
-      .setMaxValues(checklist.toggles.length)
-      .addOptions(
-        checklist.toggles.map(toggle => {
-          const option = new StringSelectMenuOptionBuilder()
-            .setLabel(toggle.label.slice(0, 100))
-            .setValue(toggle.key)
-            .setDefault(getPath(config, toggle.key) === true);
-          if (toggle.description !== undefined) {
-            option.setDescription(toggle.description.slice(0, 100));
-          }
-          return option;
-        })
+): Array<ActionRowBuilder<StringSelectMenuBuilder>> {
+  const pickers: Array<[kind: "enable" | "disable", placeholder: string, toggles: ToggleControl<C>[]]> = [
+    ["enable", "Turn on…", checklist.toggles.filter(toggle => getPath(config, toggle.key) !== true)],
+    ["disable", "Turn off…", checklist.toggles.filter(toggle => getPath(config, toggle.key) === true)],
+  ];
+  return pickers
+    .filter(([, , toggles]) => toggles.length > 0)
+    .map(([kind, placeholder, toggles]) =>
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId(panelCustomId(panel.segment, view.segment, kind, checklist.id))
+          .setPlaceholder(placeholder)
+          .setMinValues(1)
+          .setMaxValues(toggles.length)
+          .addOptions(
+            toggles.map(toggle => {
+              const option = new StringSelectMenuOptionBuilder()
+                .setLabel(toggle.label.slice(0, 100))
+                .setValue(toggle.key);
+              if (toggle.description !== undefined) {
+                option.setDescription(toggle.description.slice(0, 100));
+              }
+              return option;
+            })
+          )
       )
-  );
+    );
 }
 
 function dialogButton<C extends object>(
@@ -250,17 +286,6 @@ function toggleButton<C extends object>(
     .setStyle(on ? ButtonStyle.Success : ButtonStyle.Secondary);
 }
 
-function viewButton<C extends object>(
-  panel: Panel<C>,
-  view: PanelView<C>,
-  control: ViewControl<C>
-): ButtonBuilder {
-  return new ButtonBuilder()
-    .setCustomId(panelCustomId(panel.segment, view.segment, "view", control.key))
-    .setLabel(control.label.slice(0, 80))
-    .setStyle(ButtonStyle.Secondary);
-}
-
 function choiceRow<C extends object>(
   panel: Panel<C>,
   view: PanelView<C>,
@@ -290,20 +315,12 @@ function choiceRow<C extends object>(
   );
 }
 
-function headerLines<C extends object>(
-  panel: Panel<C>,
-  view: PanelView<C>,
-  config: C,
-  context: PanelContext
-): string[] {
+function headerLines<C extends object>(panel: Panel<C>, config: C, context: PanelContext): string[] {
   const lines: string[] = [];
   if (panel.subtitle) {
     lines.push(`-# ${panel.subtitle}`);
   }
   for (const line of panel.intro?.(config, context) ?? []) {
-    lines.push(line);
-  }
-  for (const line of view.summary?.(config, context) ?? []) {
     lines.push(line);
   }
   return lines;
@@ -323,38 +340,33 @@ export async function renderPanel<C extends object>(
   }
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      [`## ${panel.title}`, ...headerLines(panel, view, config, context)].join("\n")
+      [`## ${panel.title}`, ...headerLines(panel, config, context)].join("\n")
     )
   );
   const switcher = viewSelectRow(panel, view, config, context);
   if (switcher) {
     container.addActionRowComponents(switcher);
   }
-  if (view.controls(config, context).length > 0) {
+  // The view's own content sits below the switcher, so switching views
+  // changes everything under it and nothing above.
+  const summary = view.summary?.(config, context) ?? [];
+  if (summary.length > 0 || view.controls(config, context).length > 0) {
     container.addSeparatorComponents(
       new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
     );
-    addControls(container, panel, view, config, context);
   }
+  if (summary.length > 0) {
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(summary.join("\n")));
+  }
+  addControls(container, panel, view, config, context);
   const footer = panel.footer?.(config, context);
   if (footer) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${footer}`));
   }
 
-  // Sections that a view control carries are opened on button press, not
-  // rendered under the controls.
-  const hiddenSections = new Set(
-    view
-      .controls(config, context)
-      .filter(control => control.kind === "view")
-      .map(control => control.key)
-  );
   const sections: ContainerBuilder[] = [];
   const files: AttachmentPayload[] = [];
   for (const section of view.sections?.(config, context) ?? []) {
-    if (hiddenSections.has(section.id)) {
-      continue;
-    }
     if (section.kind === "embed") {
       continue;
     }
@@ -411,29 +423,28 @@ export async function renderPanelEmbeds<C extends object>(
 }
 
 /**
- * The contents a view control opens: the first text section the view
- * carries under that id, or null when it has none. The router shows the
- * result as its own message on button press.
+ * The reply a placeholders button opens: ephemeral, so the reference goes
+ * to the presser rather than the channel.
  */
-export async function renderPanelViewSection<C extends object>(
-  panel: Panel<C>,
-  context: PanelContext,
-  viewSegment: string,
-  key: string
-): Promise<string | null> {
-  const config = await panel.getConfig(context.guild);
-  const view = panel.viewFor(config, viewSegment);
-  for (const section of view.sections?.(config, context) ?? []) {
-    if (section.id !== key || section.kind !== "text") {
-      continue;
-    }
-    const body = await section.render(config, context);
-    if (typeof body === "string" && body.length > 0) {
-      return body;
-    }
-    return null;
-  }
-  return null;
+export function renderPlaceholders(catalog: string): {
+  components: ContainerBuilder[];
+  flags: number;
+} {
+  return {
+    components: [
+      new ContainerBuilder().addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          [
+            "## Placeholders",
+            "-# Type these into the field; each is replaced when the message is sent.",
+            "",
+            catalog,
+          ].join("\n")
+        )
+      ),
+    ],
+    flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+  };
 }
 
 /**

@@ -23,7 +23,7 @@ export const autorolesSettings = new SettingsModule<AutorolesSettingsData>({
       type: "role-list",
       default: [],
       max: 25,
-      format: ids => ids.map(id => `<@&${id}>`).join(", ") || "None",
+      format: ids => ids.map(id => `<@&${id}>`).join(", "),
     },
   ],
 });

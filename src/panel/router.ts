@@ -1,9 +1,7 @@
 import { replyFailure } from "@/lib/interaction-error";
 import GlobalUsersManager from "@/user/global-users-manager";
 import {
-  ContainerBuilder,
   MessageFlags,
-  TextDisplayBuilder,
   type ButtonInteraction,
   type Interaction,
   type ModalSubmitInteraction,
@@ -19,13 +17,7 @@ import {
   toggleChecklists,
 } from "./panel";
 import { getPath } from "./path";
-import {
-  panelDialog,
-  readDialogValue,
-  renderPanel,
-  renderPanelEmbeds,
-  renderPanelViewSection,
-} from "./render";
+import { panelDialog, readDialogValue, renderPanel, renderPanelEmbeds, renderPlaceholders } from "./render";
 
 type PanelInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
 
@@ -95,29 +87,42 @@ async function dispatch(
 
   const view = panel.viewFor(config, decoded.viewSegment);
 
-  // A checklist edits several toggles at once; only the ones whose state
-  // the pick changed are written, each as its own setting.
-  if (decoded.kind === "toggles") {
+  // A checklist picker names the toggles to turn on (or off); a pick of
+  // one already in that state, from a stale message, writes nothing.
+  if (decoded.kind === "enable" || decoded.kind === "disable") {
     const checklist = toggleChecklists(view.controls(config, context)).find(
       candidate => candidate.id === decoded.path
     );
     if (!checklist || !interaction.isStringSelectMenu()) {
       return;
     }
-    const changes = checklist.toggles
-      .map(toggle => ({ toggle, next: interaction.values.includes(toggle.key) }))
-      .filter(({ toggle, next }) => (getPath(config, toggle.key) === true) !== next);
-    for (const { toggle, next } of changes) {
+    const next = decoded.kind === "enable";
+    const changes = checklist.toggles.filter(
+      toggle => interaction.values.includes(toggle.key) && (getPath(config, toggle.key) === true) !== next
+    );
+    for (const toggle of changes) {
       const problem = toggle.validateValue?.(next, config, context);
       if (problem) {
         await deny(interaction, problem);
         return;
       }
     }
-    for (const { toggle, next } of changes) {
+    for (const toggle of changes) {
       await panel.updateConfig(context.guild, view, toggle.key, next, context.user.id);
     }
     await repaint(panel, context, view.segment, interaction);
+    return;
+  }
+  if (decoded.kind === "placeholders") {
+    const field = view
+      .controls(config, context)
+      .find(
+        (candidate): candidate is DialogControl<any> =>
+          candidate.kind === "dialog" && candidate.key === decoded.path
+      );
+    if (field?.placeholders) {
+      await interaction.reply(renderPlaceholders(field.placeholders.catalog()));
+    }
     return;
   }
   const control = view
@@ -127,22 +132,6 @@ async function dispatch(
     return;
   }
 
-  // A view button carries no setting; it opens its section as its own
-  // message so long reference content does not sit under the controls.
-  if (control.kind === "view") {
-    const body = await renderPanelViewSection(panel, context, view.segment, control.key);
-    // A V2 container needs the flag; ephemeral keeps the reference content
-    // to the presser rather than spamming the channel.
-    await interaction.reply({
-      components: [
-        new ContainerBuilder().addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(body ?? "Nothing to show here.")
-        ),
-      ],
-      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-    });
-    return;
-  }
   if (interaction.isModalSubmit()) {
     await submitDialog(panel, context, view, control as DialogControl<any>, interaction, config);
     return;

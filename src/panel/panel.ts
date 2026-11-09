@@ -1,3 +1,4 @@
+import type PlaceholderExecutor from "@/placeholder/placeholder-executor";
 import type GlobalUser from "@/user/global-user";
 import type { EmbedBuilder, Guild } from "discord.js";
 
@@ -23,9 +24,9 @@ export interface ToggleControl<C> {
    */
   state(value: boolean, config: C, context: PanelContext): string;
   /**
-   * Toggles sharing a group render together as one checklist (a
-   * multi-select) under this heading instead of a button each, so a view
-   * with many switches stays compact.
+   * Toggles sharing a group render together as one checklist under this
+   * heading instead of a button each, so a view with many switches stays
+   * compact.
    */
   group?: string;
   /**
@@ -98,22 +99,15 @@ export interface DialogControl<C> {
    * input is stored as-is when omitted.
    */
   transform?(input: string, config: C, context: PanelContext): unknown;
+  /**
+   * The tokens a template field can contain. The engine adds a button that
+   * lists them, one per distinct executor in the view, so every template
+   * field gets the same reference without the panel declaring it.
+   */
+  placeholders?: Pick<PlaceholderExecutor, "catalog">;
 }
 
-/**
- * A read-only button with no setting behind it. On press it opens the
- * view's section named by `key` as its own message, so long reference
- * content (a token list, say) is shown on demand rather than under the
- * controls.
- */
-export interface ViewControl<C> {
-  kind: "view";
-  key: string;
-  label: string;
-  description?: string;
-}
-
-export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogControl<C> | ViewControl<C>;
+export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogControl<C>;
 
 /** Discord's cap on a select menu's options. */
 export const SELECT_OPTIONS_MAX = 25;
@@ -203,8 +197,8 @@ export const PANEL_PREFIX = "panel";
 export interface PanelCustomId {
   segment: string;
   viewSegment: string;
-  kind: "root" | "toggle" | "choice" | "dialog" | "view" | "toggles";
-  /** The dotted config path the component edits; views and view buttons carry none. */
+  kind: "root" | "toggle" | "choice" | "dialog" | "placeholders" | "enable" | "disable";
+  /** The dotted config path the component edits; the view switcher carries none. */
   path: string | null;
 }
 
@@ -239,7 +233,12 @@ export function parsePanelCustomId(customId: string): PanelCustomId | null {
   if (
     extra.length > 0 ||
     !path ||
-    (kind !== "toggle" && kind !== "choice" && kind !== "dialog" && kind !== "view" && kind !== "toggles")
+    (kind !== "toggle" &&
+      kind !== "choice" &&
+      kind !== "dialog" &&
+      kind !== "placeholders" &&
+      kind !== "enable" &&
+      kind !== "disable")
   ) {
     return null;
   }
