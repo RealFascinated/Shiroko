@@ -1,6 +1,6 @@
 import { db } from "@/db/index";
 import { mediaSchema } from "@/db/schemas/media";
-import { count, isNotNull, isNull, sum } from "drizzle-orm";
+import { and, count, isNotNull, isNull, sum } from "drizzle-orm";
 import { Metric, type MetricRegistration } from "../metric";
 
 /** Media totals split by whether the object is current or awaiting its TTL. */
@@ -10,7 +10,7 @@ interface MediaStateTotals {
 }
 
 /**
- * Count and byte size of every object in the media bucket, grouped into
+ * Count and byte size of every object still in the media bucket, grouped into
  * `live` (the current avatar/banner) and `superseded` (kept until the TTL
  * sweep deletes them). Both states occupy S3, so the bucket's real
  * footprint is their sum; the split shows whether the nightly sweep is
@@ -24,7 +24,7 @@ async function mediaStateTotals(): Promise<MediaStateTotals> {
   const [superseded] = await db
     .select({ files: count(), bytes: sum(mediaSchema.size) })
     .from(mediaSchema)
-    .where(isNotNull(mediaSchema.supersededAt));
+    .where(and(isNotNull(mediaSchema.supersededAt), isNull(mediaSchema.deletedAt)));
   return {
     files: { live: live?.files ?? 0, superseded: superseded?.files ?? 0 },
     bytes: { live: Number(live?.bytes ?? 0), superseded: Number(superseded?.bytes ?? 0) },

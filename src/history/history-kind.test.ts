@@ -46,23 +46,23 @@ describe("user kinds", () => {
     expect(kind.draft(event)).toBeNull();
   });
 
-  test("describes a row", () => {
+  test("describes a row", async () => {
     const row = { oldValue: "a", newValue: "b" } as HistoryEntry;
-    expect(USER_KIND_BY_ID.username!.describe(row)).toBe("**Username**: `a` → `b`");
+    expect(await USER_KIND_BY_ID.username!.describe(row)).toBe("**Username**: `a` → `b`");
   });
 });
 
 describe("guild kinds", () => {
-  test("roles lists additions and removals", () => {
+  test("roles lists additions and removals", async () => {
     const row = guildRow("roles", null, { added: ["1"], removed: ["2"] });
-    expect(GUILD_KIND_BY_ID.roles!.describe(row)).toBe("**Roles** <@42>: +<@&1> -<@&2>");
+    expect(await GUILD_KIND_BY_ID.roles!.describe(row)).toBe("**Roles** <@42>: +<@&1> -<@&2>");
   });
 
-  test("a leave with an audit actor reads as a kick", () => {
-    expect(GUILD_KIND_BY_ID.member_leave!.describe(guildRow("member_leave", null, null, "7"))).toBe(
+  test("a leave with an audit actor reads as a kick", async () => {
+    expect(await GUILD_KIND_BY_ID.member_leave!.describe(guildRow("member_leave", null, null, "7"))).toBe(
       "**Kicked** <@42>"
     );
-    expect(GUILD_KIND_BY_ID.member_leave!.describe(guildRow("member_leave", null, null))).toBe(
+    expect(await GUILD_KIND_BY_ID.member_leave!.describe(guildRow("member_leave", null, null))).toBe(
       "**Left** <@42>"
     );
   });

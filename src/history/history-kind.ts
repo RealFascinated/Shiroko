@@ -87,7 +87,7 @@ export abstract class UserHistoryKind<E extends UserChangeEvent> {
     return { user: event.newUser, ...this.change(event) };
   }
 
-  public describe(row: HistoryEntry): string {
+  public describe(row: HistoryEntry): string | Promise<string> {
     return `**${this.label}**: ${formatChange(row)}`;
   }
 }
@@ -116,7 +116,7 @@ export abstract class GuildHistoryKind<E extends Event> {
     return `<@${subjectId}>`;
   }
 
-  public describe(row: HistoryEntry): string {
+  public describe(row: HistoryEntry): string | Promise<string> {
     return `**${this.label}** ${this.mention(row.subjectId)}: ${formatChange(row)}`;
   }
 }

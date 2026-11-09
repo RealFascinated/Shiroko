@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, lt, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lte, ne } from "drizzle-orm";
 import { db } from "../db/index";
 import { mediaSchema } from "../db/schemas/media";
 import { FETCH_TIMEOUT_MS } from "../lib/fetch";
@@ -19,12 +19,12 @@ export interface StoreMediaOptions {
   readonly sourceUrl: string;
 }
 
-/** How long a superseded asset is kept before the sweep removes it. */
+/** How long a superseded asset's file is kept before the sweep deletes it from storage. */
 export const MEDIA_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
- * The nightly media sweep: delete every superseded avatar and banner whose
- * TTL has passed.
+ * The nightly media sweep: delete the stored file of every superseded avatar
+ * and banner whose TTL has passed. The rows stay.
  *
  * Never rejects. `Bun.cron` turns a rejected promise into an
  * `unhandledRejection`, which exits the process without a handler, so the
@@ -32,9 +32,9 @@ export const MEDIA_TTL_MS = 30 * 24 * 60 * 60 * 1000;
  */
 export async function runMediaSweep(now: Date = new Date()): Promise<void> {
   try {
-    const removed = await MediaService.expireSuperseded(now);
+    const removed = await MediaService.deleteExpiredFiles(now);
     if (removed > 0) {
-      console.log(`Expired ${removed} media asset(s) past the ${MEDIA_TTL_MS / 86_400_000}-day TTL`);
+      console.log(`Deleted ${removed} expired media file(s) past the ${MEDIA_TTL_MS / 86_400_000}-day TTL`);
     }
   } catch (error) {
     console.error("Media sweep failed:", error);
@@ -81,7 +81,7 @@ export default class MediaService {
     // re-storing the current one does not expire it.
     await db
       .update(mediaSchema)
-      .set({ supersededAt: new Date() })
+      .set(MediaService.superseded(new Date()))
       .where(
         and(
           eq(mediaSchema.userId, userId),
@@ -96,7 +96,7 @@ export default class MediaService {
       .values(MediaService.row(options, size, null))
       .onConflictDoUpdate({
         target: [mediaSchema.userId, mediaSchema.kind, mediaSchema.hash],
-        set: { size, supersededAt: null },
+        set: { size, supersededAt: null, expiresAt: null, deletedAt: null },
       });
     return true;
   }
@@ -143,7 +143,7 @@ export default class MediaService {
   public static async supersede(userId: string, kind: MediaKind): Promise<void> {
     await db
       .update(mediaSchema)
-      .set({ supersededAt: new Date() })
+      .set(MediaService.superseded(new Date()))
       .where(
         and(eq(mediaSchema.userId, userId), eq(mediaSchema.kind, kind), isNull(mediaSchema.supersededAt))
       );
@@ -207,21 +207,36 @@ export default class MediaService {
   }
 
   /**
-   * Delete every superseded asset whose TTL has passed, object and row
-   * alike. Objects are deleted before their rows, so a failed object
-   * deletion leaves the row in place to retry on the next sweep instead of
-   * orphaning the bytes.
+   * Whether an asset's file is gone or due to be. An asset that was never
+   * stored counts as expired, since there is no file to open either way.
+   */
+  public static async isExpired(
+    kind: MediaKind,
+    userId: string,
+    hash: string,
+    now: Date = new Date()
+  ): Promise<boolean> {
+    const [row] = await db
+      .select({ expiresAt: mediaSchema.expiresAt, deletedAt: mediaSchema.deletedAt })
+      .from(mediaSchema)
+      .where(and(eq(mediaSchema.userId, userId), eq(mediaSchema.kind, kind), eq(mediaSchema.hash, hash)));
+    return !row || row.deletedAt !== null || (row.expiresAt !== null && row.expiresAt <= now);
+  }
+
+  /**
+   * Delete the stored file of every asset whose TTL has passed and stamp
+   * `deletedAt`. The row is kept, and a file that fails to delete stays
+   * unstamped so the next sweep retries it.
    *
    * @param now - the reference time; overridable for tests.
    */
-  public static async expireSuperseded(now: Date = new Date()): Promise<number> {
-    const cutoff = new Date(now.getTime() - MEDIA_TTL_MS);
-    const predicate = and(isNotNull(mediaSchema.supersededAt), lt(mediaSchema.supersededAt, cutoff));
-
-    const expired = await db
-      .select({ userId: mediaSchema.userId, kind: mediaSchema.kind, filename: mediaSchema.filename })
-      .from(mediaSchema)
-      .where(predicate);
+  public static async deleteExpiredFiles(now: Date = new Date()): Promise<number> {
+    const predicate = and(
+      isNotNull(mediaSchema.expiresAt),
+      lte(mediaSchema.expiresAt, now),
+      isNull(mediaSchema.deletedAt)
+    );
+    const expired = await db.select({ filename: mediaSchema.filename }).from(mediaSchema).where(predicate);
     const deleted: string[] = [];
     for (const asset of expired) {
       if (await StorageService.deleteFile(StorageBucket.Media, asset.filename)) {
@@ -231,8 +246,15 @@ export default class MediaService {
     if (deleted.length === 0) {
       return 0;
     }
-    await db.delete(mediaSchema).where(and(predicate, inArray(mediaSchema.filename, deleted)));
+    await db
+      .update(mediaSchema)
+      .set({ deletedAt: now })
+      .where(and(predicate, inArray(mediaSchema.filename, deleted)));
     return deleted.length;
+  }
+
+  private static superseded(at: Date): Pick<typeof mediaSchema.$inferInsert, "supersededAt" | "expiresAt"> {
+    return { supersededAt: at, expiresAt: new Date(at.getTime() + MEDIA_TTL_MS) };
   }
 
   private static async upload(options: StoreMediaOptions): Promise<number | null> {
@@ -270,6 +292,7 @@ export default class MediaService {
       extension: assetExtension(options.hash),
       size,
       supersededAt,
+      expiresAt: supersededAt && MediaService.superseded(supersededAt).expiresAt,
     };
   }
 

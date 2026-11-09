@@ -40,22 +40,23 @@ export default abstract class HistoryCommand extends Command {
     const kind = args.string("type") ?? undefined;
     const { title, fetchPage: fetch } = this.source(context);
     const fetchPage = (page: number) => fetch(page, ENTRIES_PER_PAGE, kind);
-    const render = (page: Page<HistoryEntry>) => ({
-      embeds: [
-        baseEmbed(commandName)
-          .setTitle(title)
-          .setDescription(
-            page.rows
-              .map(row => {
-                const when = `<t:${Math.floor(row.createdAt.getTime() / 1000)}:R>`;
-                const by = row.actorId ? ` by <@${row.actorId}>` : "";
-                const described = (USER_KIND_BY_ID[row.kind] ?? GUILD_KIND_BY_ID[row.kind])?.describe(row);
-                return `${when} ${described ?? `\`${row.kind}\``}${by}`;
-              })
-              .join("\n") || "Nothing recorded yet."
-          ),
-      ],
-    });
+    const render = async (page: Page<HistoryEntry>) => {
+      const lines = await Promise.all(
+        page.rows.map(async row => {
+          const when = `<t:${Math.floor(row.createdAt.getTime() / 1000)}:R>`;
+          const by = row.actorId ? ` by <@${row.actorId}>` : "";
+          const described = await (USER_KIND_BY_ID[row.kind] ?? GUILD_KIND_BY_ID[row.kind])?.describe(row);
+          return `${when} ${described ?? `\`${row.kind}\``}${by}`;
+        })
+      );
+      return {
+        embeds: [
+          baseEmbed(commandName)
+            .setTitle(title)
+            .setDescription(lines.join("\n") || "Nothing recorded yet."),
+        ],
+      };
+    };
     const firstPage = await fetchPage(1);
     const pager = createPager({
       namespace: `audit-${commandName}`,
