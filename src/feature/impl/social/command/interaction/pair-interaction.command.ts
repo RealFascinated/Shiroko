@@ -6,7 +6,7 @@ import Components from "@/component/components";
 import SocialService from "@/feature/impl/social/social.service";
 import { PAIR_INTERACTIONS, type InteractionType } from "@/feature/impl/social/interactions";
 import { getGif, type AnimeGif, type GifCategory } from "@/lib/anime/index";
-import { baseEmbed } from "@/lib/embed";
+import { baseEmbed, footerText } from "@/lib/embed";
 import { ordinal, titleCase } from "@/lib/format";
 import { TimeUnit } from "@/lib/time";
 import GlobalUsersManager from "@/user/global-users-manager";
@@ -111,7 +111,7 @@ export default abstract class PairInteractionCommand extends ComponentCommand<In
       .setDescription(`<@${actorId}> ${this.verb} <@${recipientId}> for the **${ordinal(count)}** time!`)
       .setImage(gif.url);
     if (gif.anime_name) {
-      embed.addFields({ name: "Anime", value: gif.anime_name, inline: true });
+      embed.setFooter({ text: `${footerText(commandName)} · ${gif.anime_name}` });
     }
     return embed;
   }

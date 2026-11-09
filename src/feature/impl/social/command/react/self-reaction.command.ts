@@ -1,7 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import type { SelfReactionDefinition } from "@/feature/impl/social/reactions";
 import { getGif, type GifCategory } from "@/lib/anime/index";
-import { baseEmbed } from "@/lib/embed";
+import { baseEmbed, footerText } from "@/lib/embed";
 
 /**
  * Base class for self-reactions: no options, the invoking user "acts on
@@ -15,7 +15,7 @@ export default abstract class SelfReactionCommand extends Command {
     const gif = await getGif(this.gifCategory);
     const embed = baseEmbed(commandName).setTitle(`${ctx.user.displayName} ${this.phrase}`).setImage(gif.url);
     if (gif.anime_name) {
-      embed.addFields({ name: "Anime", value: gif.anime_name, inline: true });
+      embed.setFooter({ text: `${footerText(commandName)} · ${gif.anime_name}` });
     }
     return ctx.reply({ embeds: [embed] });
   }
