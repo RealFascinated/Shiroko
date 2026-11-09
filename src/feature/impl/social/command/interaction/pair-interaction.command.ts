@@ -64,8 +64,17 @@ export default abstract class PairInteractionCommand extends ComponentCommand<In
     const count = await SocialService.incrementInteraction(user.id, targetUser.id, this.interactionType);
     const embed = this.buildEmbed(commandName, user.id, target.id, count, gif);
 
-    const response = await ctx.reply({ embeds: [embed] });
-    const component = await Components.create({
+    const rowId = Components.newId();
+    const row = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(componentCustomId(this.componentId, rowId))
+        .setLabel(`${titleCase(this.interactionType)} Back!`)
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji(this.emoji)
+    );
+    const response = await ctx.reply({ embeds: [embed], components: [row] });
+    await Components.create({
+      id: rowId,
       guildId: ctx.guildId,
       channelId: response.interaction.channelId,
       messageId: response.id,
@@ -74,14 +83,6 @@ export default abstract class PairInteractionCommand extends ComponentCommand<In
       extraData: { actorId: user.id, commandName },
       expiresAt: new Date(Date.now() + BACK_WINDOW_MS),
     });
-    const row = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(componentCustomId(this.componentId, component.id))
-        .setLabel(`${titleCase(this.interactionType)} Back!`)
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji(this.emoji)
-    );
-    await ctx.editReply({ components: [row] });
 
     return response;
   }

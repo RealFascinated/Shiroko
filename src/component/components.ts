@@ -5,6 +5,8 @@ import { db } from "../db/index";
 import { componentsSchema } from "../db/schemas/components";
 
 export interface ComponentInput {
+  /** Pre-minted with `Components.newId`, when the custom id must exist before the message is sent. */
+  id?: string;
   /** Null for a component on a DM reply, which a user-installable command can produce. */
   guildId: string | null;
   channelId: string | null;
@@ -24,15 +26,23 @@ export interface ComponentInput {
  */
 export default class Components {
   /**
+   * Version 7 so the primary key indexes in press order and a `max(id)` is
+   * the newest component.
+   */
+  public static newId(): string {
+    return Bun.randomUUIDv7();
+  }
+
+  /**
    * Store a component and hand back its new row, whose id is the one a
-   * custom id must carry. The id is minted here rather than by the caller,
-   * and is version 7 so the primary key indexes in press order and a
-   * `max(id)` is the newest component.
+   * custom id must carry. Minted here unless the caller pre-minted one with
+   * `newId`, which a component sent with its message needs: the message id
+   * the row stores does not exist until the send returns.
    */
   public static async create(input: ComponentInput): Promise<ComponentSchema> {
     const [row] = await db
       .insert(componentsSchema)
-      .values({ ...input, id: Bun.randomUUIDv7() })
+      .values({ ...input, id: input.id ?? Components.newId() })
       .returning();
     return row!;
   }
