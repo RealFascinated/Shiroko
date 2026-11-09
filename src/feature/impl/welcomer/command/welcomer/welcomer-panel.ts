@@ -31,9 +31,7 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
   public override readonly access: PanelAccess<WelcomerSettingsData> = {
     authorized: async context => {
       const member = await fetchGuildMember(context.guild, context.user.id);
-      return (
-        member !== null && Permissions.memberHas(context.guild, member, PermissionFlags.WELCOMER_COMMAND)
-      );
+      return member !== null && Permissions.memberHas(context.guild, member, PermissionFlags.WELCOMER_ADMIN);
     },
     denied: () => "You don't have permission to edit the welcomer.",
   };

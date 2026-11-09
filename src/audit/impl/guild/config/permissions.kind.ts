@@ -13,7 +13,7 @@ interface RoleState {
 export default class PermissionsKind extends GuildAuditKind {
   public readonly id: string = "permissions";
   public readonly label: string = "Permissions changed";
-  public override readonly revertFlags: bigint = PermissionFlags.PERMISSIONS_COMMAND;
+  public override readonly revertFlags: bigint = PermissionFlags.MANAGE_PERMISSIONS;
 
   protected override mention(subjectId: string): string {
     return `<@&${subjectId}>`;

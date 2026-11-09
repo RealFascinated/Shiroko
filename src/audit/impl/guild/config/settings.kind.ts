@@ -17,7 +17,7 @@ const MAX_VALUE_LENGTH = 100;
 export default class SettingsKind extends GuildAuditKind {
   public readonly id: string = "settings";
   public readonly label: string = "Setting changed";
-  public override readonly revertFlags: bigint = PermissionFlags.SETTINGS_COMMAND;
+  public override readonly revertFlags: bigint = PermissionFlags.MANAGE_SETTINGS;
 
   protected override mention(subjectId: string): string {
     const setting = resolve(subjectId);

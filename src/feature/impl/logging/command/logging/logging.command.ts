@@ -14,6 +14,6 @@ export default class LoggingCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.LOGGING_COMMAND;
+    return PermissionFlags.LOGGING_ADMIN;
   }
 }

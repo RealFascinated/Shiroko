@@ -9,7 +9,7 @@ import { PermissionFlags } from "@/permission/permissions";
 /**
  * Grant a role when a member reaches a level. The level must be at least 1,
  * and the role must be assignable: not `@everyone`, and at or below the
- * bot's highest role. Gated by `LEVELS_COMMAND`; the rest of `/levels`
+ * bot's highest role. Gated by `LEVELS_ADMIN`; the rest of `/levels`
  * stays open.
  */
 export default class RewardAddCommand extends Command {
@@ -18,7 +18,7 @@ export default class RewardAddCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.LEVELS_COMMAND;
+    return PermissionFlags.LEVELS_ADMIN;
   }
 
   public override get options(): CommandOptionBuilder[] {

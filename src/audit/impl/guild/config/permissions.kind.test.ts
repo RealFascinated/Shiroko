@@ -19,10 +19,10 @@ describe("permissions kind", () => {
   const kind = new PermissionsKind();
 
   test("describes a first-time grant and an inheritance change", async () => {
-    const flags = String(PermissionFlags.LEVELS_COMMAND);
+    const flags = String(PermissionFlags.LEVELS_ADMIN);
     const granted = await kind.summary(entry("r1", null, { flags, parentRoleId: null }));
     expect(granted).toContain("<@&r1>");
-    expect(granted).toContain("Levels Command");
+    expect(granted).toContain("Levels Admin");
     const inherited = await kind.summary(
       entry("r1", { flags: "0", parentRoleId: null }, { flags: "0", parentRoleId: "r2" })
     );
@@ -34,6 +34,6 @@ describe("permissions kind", () => {
   });
 
   test("reverting needs the permissions flag", () => {
-    expect(kind.revertFlags).toBe(PermissionFlags.PERMISSIONS_COMMAND);
+    expect(kind.revertFlags).toBe(PermissionFlags.MANAGE_PERMISSIONS);
   });
 });

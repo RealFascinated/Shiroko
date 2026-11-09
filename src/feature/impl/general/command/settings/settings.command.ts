@@ -16,7 +16,7 @@ export default class SettingsCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.SETTINGS_COMMAND;
+    return PermissionFlags.MANAGE_SETTINGS;
   }
 
   protected override async onExecuteSlash({ ctx, user, commandName }: ExecuteContext) {

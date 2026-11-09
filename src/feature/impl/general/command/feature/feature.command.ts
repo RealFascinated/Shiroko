@@ -14,7 +14,7 @@ export default class FeatureCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.FEATURE_COMMAND;
+    return PermissionFlags.MANAGE_FEATURES;
   }
 
   public override get options(): CommandOptionBuilder[] {

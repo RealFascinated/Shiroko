@@ -16,6 +16,6 @@ export default class PermissionsCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.PERMISSIONS_COMMAND;
+    return PermissionFlags.MANAGE_PERMISSIONS;
   }
 }

@@ -20,6 +20,6 @@ export default class AutorolesCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.AUTOROLE_COMMAND;
+    return PermissionFlags.AUTOROLES_ADMIN;
   }
 }

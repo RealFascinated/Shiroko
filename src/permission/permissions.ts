@@ -21,15 +21,14 @@ import { loadPage, type Page } from "../lib/pagination";
  * `number` values, and flag bits are `bigint`s (Discord's own model).
  */
 export const PermissionFlags = Object.freeze({
-  FEATURE_COMMAND: 1n << 1n,
-  PERMISSIONS_COMMAND: 1n << 2n,
-  SETTINGS_COMMAND: 1n << 4n,
-  AUTOROLE_COMMAND: 1n << 5n,
-  WELCOMER_COMMAND: 1n << 6n,
-  LOGGING_COMMAND: 1n << 7n,
-  LEVELS_COMMAND: 1n << 9n,
-  AUDIT_COMMAND: 1n << 10n,
-  // 1n << 8n was retired with the YouTube feature; never reuse a retired bit.
+  MANAGE_FEATURES: 1n << 1n,
+  MANAGE_PERMISSIONS: 1n << 2n,
+  MANAGE_SETTINGS: 1n << 4n,
+  AUTOROLES_ADMIN: 1n << 5n,
+  WELCOMER_ADMIN: 1n << 6n,
+  LOGGING_ADMIN: 1n << 7n,
+  LEVELS_ADMIN: 1n << 9n,
+  VIEW_AUDIT_LOG: 1n << 10n,
 } as const satisfies Record<string, bigint>);
 
 /**
@@ -37,14 +36,14 @@ export const PermissionFlags = Object.freeze({
  * for `/permissions` choice labels and for decoding flags in `/view`.
  */
 export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: string }> = [
-  { flag: PermissionFlags.FEATURE_COMMAND, label: "Feature Command" },
-  { flag: PermissionFlags.PERMISSIONS_COMMAND, label: "Permissions Command" },
-  { flag: PermissionFlags.SETTINGS_COMMAND, label: "Settings Command" },
-  { flag: PermissionFlags.AUTOROLE_COMMAND, label: "Autoroles Command" },
-  { flag: PermissionFlags.WELCOMER_COMMAND, label: "Welcomer Command" },
-  { flag: PermissionFlags.LOGGING_COMMAND, label: "Logging Command" },
-  { flag: PermissionFlags.LEVELS_COMMAND, label: "Levels Command" },
-  { flag: PermissionFlags.AUDIT_COMMAND, label: "Audit Command" },
+  { flag: PermissionFlags.MANAGE_FEATURES, label: "Manage Features" },
+  { flag: PermissionFlags.MANAGE_PERMISSIONS, label: "Manage Permissions" },
+  { flag: PermissionFlags.MANAGE_SETTINGS, label: "Manage Settings" },
+  { flag: PermissionFlags.AUTOROLES_ADMIN, label: "Autoroles Admin" },
+  { flag: PermissionFlags.WELCOMER_ADMIN, label: "Welcomer Admin" },
+  { flag: PermissionFlags.LOGGING_ADMIN, label: "Logging Admin" },
+  { flag: PermissionFlags.LEVELS_ADMIN, label: "Levels Admin" },
+  { flag: PermissionFlags.VIEW_AUDIT_LOG, label: "View Audit Log" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];

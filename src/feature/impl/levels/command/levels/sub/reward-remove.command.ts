@@ -6,7 +6,7 @@ import { PermissionFlags } from "@/permission/permissions";
 
 /**
  * Remove the level-up reward configured at a level. Gated by
- * `LEVELS_COMMAND`; the rest of `/levels` stays open.
+ * `LEVELS_ADMIN`; the rest of `/levels` stays open.
  */
 export default class RewardRemoveCommand extends Command {
   constructor() {
@@ -14,7 +14,7 @@ export default class RewardRemoveCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.LEVELS_COMMAND;
+    return PermissionFlags.LEVELS_ADMIN;
   }
 
   public override get options(): CommandOptionBuilder[] {

@@ -33,9 +33,7 @@ export default class SettingsPanel extends Panel<SettingsHubConfig> {
   public override readonly access: PanelAccess<SettingsHubConfig> = {
     authorized: async context => {
       const member = await fetchGuildMember(context.guild, context.user.id);
-      return (
-        member !== null && Permissions.memberHas(context.guild, member, PermissionFlags.SETTINGS_COMMAND)
-      );
+      return member !== null && Permissions.memberHas(context.guild, member, PermissionFlags.MANAGE_SETTINGS);
     },
     denied: () => "You don't have permission to configure settings.",
   };

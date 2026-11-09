@@ -13,7 +13,7 @@ export default class WelcomerCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.WELCOMER_COMMAND;
+    return PermissionFlags.WELCOMER_ADMIN;
   }
 
   public override get userInstallable(): boolean {

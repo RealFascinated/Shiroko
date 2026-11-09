@@ -80,6 +80,6 @@ describe("settings kind", () => {
   });
 
   test("reverting needs the settings flag", () => {
-    expect(kind.revertFlags).toBe(PermissionFlags.SETTINGS_COMMAND);
+    expect(kind.revertFlags).toBe(PermissionFlags.MANAGE_SETTINGS);
   });
 });

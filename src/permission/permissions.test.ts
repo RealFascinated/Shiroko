@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import type { Guild } from "discord.js";
 import Permissions, { flagLabels, hasFlags, PermissionFlags } from "./permissions";
 
-const FEATURE = PermissionFlags.FEATURE_COMMAND;
-const PERMISSIONS = PermissionFlags.PERMISSIONS_COMMAND;
+const FEATURE = PermissionFlags.MANAGE_FEATURES;
+const PERMISSIONS = PermissionFlags.MANAGE_PERMISSIONS;
 
 function config(
   entries: Array<[string, bigint, string | null]>
@@ -13,8 +13,8 @@ function config(
 
 describe("flagLabels", () => {
   test("decodes known flags to display names", () => {
-    expect(flagLabels(FEATURE)).toEqual(["Feature Command"]);
-    expect(flagLabels(FEATURE | PERMISSIONS)).toEqual(["Feature Command", "Permissions Command"]);
+    expect(flagLabels(FEATURE)).toEqual(["Manage Features"]);
+    expect(flagLabels(FEATURE | PERMISSIONS)).toEqual(["Manage Features", "Manage Permissions"]);
   });
 });
 

@@ -8,7 +8,7 @@ import { PermissionFlags } from "@/permission/permissions";
  * Grant every unlocked reward role members are missing. Useful after
  * configuring a reward members already out-levelled, for members who left
  * and re-joined, and to repair grants that failed while the bot was
- * offline. Gated by `LEVELS_COMMAND`; the rest of `/levels` stays open.
+ * offline. Gated by `LEVELS_ADMIN`; the rest of `/levels` stays open.
  */
 export default class SyncRewardsCommand extends Command {
   constructor() {
@@ -16,7 +16,7 @@ export default class SyncRewardsCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.LEVELS_COMMAND;
+    return PermissionFlags.LEVELS_ADMIN;
   }
 
   protected override async onExecuteSlash(context: ExecuteContext): Promise<void> {

@@ -15,6 +15,6 @@ export default class AuditCommand extends Command {
   }
 
   public override get requiredFlags(): bigint {
-    return PermissionFlags.AUDIT_COMMAND;
+    return PermissionFlags.VIEW_AUDIT_LOG;
   }
 }
