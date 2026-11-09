@@ -1,18 +1,6 @@
 import type { Page } from "../lib/pagination";
 
 /**
- * What a leaderboard ranks: user ids or guild ids. Drives how callers
- * resolve display names.
- */
-export type LeaderboardEntity = "user" | "guild";
-
-/**
- * How a leaderboard is scoped: "guild" means the scope parameter is a
- * guild id; "global" means the scope parameter is ignored.
- */
-export type LeaderboardScope = "guild" | "global";
-
-/**
  * Stable slugs for the registered leaderboards; the registry is keyed
  * by them and commands dispatch on them.
  */
@@ -22,9 +10,10 @@ export enum LeaderboardId {
   Messages = "messages",
   Voice = "voice",
 }
+
 /**
- * One ranked entity. `id` is the user id or guild id; `value` is the
- * score in the board's units (XP, message count, seconds, ...).
+ * One ranked entity. `id` is the user id; `value` is the score in the
+ * board's units (XP, message count, seconds, ...).
  */
 export interface LeaderboardRow {
   id: string;
@@ -48,29 +37,25 @@ export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 50;
 
 /**
- * A fully DB-backed leaderboard over a set of ranked entities. `T` is
- * the row type the board emits; the board is unit-agnostic. Concrete
- * boards implement the table-specific queries via {@link UserLeaderboard}
- * or {@link GuildLeaderboard}, which provide the shared page and
- * position mechanics.
+ * A fully DB-backed leaderboard over a set of ranked entities. `T` is the
+ * row type the board emits; the board is unit-agnostic. Concrete boards
+ * implement the table-specific queries via {@link UserLeaderboard}, which
+ * provides the shared page and position mechanics.
  */
 export default abstract class Leaderboard<T extends LeaderboardRow> {
   public abstract readonly id: LeaderboardId;
-  public abstract readonly entity: LeaderboardEntity;
-  public abstract readonly scope: LeaderboardScope;
 
   /**
-   * One page of the board in `scope` (a guild id for guild-scoped
-   * boards, ignored for global boards). `page` is 1-based and clamped
-   * into range; `pageSize` defaults to {@link DEFAULT_PAGE_SIZE} and is
-   * clamped to [1, MAX_PAGE_SIZE]. The page's rows come from the
+   * One page of the board in `scope` (a guild id). `page` is 1-based and
+   * clamped into range; `pageSize` defaults to {@link DEFAULT_PAGE_SIZE}
+   * and is clamped to [1, MAX_PAGE_SIZE]. The page's rows come from the
    * database via `LIMIT`/`OFFSET`, never from slicing a full result.
    */
   public abstract getPage(scope: string, page: number, pageSize?: number): Promise<Page<T>>;
 
   /**
-   * One entity's standing in `scope`: its 1-based position (ties share
-   * a position), the total ranked entities, and the entity's own row.
+   * One entity's standing in `scope`: its 1-based position (ties share a
+   * position), the total ranked entities, and the entity's own row.
    * `position` and `row` are null when the entity has no score.
    */
   public abstract getPosition(scope: string, id: string): Promise<LeaderboardPosition<T>>;

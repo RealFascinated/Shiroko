@@ -2,10 +2,8 @@ import { loadPage, type Page } from "../lib/pagination";
 import Leaderboard, {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
-  type LeaderboardEntity,
   type LeaderboardPosition,
   type LeaderboardRow,
-  type LeaderboardScope,
 } from "./leaderboard";
 
 /**
@@ -14,9 +12,6 @@ import Leaderboard, {
  * provide the four table-specific queries.
  */
 export abstract class UserLeaderboard<T extends LeaderboardRow> extends Leaderboard<T> {
-  public override readonly entity: LeaderboardEntity = "user";
-  /** Guild-scoped by default; a global user board overrides this. */
-  public override readonly scope: LeaderboardScope = "guild";
 
   /**
    * The top `limit` rows of the board in `scope`, starting at

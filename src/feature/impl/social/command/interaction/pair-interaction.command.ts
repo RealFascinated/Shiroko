@@ -1,10 +1,11 @@
-import { type CommandInfo, type ExecuteContext } from "@/command/command";
+import { type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
 import ComponentCommand from "@/component/component-command";
 import { componentCustomId, type ComponentContext, type ComponentType } from "@/component/component";
 import Components from "@/component/components";
-import SocialService, { type InteractionType } from "@/feature/impl/social/social.service";
-import { getGif, type AnimeGif } from "@/lib/anime/index";
+import SocialService from "@/feature/impl/social/social.service";
+import { PAIR_INTERACTIONS, type InteractionType } from "@/feature/impl/social/interactions";
+import { getGif, type AnimeGif, type GifCategory } from "@/lib/anime/index";
 import { baseEmbed } from "@/lib/embed";
 import { ordinal, titleCase } from "@/lib/format";
 import { TimeUnit } from "@/lib/time";
@@ -35,22 +36,16 @@ type InteractionBackPayload = { actorId: string; commandName: string };
  * The button is a stored component rather than a collector, so it keeps
  * working across a restart. Its row names the target as the only allowed
  * presser and is claimed on the press, so the interaction is returned once.
- *
- * Subclasses only supply their id, description, interaction type, GIF category,
- * and the display verb and past participle used in the reply text.
  */
 export default abstract class PairInteractionCommand extends ComponentCommand<InteractionBackPayload> {
   public readonly type: ComponentType = "button";
   public override readonly oneShot: boolean = true;
 
   protected abstract readonly interactionType: InteractionType;
-  protected abstract readonly gifCategory: Parameters<typeof getGif>[0];
+  protected abstract readonly gifCategory: GifCategory;
   protected abstract readonly verb: string;
+  protected abstract readonly selfVerb: string;
   protected abstract readonly emoji: string;
-
-  constructor(info: CommandInfo) {
-    super(info);
-  }
 
   public override get options() {
     return [userOption(true, "target", `Who to ${this.interactionType}`)];
@@ -59,7 +54,10 @@ export default abstract class PairInteractionCommand extends ComponentCommand<In
   protected override async onExecuteSlash({ user, ctx, commandName }: ExecuteContext) {
     const target = ctx.options.getUser("target", true);
     if (target.id === user.discordUser.id) {
-      return ctx.reply({ content: `You can't ${this.verb} yourself! :(`, flags: MessageFlags.Ephemeral });
+      return ctx.reply({
+        content: `You can't ${this.selfVerb} yourself! :(`,
+        flags: MessageFlags.Ephemeral,
+      });
     }
     const targetUser = await GlobalUsersManager.getUser(target);
     const gif = await getGif(this.gifCategory);
@@ -115,5 +113,23 @@ export default abstract class PairInteractionCommand extends ComponentCommand<In
       embed.addFields({ name: "Anime", value: gif.anime_name, inline: true });
     }
     return embed;
+  }
+}
+
+/** One subcommand of `/interact`, built from its row in `PAIR_INTERACTIONS`. */
+export class PairInteractionSubCommand extends PairInteractionCommand {
+  protected readonly interactionType: InteractionType;
+  protected readonly gifCategory: GifCategory;
+  protected readonly verb: string;
+  protected readonly selfVerb: string;
+  protected readonly emoji: string;
+
+  constructor(definition: (typeof PAIR_INTERACTIONS)[number]) {
+    super({ id: definition.id, displayName: definition.displayName });
+    this.interactionType = definition.id;
+    this.gifCategory = definition.gifCategory;
+    this.verb = definition.verb;
+    this.selfVerb = definition.selfVerb;
+    this.emoji = definition.emoji;
   }
 }

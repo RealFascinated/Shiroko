@@ -1,4 +1,5 @@
-import { renderStatsCard, type StatsCardKind } from "@/feature/impl/stats/stats-card";
+import { renderStatsCard } from "@/feature/impl/stats/stats-card";
+import type { StatsCardKind } from "@/feature/impl/stats/stats.types";
 import { statsService } from "@/feature/impl/stats/stats.service";
 import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { type ChatInputCommandInteraction, type User } from "discord.js";

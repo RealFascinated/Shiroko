@@ -11,7 +11,7 @@ export default class AvatarCommand extends ContextMenuCommand {
     return ApplicationCommandType.User;
   }
 
-  protected override async onExecute({ ctx }: ContextMenuExecuteContext): Promise<void> {
+  public override async execute({ ctx }: ContextMenuExecuteContext): Promise<void> {
     const target = (ctx as UserContextMenuCommandInteraction).targetUser;
     const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
 

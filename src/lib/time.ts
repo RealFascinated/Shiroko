@@ -36,11 +36,8 @@ export namespace TimeUnit {
   }
 }
 
-/**
- * @param ms - Duration in milliseconds
- * @param long - Use long unit names ("Days" instead of "d")
- */
-export function formatDuration(ms: number, long: boolean = false): string {
+/** Format a duration in milliseconds as up to two units, e.g. `2h, 30m`. */
+export function formatDuration(ms: number): string {
   let remaining = Math.floor(Math.abs(ms));
   const dayMs = TimeUnit.toMillis(TimeUnit.Day, 1);
   const hourMs = TimeUnit.toMillis(TimeUnit.Hour, 1);
@@ -55,17 +52,17 @@ export function formatDuration(ms: number, long: boolean = false): string {
   const seconds = Math.floor(remaining / secondMs);
   remaining %= secondMs;
   const units = [
-    { value: days, unit: long ? "Days" : "d" },
-    { value: hours, unit: long ? "Hours" : "h" },
-    { value: minutes, unit: long ? "Minutes" : "m" },
-    { value: seconds, unit: long ? "Seconds" : "s" },
-    { value: remaining, unit: long ? "Milliseconds" : "ms" },
+    { value: days, unit: "d" },
+    { value: hours, unit: "h" },
+    { value: minutes, unit: "m" },
+    { value: seconds, unit: "s" },
+    { value: remaining, unit: "ms" },
   ];
   const result = units
     .filter(unit => unit.value > 0)
     .slice(0, 2)
     .map(unit => `${unit.value}${unit.unit}`);
-  return result.join(", ") || (long ? "0 Seconds" : "0s");
+  return result.join(", ") || "0s";
 }
 
 /**

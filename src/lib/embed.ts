@@ -1,6 +1,6 @@
 import { EmbedBuilder, MessageFlags, type InteractionReplyOptions } from "discord.js";
 import { Constants } from "../constants";
-import { discordClient } from "../index";
+import { discordClient } from "../client";
 
 /**
  * Base constructors for every embed. See `DESIGN.md` for the full system.
@@ -30,7 +30,7 @@ export function errorEmbed(command: string | null = null): EmbedBuilder {
  * Build the embed first, then pass it: `ctx.reply(ephemeralErrorReply(command, embed))`.
  */
 export function ephemeralErrorReply(command: string | null, embed: EmbedBuilder): InteractionReplyOptions {
-  return { embeds: [embed ?? errorEmbed(command)], flags: MessageFlags.Ephemeral };
+  return { embeds: [embed], flags: MessageFlags.Ephemeral };
 }
 
 export function footerText(command: string | null = null): string {

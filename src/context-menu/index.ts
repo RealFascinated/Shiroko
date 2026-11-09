@@ -9,12 +9,11 @@ import AvatarCommand from "./impl/avatar.command";
 import BannerCommand from "./impl/banner.command";
 
 export default class ContextMenuCommandManager {
-  private static commands: Map<string, ContextMenuCommand> = new Map<string, ContextMenuCommand>();
+  private static readonly COMMANDS: Map<string, ContextMenuCommand> = new Map<string, ContextMenuCommand>();
 
   constructor() {
-    this.registerCommand(new AvatarCommand());
-    this.registerCommand(new BannerCommand());
-    console.log(`Context menu commands registered: ${ContextMenuCommandManager.commands.size}`);
+    ContextMenuCommandManager.registerCommand(new AvatarCommand());
+    ContextMenuCommandManager.registerCommand(new BannerCommand());
   }
 
   /**
@@ -22,15 +21,18 @@ export default class ContextMenuCommandManager {
    * for user/message commands is the display name (see `build`).
    */
   public static getCommand(commandName: string): ContextMenuCommand | undefined {
-    return ContextMenuCommandManager.commands.get(commandName);
+    return ContextMenuCommandManager.COMMANDS.get(commandName);
   }
 
-  public build(): Array<UserApplicationCommandData | MessageApplicationCommandData> {
-    return Array.from(ContextMenuCommandManager.commands.values()).map(command => command.build());
+  public static build(): Array<UserApplicationCommandData | MessageApplicationCommandData> {
+    return Array.from(ContextMenuCommandManager.COMMANDS.values(), command => command.build());
   }
 
-  private registerCommand(command: ContextMenuCommand): void {
-    ContextMenuCommandManager.commands.set(command.displayName, command);
+  private static registerCommand(command: ContextMenuCommand): void {
+    if (ContextMenuCommandManager.COMMANDS.has(command.displayName)) {
+      throw new Error(`Context menu command "${command.displayName}" is already registered`);
+    }
+    ContextMenuCommandManager.COMMANDS.set(command.displayName, command);
     console.log(`Registered context menu command: ${command.id} - ${command.displayName}`);
   }
 }
@@ -44,10 +46,6 @@ export class ContextMenuCommandListener extends EventListener {
   @EventHandler(ContextMenuReceivedEvent)
   public async onContextMenuReceived(event: ContextMenuReceivedEvent): Promise<void> {
     const interaction = event.interaction;
-    if (!interaction.isUserContextMenuCommand() && !interaction.isMessageContextMenuCommand()) {
-      return;
-    }
-
     const commandName = interaction.commandName;
     const command = ContextMenuCommandManager.getCommand(commandName);
     if (!command) {

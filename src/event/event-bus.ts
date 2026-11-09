@@ -18,17 +18,14 @@ interface HandlerEntry {
   method: string;
   handler: AnyHandler;
   featureId: FeatureIds | null;
-  priority: number;
 }
-
-const BUS_HANDLERS = new Map<new (...args: any[]) => Event, HandlerEntry[]>();
 
 /**
  * The internal event bus, modeled on Meteor's Orbit. Listeners register
  * `@EventHandler` methods on classes extending {@link EventListener};
  * the bus dispatches each posted event to every handler for its class, in
- * registration order within a priority tier. Feature gating is applied per
- * handler via `@EventHandler({ featureId })`.
+ * registration order. Feature gating is applied per handler via
+ * `@EventHandler({ featureId })`.
  *
  * Dispatch is synchronous: each handler's returned promise is awaited
  * before the next handler runs, so bus post calls are `await`able and
@@ -37,11 +34,11 @@ const BUS_HANDLERS = new Map<new (...args: any[]) => Event, HandlerEntry[]>();
  * fire-and-forget posts cannot become unhandled rejections.
  */
 export class EventBus {
-  private static readonly HANDLERS: Map<new (...args: any[]) => Event, HandlerEntry[]> = BUS_HANDLERS;
+  private static readonly HANDLERS: Map<new (...args: any[]) => Event, HandlerEntry[]> = new Map();
 
   public static subscribe(listener: EventListener): void {
     for (const metadata of EventBus.listenerHandlers(listener)) {
-      const method = listener[metadata.method as keyof EventListener] as
+      const method = listener[metadata.method as keyof EventListener] as unknown as
         ((event: Event) => void | Promise<void>) | undefined;
       if (typeof method !== "function") {
         throw new Error(
@@ -76,7 +73,7 @@ export class EventBus {
     featureId: FeatureIds | null
   ): void {
     const entries = EventBus.HANDLERS.get(eventClass) ?? [];
-    entries.push({ listener, method, handler, featureId, priority: 0 });
+    entries.push({ listener, method, handler, featureId });
     EventBus.HANDLERS.set(eventClass, entries);
   }
 
@@ -106,8 +103,7 @@ export class EventBus {
 
   public static async post(event: Event): Promise<void> {
     const entries = EventBus.HANDLERS.get(event.constructor as new (...args: any[]) => Event) ?? [];
-    const sorted = [...entries].sort((a, b) => b.priority - a.priority);
-    for (const entry of sorted) {
+    for (const entry of entries) {
       if (!(await EventBus.gate(entry, event))) {
         continue;
       }

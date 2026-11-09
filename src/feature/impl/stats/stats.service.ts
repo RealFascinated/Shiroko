@@ -1,5 +1,5 @@
 import { db } from "@/db/index";
-import { globalUsersSchema } from "@/db/schemas/global-users";
+import GlobalUsersManager from "@/user/global-users-manager";
 import { messageEventsSchema } from "@/db/schemas/message-events";
 import { voiceSessionsSchema } from "@/db/schemas/voice-sessions";
 import { EventBus } from "@/event/event-bus";
@@ -7,7 +7,14 @@ import VoiceSessionEndedEvent from "@/event/events/voice-session-ended.event";
 import VoiceSessionStartedEvent from "@/event/events/voice-session-started.event";
 import type { Client, Guild } from "discord.js";
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
-import type { StatsCardKind } from "./stats-card";
+import type {
+  CardStats,
+  DaySeries,
+  StatsCardKind,
+  StatsSummary,
+  VoiceSummary,
+  VoiceWindow,
+} from "./stats.types";
 
 /**
  * One guild message to record. `id` is the Discord message id; `createdAt`
@@ -30,45 +37,6 @@ export interface VoiceOccupant {
   channelId: string;
 }
 
-/**
- * Counts for one display window set: today, last 7 days, last 30 days, total.
- */
-export interface StatsSummary {
-  today: number;
-  last7days: number;
-  last30days: number;
-  total: number;
-}
-
-/**
- * Voice activity in one window: closed sessions plus any live session.
- */
-export interface VoiceWindow {
-  sessions: number;
-  seconds: number;
-}
-
-export interface VoiceSummary {
-  today: VoiceWindow;
-  last7days: VoiceWindow;
-  last30days: VoiceWindow;
-  total: VoiceWindow;
-}
-
-/**
- * Per-day values for the chart, oldest first, with weekday initials drawn
- * under each bar. Both derive from the same UTC days as the query window.
- */
-export interface DaySeries {
-  values: number[];
-  dayLabels: string[];
-}
-
-export interface CardStats {
-  messages: StatsSummary;
-  voice: VoiceSummary;
-  series: DaySeries;
-}
 
 /**
  * Display window bounds for one read. Computed once per call so every
@@ -144,7 +112,7 @@ export default class StatsService {
   private openSessions: Map<string, OpenSession> = new Map<string, OpenSession>();
 
   public async recordMessage(record: MessageRecord): Promise<void> {
-    await this.ensureUser(record.userId);
+    await GlobalUsersManager.ensure(record.userId);
     await db
       .insert(messageEventsSchema)
       .values({
@@ -638,23 +606,13 @@ export default class StatsService {
     }
     return { sessions, seconds: sessions.reduce((sum, session) => sum + session.seconds, 0) };
   }
-  /**
-   * Insert the user row if missing, without a read. Satisfies the stats
-   * foreign keys on the hot path.
-   */
-  private async ensureUser(userId: string): Promise<void> {
-    await db
-      .insert(globalUsersSchema)
-      .values({ id: userId })
-      .onConflictDoNothing({ target: globalUsersSchema.id });
-  }
 
   private async openSession(guild: Guild, userId: string, channelId: string, now: Date): Promise<void> {
     const guildId = guild.id;
     if (this.openSessions.has(this.sessionKey(guildId, userId))) {
       await this.closeSession(guild, userId, now);
     }
-    await this.ensureUser(userId);
+    await GlobalUsersManager.ensure(userId);
     const [row] = await db
       .insert(voiceSessionsSchema)
       .values({ userId, guildId, channelId, joinedAt: now })

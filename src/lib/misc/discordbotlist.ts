@@ -1,10 +1,8 @@
-import { EventBus } from "@/event/event-bus";
 import { EventHandler } from "@/event/event-handler";
-import { EventListener } from "@/event/event-listener";
 import PostCommandLoadEvent from "@/event/events/post-command-load.event";
 import { getVoiceConnection } from "@discordjs/voice";
 import type { ApplicationCommandDataResolvable, Client } from "discord.js";
-import { FETCH_TIMEOUT_MS } from "../fetch";
+import { BotListManager, postBotList } from "./bot-list";
 
 const API_BASE_URL = "https://discordbotlist.com/api/v1/bots";
 const STATS_INTERVAL_MS = 60 * 60 * 1000;
@@ -16,24 +14,23 @@ export interface DiscordBotListOptions {
   readonly intervalMs?: number;
 }
 
-export class DiscordBotListManager extends EventListener {
-  private readonly token: string;
-  private readonly intervalMs: number;
-  private timer: Timer | undefined;
-
+export class DiscordBotListManager extends BotListManager {
   public constructor(options: DiscordBotListOptions) {
-    super();
-    this.token = options.token;
-    this.intervalMs = options.intervalMs ?? STATS_INTERVAL_MS;
-    EventBus.subscribe(this);
+    super(
+      {
+        name: "discordbotlist.com",
+        baseUrl: API_BASE_URL,
+        method: "POST",
+        authorization: options.token,
+      },
+      options.intervalMs ?? STATS_INTERVAL_MS
+    );
   }
 
   @EventHandler(PostCommandLoadEvent)
   public async onPostCommandLoad(event: PostCommandLoadEvent): Promise<void> {
     await this.pushCommands(event.client, event.commands);
-    clearInterval(this.timer);
-    await this.pushStatistics(event.client);
-    this.timer = setInterval(() => void this.pushStatistics(event.client), this.intervalMs);
+    await this.startPolling(event.client);
   }
 
   /**
@@ -51,16 +48,13 @@ export class DiscordBotListManager extends EventListener {
     // Slash builders serialize through their own toJSON while context menu
     // commands are plain objects, so JSON.stringify emits the exact body
     // Discord received.
-    await this.post(`/${botId}/commands`, commands);
+    await postBotList(this.api, `/${botId}/commands`, commands);
   }
 
-  /**
-   * Publish the guild, user and active voice connection counts.
-   */
-  public async pushStatistics(client: Client): Promise<void> {
+  protected statistics(client: Client): { path: string; body: unknown } | null {
     const botId = client.user?.id;
     if (!botId) {
-      return;
+      return null;
     }
     let voiceConnections = 0;
     for (const guild of client.guilds.cache.values()) {
@@ -68,35 +62,13 @@ export class DiscordBotListManager extends EventListener {
         voiceConnections++;
       }
     }
-    await this.post(`/${botId}/stats`, {
-      guilds: client.guilds.cache.size,
-      users: client.users.cache.size,
-      voice_connections: voiceConnections,
-    });
-  }
-
-  /**
-   * POST `body` to a bot endpoint, logging instead of throwing so a failed
-   * publish never breaks the caller.
-   */
-  private async post(path: string, body: unknown): Promise<void> {
-    try {
-      const res = await fetch(`${API_BASE_URL}${path}`, {
-        method: "POST",
-        headers: {
-          Authorization: this.token,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      });
-      if (!res.ok) {
-        console.error(
-          `discordbotlist.com push to ${path} failed: ${res.status} ${res.statusText} ${await res.text().catch(() => "")}`
-        );
-      }
-    } catch (error) {
-      console.error(`discordbotlist.com push to ${path} failed:`, error);
-    }
+    return {
+      path: `/${botId}/stats`,
+      body: {
+        guilds: client.guilds.cache.size,
+        users: client.users.cache.size,
+        voice_connections: voiceConnections,
+      },
+    };
   }
 }

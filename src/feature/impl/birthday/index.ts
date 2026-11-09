@@ -25,10 +25,8 @@ export default class BirthdayFeature extends Feature {
   /**
    * Arm the hourly sweep on ready and run it once straight away, so a
    * restart across midnight still announces; the claim table makes the
-   * repeat runs harmless. Started from `BotReadyEvent` rather than
-   * at construction so the job takes its `Client` from the event instead of
-   * importing `discordClient` (which would pull in `src/index.ts` and its
-   * cycle), mirroring `PresenceListener`.
+   * repeat runs harmless. Started from `BotReadyEvent` so the job takes its
+   * `Client` from the event, mirroring `PresenceListener`.
    *
    * `Bun.cron`'s in-process job dies with the process, so it is re-armed on
    * every ready; the previous job is stopped first so a second ready cannot

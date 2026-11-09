@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getPath, setPath } from "./path";
+import { getPath } from "./path";
 
 describe("getPath", () => {
   test("reads a nested leaf", () => {
@@ -24,29 +24,5 @@ describe("getPath", () => {
   test("reads falsy values faithfully", () => {
     expect(getPath({ a: { b: false } }, "a.b")).toBe(false);
     expect(getPath({ a: { b: null } }, "a.b")).toBeNull();
-  });
-});
-
-describe("setPath", () => {
-  test("writes a nested leaf", () => {
-    expect(setPath({ a: { b: 1 } }, "a.b", 2)).toEqual({ a: { b: 2 } });
-  });
-
-  test("writes a top-level leaf", () => {
-    expect(setPath({ a: 1 }, "a", 9)).toEqual({ a: 9 });
-  });
-
-  test("does not mutate the input", () => {
-    const original = { a: { b: 1 }, other: "kept" };
-    const next = setPath(original, "a.b", 2);
-    expect(original.a.b).toBe(1);
-    expect(next).not.toBe(original);
-    expect(next.a).not.toBe(original.a);
-  });
-
-  test("copies only the changed branch", () => {
-    const untouched = { deep: { value: 1 } };
-    const next = setPath({ a: { b: 1 }, untouched }, "a.b", 2);
-    expect(next.untouched).toBe(untouched);
   });
 });

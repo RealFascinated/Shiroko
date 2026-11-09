@@ -25,10 +25,8 @@ export default class RemindersFeature extends Feature {
   }
 
   /**
-   * Arm the sweep on ready. Started from `BotReadyEvent` rather than at
-   * construction so the sweep takes its `Client` from the event instead of
-   * importing `discordClient` (which would pull in `src/index.ts` and its
-   * cycle), mirroring `PresenceListener`.
+   * Arm the sweep on ready. Started from `BotReadyEvent` so the sweep takes
+   * its `Client` from the event, mirroring `PresenceListener`.
    *
    * `Bun.cron` takes a standard 5-field expression, so it cannot express a
    * sub-minute schedule; a 30-second sweep is a `setInterval`. The handle

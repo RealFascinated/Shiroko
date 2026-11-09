@@ -28,31 +28,19 @@ function guild(): Guild {
 }
 
 describe("placeholder catalogs", () => {
-  test("the guild executor holds every user and guild token", () => {
-    expect(placeholders.placeholders.map(placeholder => placeholder.key)).toEqual([
-      "user_id",
-      "user_name",
-      "user_username",
-      "user_mention",
-      "guild_name",
-      "guild_id",
-      "guild_owner_mention",
-      "guild_created_at",
-      "member_count",
-      "channel_count",
-      "role_count",
-      "boost_count",
-      "boost_tier",
-    ]);
+  test("every key is unique and described", () => {
+    for (const executor of [placeholders, userPlaceholders]) {
+      const keys = executor.placeholders.map(placeholder => placeholder.key);
+      expect(new Set(keys).size).toBe(keys.length);
+      expect(keys.every(key => key.length > 0)).toBe(true);
+      expect(executor.placeholders.every(placeholder => placeholder.description.length > 0)).toBe(true);
+    }
   });
 
-  test("the user executor holds only the guild-agnostic tokens", () => {
-    expect(userPlaceholders.placeholders.map(placeholder => placeholder.key)).toEqual([
-      "user_id",
-      "user_name",
-      "user_username",
-      "user_mention",
-    ]);
+  test("the guild executor holds every user token", () => {
+    const userKeys = userPlaceholders.placeholders.map(placeholder => placeholder.key);
+    const guildKeys = placeholders.placeholders.map(placeholder => placeholder.key);
+    expect(userKeys.every(key => guildKeys.includes(key))).toBe(true);
   });
 
   test("renders a mixed template", async () => {

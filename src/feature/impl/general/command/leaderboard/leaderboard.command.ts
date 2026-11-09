@@ -1,15 +1,13 @@
 import Command from "@/command/command";
-import InvitesLeaderboardCommand from "./sub/invites.command";
-import LevelLeaderboardCommand from "./sub/level.command";
-import MessagesLeaderboardCommand from "./sub/messages.command";
-import VoiceLeaderboardCommand from "./sub/voice.command";
+import { LEADERBOARDS } from "./definitions";
+import LeaderboardSubCommand from "./leaderboard-subcommand";
 
 export default class LeaderboardCommand extends Command {
   constructor() {
     super({ id: "leaderboard", displayName: "Show the server's leaderboards" });
-    this.registerSubCommand(new LevelLeaderboardCommand());
-    this.registerSubCommand(new MessagesLeaderboardCommand());
-    this.registerSubCommand(new InvitesLeaderboardCommand());
-    this.registerSubCommand(new VoiceLeaderboardCommand());
+
+    for (const definition of LEADERBOARDS) {
+      this.registerSubCommand(new LeaderboardSubCommand(definition));
+    }
   }
 }

@@ -27,11 +27,4 @@ export default class LeaderboardManager {
   public static getLeaderboard<T extends LeaderboardRow = LeaderboardRow>(id: LeaderboardId): Leaderboard<T> {
     return LeaderboardManager.BOARDS[id] as Leaderboard<T>;
   }
-
-  /**
-   * Every registered leaderboard, in registration order.
-   */
-  public static listLeaderboards(): Leaderboard<LeaderboardRow>[] {
-    return Object.values(LeaderboardManager.BOARDS);
-  }
 }

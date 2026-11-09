@@ -22,3 +22,8 @@ export function titleCase(word: string): string {
 export function yesNo(value: boolean): string {
   return value ? "Yes" : "No";
 }
+
+/** Group a count with thousands separators, e.g. `48210` -> `"48,210"`. */
+export function formatCount(value: number): string {
+  return Math.round(value).toLocaleString("en-US");
+}

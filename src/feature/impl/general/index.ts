@@ -12,6 +12,7 @@ import LeaderboardCommand from "./command/leaderboard/leaderboard.command";
 import PermissionsCommand from "./command/permissions/permissions.command";
 import PingCommand from "./command/ping.command";
 import SettingsCommand from "./command/settings/settings.command";
+import { settingsPanel } from "./command/settings/settings-panel";
 import UserCommand from "./command/user/user.command";
 import VoteCommand from "./command/vote.command";
 
@@ -20,6 +21,7 @@ export default class GeneralFeature extends Feature {
     super(FeatureIds.General, { toggleable: false, name: "General", emoji: "🧰" });
 
     PanelManager.register(helpPanel);
+    PanelManager.register(settingsPanel);
     this.registerCommand(new PingCommand());
     this.registerCommand(new InviteCommand());
     this.registerCommand(new UserCommand());

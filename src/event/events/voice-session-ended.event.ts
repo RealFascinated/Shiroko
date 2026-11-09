@@ -1,4 +1,3 @@
-import { FeatureIds } from "@/feature/feature-ids";
 import type { Guild } from "discord.js";
 import Event from "../event";
 
@@ -23,7 +22,6 @@ export default class VoiceSessionEndedEvent extends Event {
     super({
       guild: options.guild,
       userId: options.userId,
-      featureId: FeatureIds.Stats,
     });
     this.userId = options.userId;
     this.guildData = options.guild;

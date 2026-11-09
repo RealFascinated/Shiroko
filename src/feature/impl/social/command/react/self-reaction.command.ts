@@ -1,13 +1,11 @@
 import Command, { type ExecuteContext } from "@/command/command";
+import type { SelfReactionDefinition } from "@/feature/impl/social/reactions";
 import { getGif, type GifCategory } from "@/lib/anime/index";
 import { baseEmbed } from "@/lib/embed";
 
 /**
  * Base class for self-reactions: no options, the invoking user "acts on
  * themselves" and gets a matching GIF from nekos.best.
- *
- * Subclasses only supply their id, description, GIF category, and the
- * phrase that finishes the embed title, e.g. `... cries`.
  */
 export default abstract class SelfReactionCommand extends Command {
   protected abstract readonly gifCategory: GifCategory;
@@ -20,5 +18,17 @@ export default abstract class SelfReactionCommand extends Command {
       embed.addFields({ name: "Anime", value: gif.anime_name, inline: true });
     }
     return ctx.reply({ embeds: [embed] });
+  }
+}
+
+/** One subcommand of `/react`, built from its row in `SELF_REACTIONS`. */
+export class SelfReactionSubCommand extends SelfReactionCommand {
+  protected readonly gifCategory: GifCategory;
+  protected readonly phrase: string;
+
+  constructor(definition: SelfReactionDefinition) {
+    super({ id: definition.id, displayName: definition.displayName });
+    this.gifCategory = definition.gifCategory;
+    this.phrase = definition.phrase;
   }
 }

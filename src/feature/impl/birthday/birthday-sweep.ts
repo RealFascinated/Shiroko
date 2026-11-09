@@ -32,14 +32,6 @@ interface ResolvedCelebrant {
 }
 
 /**
- * The nightly birthday sweep, kept out of `birthday.service.ts` because it
- * builds embeds: `lib/embed.ts` imports `discordClient` from `src/index.ts`,
- * and a module on `src/index.ts`'s static import chain pulling in `embed`
- * re-enters that graph mid-initialization. `LevelsFeature` splits its
- * announcing out for the same reason.
- */
-
-/**
  * For every guild with the feature on: strip the birthday role from
  * whoever still holds it, grant it to today's celebrants, then announce
  * each one that has not been announced yet this year.

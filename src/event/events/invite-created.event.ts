@@ -1,4 +1,3 @@
-import { FeatureIds } from "@/feature/feature-ids";
 import type { Guild, Invite } from "discord.js";
 import Event from "../event";
 
@@ -12,10 +11,7 @@ export default class InviteCreatedEvent extends Event {
   public readonly invite: Invite;
 
   constructor(invite: Invite, guild: Guild | null) {
-    super({
-      guild,
-      featureId: FeatureIds.Invites,
-    });
+    super({ guild });
     this.invite = invite;
   }
 }

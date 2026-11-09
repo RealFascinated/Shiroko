@@ -19,14 +19,13 @@ export interface MetricRegistration {
 /**
  * Base class for all metrics. Generic over the value it holds: a number
  * for gauges or a histogram value. Subclasses expose typed setters over
- * the store, serialize through {@link value}, and run their own
- * collection: {@link collectIntervalMs} and {@link collect} drive the
- * manager's timer, so registering a new metric is just
- * `manager.register(new XMetric())`.
+ * the store and serialize through {@link value}; ones that read live state
+ * also override {@link collect} and declare {@link collectIntervalMs}, which
+ * drives the manager's timer.
  */
 export abstract class Metric<T = unknown> {
-  /** Set by subclasses: how often {@link collect} should run, in ms. */
-  declare public readonly collectIntervalMs: number;
+  /** Set by self-collecting subclasses; absent for metrics read at snapshot time. */
+  public readonly collectIntervalMs: number | undefined = undefined;
 
   public readonly id: string;
   public readonly kind: MetricKind;
@@ -63,9 +62,8 @@ export abstract class Metric<T = unknown> {
   public abstract value(): T;
 
   /**
-   * Read the live value and update the metric. Default is a no-op for
-   * plain value metrics (e.g. a fixed gauge); self-collecting subclasses
-   * override it and declare a real {@link collectIntervalMs}.
+   * Read the live value and update the metric. Only implemented by metrics
+   * that declare a {@link collectIntervalMs}.
    */
   public collect(): void | Promise<void> {}
 }

@@ -12,8 +12,6 @@ import { Metric } from "../metric";
  * A cache with a poor hit rate is not earning its memory.
  */
 export class CacheMetricsMetric extends Metric<Record<string, number>> {
-  // Nothing to self-collect: the registry is read at snapshot time.
-  public override readonly collectIntervalMs: number = 30_000;
 
   public constructor() {
     super({

@@ -32,28 +32,28 @@ export default class InvitesFeature extends Feature {
     await this.seedAllGuilds(event.client);
   }
 
-  @EventHandler(GuildJoinedEvent)
+  @EventHandler(GuildJoinedEvent, { featureId: FeatureIds.Invites })
   public async onGuildJoined(event: GuildJoinedEvent): Promise<void> {
     await invitesService.refreshGuild(event.guildData);
   }
 
-  @EventHandler(InviteCreatedEvent)
+  @EventHandler(InviteCreatedEvent, { featureId: FeatureIds.Invites })
   public async onInviteCreated(event: InviteCreatedEvent): Promise<void> {
     await invitesService.handleInviteCreate(event.invite);
   }
 
-  @EventHandler(InviteDeletedEvent)
+  @EventHandler(InviteDeletedEvent, { featureId: FeatureIds.Invites })
   public async onInviteDeleted(event: InviteDeletedEvent): Promise<void> {
     await invitesService.handleInviteDelete(event.invite);
   }
 
-  @EventHandler(MemberGuildJoinEvent)
+  @EventHandler(MemberGuildJoinEvent, { featureId: FeatureIds.Invites })
   public async onMemberGuildJoin(event: MemberGuildJoinEvent): Promise<void> {
     const { member, source } = event;
     await invitesService.recordJoin(member.guild.id, member.id, source);
   }
 
-  @EventHandler(MemberGuildLeaveEvent)
+  @EventHandler(MemberGuildLeaveEvent, { featureId: FeatureIds.Invites })
   public async onMemberGuildLeave(event: MemberGuildLeaveEvent): Promise<void> {
     const { member } = event;
     await invitesService.recordLeave(member.guild.id, member.id);

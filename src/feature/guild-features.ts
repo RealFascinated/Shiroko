@@ -1,7 +1,8 @@
+import type { AuditActor } from "@/audit/audit-log";
 import type { Guild } from "discord.js";
-import Feature from "./feature";
-import type { FeatureId, FeatureIds } from "./feature-ids";
+import { getFeatureMetadata } from "./feature-metadata";
 import { featureSettings } from "./feature-settings";
+import type { FeatureId, FeatureIds } from "./feature-ids";
 
 export default class GuildFeatures {
   /**
@@ -11,7 +12,7 @@ export default class GuildFeatures {
   public static async isFeatureEnabled(guild: Guild, featureId: FeatureIds): Promise<boolean> {
     // A non-toggleable feature is always on; no stored row can
     // disable it.
-    if (Feature.get(featureId)?.toggleable === false) {
+    if (getFeatureMetadata(featureId)?.toggleable === false) {
       return true;
     }
     return featureSettings().get(guild.id, `enabled.${`${featureId}` as FeatureId}`);
@@ -23,10 +24,8 @@ export default class GuildFeatures {
     enabled: boolean,
     userId: string
   ): Promise<boolean> {
-    await featureSettings().set(guild.id, `enabled.${`${featureId}` as FeatureId}`, enabled, {
-      guild,
-      userId,
-    });
+    const actor: AuditActor = { guild, userId };
+    await featureSettings().set(guild.id, `enabled.${`${featureId}` as FeatureId}`, enabled, actor);
     return enabled;
   }
 }

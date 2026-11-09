@@ -5,33 +5,36 @@ import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
 import SlashCommandReceivedEvent from "../event/events/slash-command-received.event";
 import GuildFeatures from "../feature/guild-features";
-import StatsCommand from "../feature/impl/stats/command/stats/stats.command";
 import { fetchGuildMember } from "../lib/guild";
 import CommandCallService from "../metrics/command-calls.service";
 import Permissions, { hasFlags } from "../permission/permissions";
 import GlobalUsersManager from "../user/global-users-manager";
 import type Command from "./command";
 import ParsedArguments from "./parsed-arguments";
+import CommandRegistry from "./registry";
 
+/**
+ * Builds and dispatches the slash commands that features registered in
+ * `CommandRegistry`.
+ */
 export default class CommandManager {
-  private static COMMANDS: Map<string, Command> = new Map<string, Command>();
-
-  constructor() {
-    CommandManager.registerCommand(new StatsCommand());
-  }
-
   public static getCommand(commandName: string): Command | undefined {
-    return CommandManager.COMMANDS.get(commandName);
+    return CommandRegistry.get(commandName);
   }
 
   /**
    * Stamp each registered command with the application command snowflake
    * Discord assigned during the ready-time sync, so commands can render
-   * clickable `</name:id>` mentions. Subcommands share their parent's id.
+   * clickable `</name:id>` mentions. Commands absent from the collection keep
+   * the id they already have: syncing the private guild commands must not
+   * clear the global ids.
    */
   public static applyApplicationCommandIds(commands: Collection<string, ApplicationCommand>): void {
-    for (const command of CommandManager.COMMANDS.values()) {
-      const appId = commands.find(candidate => candidate.name === command.id)?.id ?? null;
+    for (const command of CommandRegistry.all()) {
+      const appId = commands.find(candidate => candidate.name === command.id)?.id;
+      if (appId === undefined) {
+        continue;
+      }
       command.applicationCommandId = appId;
       for (const sub of command.subCommands.values()) {
         sub.applicationCommandId = appId;
@@ -39,34 +42,16 @@ export default class CommandManager {
     }
   }
 
-  /**
-   * Global commands: visible in every guild the bot is installed in.
-   */
-  public buildGlobal(): SlashCommandBuilder[] {
-    return CommandManager.all()
+  public static buildGlobal(): SlashCommandBuilder[] {
+    return CommandRegistry.all()
       .filter(command => !command.private)
       .map(command => command.build());
   }
 
-  /**
-   * Private commands: guild commands scoped to `PRIVATE_COMMANDS_GUILD_ID` only.
-   */
-  public buildPrivate(): SlashCommandBuilder[] {
-    return CommandManager.all()
+  public static buildPrivate(): SlashCommandBuilder[] {
+    return CommandRegistry.all()
       .filter(command => command.private)
       .map(command => command.build());
-  }
-
-  private static all(): Command[] {
-    return Array.from(CommandManager.COMMANDS.values());
-  }
-
-  public static registerCommand(command: Command): void {
-    CommandManager.COMMANDS.set(command.slashCommand.name, command);
-    console.log(`Registered command: ${command.id} - ${command.displayName}`);
-    for (const sub of command.subCommands.values()) {
-      console.log(`  └─ ${sub.id} - ${sub.displayName}`);
-    }
   }
 }
 
@@ -79,17 +64,10 @@ export class SlashCommandListener extends EventListener {
   @EventHandler(SlashCommandReceivedEvent)
   public async onSlashCommandReceived(event: SlashCommandReceivedEvent): Promise<void> {
     const interaction = event.interaction;
-    if (!interaction.isChatInputCommand()) {
-      return;
-    }
     const { commandName } = interaction;
     const command = CommandManager.getCommand(commandName);
     if (!command) {
       console.log(`Unknown command: ${commandName}`);
-      await interaction.reply({
-        content: "That command is no longer available.",
-        flags: MessageFlags.Ephemeral,
-      });
       return;
     }
     const subCommandName = interaction.options.getSubcommand(false);
@@ -97,10 +75,6 @@ export class SlashCommandListener extends EventListener {
 
     const guild = interaction.guild;
     if (!guild && !(resolved ?? command).userInstallable) {
-      await interaction.reply({
-        content: "This command can only be used in a server.",
-        flags: MessageFlags.Ephemeral,
-      });
       return;
     }
 
@@ -147,15 +121,6 @@ export class SlashCommandListener extends EventListener {
       });
     } catch (error) {
       console.error(`Error executing command "${commandName}":`, error);
-      const failure = {
-        content: "Something went wrong running that command.",
-        flags: MessageFlags.Ephemeral,
-      } as const;
-      await (
-        interaction.deferred || interaction.replied
-          ? interaction.followUp(failure)
-          : interaction.reply(failure)
-      ).catch(() => null);
     }
   }
 }

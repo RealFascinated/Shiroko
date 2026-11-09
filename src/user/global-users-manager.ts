@@ -18,6 +18,17 @@ export default class GlobalUsersManager {
     new Cache<GlobalUserSchema>({ name: "global-users", mode: "authoritative", max: 100_000 })
   );
 
+  /**
+   * Insert the user row if it is missing, without reading it first. For hot
+   * paths that only need the row to exist for a foreign key.
+   */
+  public static async ensure(userId: string): Promise<void> {
+    await db
+      .insert(globalUsersSchema)
+      .values({ id: userId })
+      .onConflictDoNothing({ target: globalUsersSchema.id });
+  }
+
   public static async getUser(user: User): Promise<GlobalUser> {
     const row = await GlobalUsersManager.CACHE.load(userKey(user.id), async () => {
       const [existing] = await db.select().from(globalUsersSchema).where(eq(globalUsersSchema.id, user.id));

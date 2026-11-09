@@ -1,5 +1,5 @@
 import { AuditLogEvent, type GuildMember } from "discord.js";
-import type { JoinSource } from "@/feature/impl/invites/join-source";
+import type { JoinSource } from "@/lib/join-source";
 import { channelMention, code, detailLine, userMention } from "./text";
 
 /**

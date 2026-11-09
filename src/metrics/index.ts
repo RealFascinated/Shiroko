@@ -63,6 +63,10 @@ export class MetricManager extends EventListener {
       return;
     }
     for (const metric of this.all()) {
+      if (metric.collectIntervalMs === undefined) {
+        metric.markCollected();
+        continue;
+      }
       const collect = async (): Promise<void> => {
         try {
           await metric.collect();

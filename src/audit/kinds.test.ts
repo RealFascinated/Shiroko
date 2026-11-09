@@ -66,7 +66,9 @@ describe("settings audit kind", () => {
   });
 
   test("falls back to code formatting for an unregistered module", () => {
-    expect(kind.describe(entry("settings", "welcomer.title", "a", "b"))).toBe("`welcomer.title`: `a` → `b`");
+    expect(kind.describe(entry("settings", "not-a-module.title", "a", "b"))).toBe(
+      "`not-a-module.title`: `a` → `b`"
+    );
   });
 
   test("reverting needs the settings flag", () => {

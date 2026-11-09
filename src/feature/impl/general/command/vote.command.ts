@@ -1,11 +1,5 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { baseEmbed } from "@/lib/embed";
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  type MessageActionRowComponentBuilder,
-} from "discord.js";
 
 interface VoteSite {
   readonly name: string;
@@ -13,7 +7,7 @@ interface VoteSite {
 }
 
 const VOTE_SITES: readonly VoteSite[] = [
-  { name: "top.gg", url: "https://top.gg/bot/1541558838006648873/vote" },
+  { name: "top.gg", url: "https://top.gg/bot/879163534871789619/vote" },
   { name: "discordbotlist.com", url: "https://discordbotlist.com/bots/arona/upvote" },
   { name: "topbot.gg", url: "https://topbot.gg/en/bots/arona" },
 ];
@@ -38,12 +32,6 @@ export default class VoteCommand extends Command {
         ].join("\n")
       );
 
-    const row = new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-      VOTE_SITES.map(site =>
-        new ButtonBuilder().setLabel(site.name).setStyle(ButtonStyle.Link).setURL(site.url)
-      )
-    );
-
-    return ctx.reply({ embeds: [embed], components: [row] });
+    return ctx.reply({ embeds: [embed] });
   }
 }

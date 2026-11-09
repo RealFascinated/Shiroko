@@ -42,7 +42,7 @@ export default class UserInfoCommand extends Command {
     targetGlobal: GlobalUser,
     guild: Guild | null,
     ctx: ChatInputCommandInteraction
-  ): Promise<ReturnType<Command["executeSlash"]>> {
+  ): Promise<unknown> {
     const avatarUrl = target.displayAvatarURL({ size: 4096, extension: "webp" });
     const bannerUrl = target.bannerURL({ size: 4096, extension: "webp" });
 

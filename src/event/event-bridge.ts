@@ -31,6 +31,7 @@ import GuildUpdatedEvent from "./events/guild-updated.event";
 import InviteCreatedEvent from "./events/invite-created.event";
 import InviteDeletedEvent from "./events/invite-deleted.event";
 import MemberBannedEvent from "./events/member-banned.event";
+import MemberUnbannedEvent from "./events/member-unbanned.event";
 import MemberBoostUpdatedEvent from "./events/member-boost-updated.event";
 import MemberGuildJoinEvent from "./events/member-guild-join.event";
 import MemberGuildLeaveEvent from "./events/member-guild-leave.event";
@@ -267,11 +268,11 @@ export default class EventBridge {
     });
 
     client.on(Events.GuildBanAdd, ban => {
-      void EventBus.post(new MemberBannedEvent(ban, true));
+      void EventBus.post(new MemberBannedEvent(ban));
     });
 
     client.on(Events.GuildBanRemove, ban => {
-      void EventBus.post(new MemberBannedEvent(ban, false));
+      void EventBus.post(new MemberUnbannedEvent(ban));
     });
 
     client.on(Events.GuildMemberRemove, member => {

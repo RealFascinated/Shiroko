@@ -1,13 +1,13 @@
-import type { Interaction } from "discord.js";
+import type { ChatInputCommandInteraction } from "discord.js";
 import Event from "../event";
 
 export default class SlashCommandReceivedEvent extends Event {
-  public readonly interaction: Interaction;
+  public readonly interaction: ChatInputCommandInteraction;
 
-  constructor(interaction: Interaction) {
+  constructor(interaction: ChatInputCommandInteraction) {
     super({
       guild: interaction.guild ?? null,
-      userId: interaction.user?.id ?? null,
+      userId: interaction.user.id,
     });
     this.interaction = interaction;
   }

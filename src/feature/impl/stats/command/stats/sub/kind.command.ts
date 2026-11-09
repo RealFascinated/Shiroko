@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
-import type { StatsCardKind } from "@/feature/impl/stats/stats-card";
+import type { StatsCardKind } from "@/feature/impl/stats/stats.types";
 import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { replyStatsCard } from "../reply-stats-card";
 
@@ -11,10 +11,9 @@ import { replyStatsCard } from "../reply-stats-card";
 export default class StatsKindCommand extends Command {
   public constructor(
     private readonly kind: StatsCardKind,
-    id: string,
     description: string
   ) {
-    super({ id, displayName: description });
+    super({ id: kind, displayName: description });
   }
 
   public override get options() {

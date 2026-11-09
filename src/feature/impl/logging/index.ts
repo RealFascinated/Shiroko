@@ -17,6 +17,7 @@ import GuildUpdatedEvent from "@/event/events/guild-updated.event";
 import InviteCreatedEvent from "@/event/events/invite-created.event";
 import InviteDeletedEvent from "@/event/events/invite-deleted.event";
 import MemberBannedEvent from "@/event/events/member-banned.event";
+import MemberUnbannedEvent from "@/event/events/member-unbanned.event";
 import MemberBoostUpdatedEvent from "@/event/events/member-boost-updated.event";
 import MemberGuildJoinEvent from "@/event/events/member-guild-join.event";
 import MemberGuildLeaveEvent from "@/event/events/member-guild-leave.event";
@@ -788,9 +789,6 @@ export default class LoggingFeature extends Feature {
     });
 
     this.handleEvent(MemberBannedEvent, "ban", async (event, channel) => {
-      if (!event.banned) {
-        return;
-      }
       const { ban } = event;
       const actor = await resolveAuditActor(ban.guild, [AuditLogEvent.MemberBanAdd], ban.user.id);
       await channel.send({
@@ -805,10 +803,7 @@ export default class LoggingFeature extends Feature {
       });
     });
 
-    this.handleEvent(MemberBannedEvent, "ban", async (event, channel) => {
-      if (event.banned) {
-        return;
-      }
+    this.handleEvent(MemberUnbannedEvent, "ban", async (event, channel) => {
       const { ban } = event;
       const actor = await resolveAuditActor(ban.guild, [AuditLogEvent.MemberBanRemove], ban.user.id);
       await channel.send({
@@ -900,14 +895,19 @@ export default class LoggingFeature extends Feature {
       this,
       eventClass,
       async event => {
-        if (!(await loggingService.isEnabled(event.guild!, logType))) {
+        const guild = event.guild;
+        if (!guild) {
+          return;
+        }
+        if (!(await loggingService.isEnabled(guild, logType))) {
           return;
         }
 
-        const channel = await this.getLogsChannel(event.guild!);
+        const channel = await this.getLogsChannel(guild);
         if (!channel) {
           return;
         }
+
 
         try {
           await callback(event, channel);

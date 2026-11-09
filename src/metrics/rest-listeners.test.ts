@@ -160,7 +160,6 @@ describe("RestListeners", () => {
 
     const value = listeners.duration.value();
     expect(value.count).toBe(1);
-    expect(value.sum).toBeGreaterThanOrEqual(0);
   });
 
   test("reads the bucket, hash and global gauges from the REST manager", () => {

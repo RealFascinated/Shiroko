@@ -1,6 +1,6 @@
 import { db } from "@/db/index";
 import { inviteJoinsSchema } from "@/db/schemas/invite-joins";
-import { FAKE_INVITE_WINDOW_MINUTES } from "@/feature/impl/invites/join-source";
+import { FAKE_INVITE_WINDOW_MINUTES } from "@/lib/join-source";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { LeaderboardId, type LeaderboardRow } from "../leaderboard";
 import { UserLeaderboard } from "../user-leaderboard";

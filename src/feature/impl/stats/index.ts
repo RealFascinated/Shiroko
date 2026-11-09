@@ -21,7 +21,7 @@ export default class StatsFeature extends Feature {
    * Record one guild message, emitting `MessageRecorded` after a successful
    * insert so progression hooks (quests, etc.) can react.
    */
-  @EventHandler(MessageCreatedEvent)
+  @EventHandler(MessageCreatedEvent, { featureId: FeatureIds.Stats })
   public async onMessageCreated(event: MessageCreatedEvent): Promise<void> {
     if (event.globalUser) {
       void this.record(event);
@@ -62,7 +62,7 @@ export default class StatsFeature extends Feature {
    * Track a voice state change: close/open sessions on leave/move/join.
    * No-ops on mute/deafen (equal channels).
    */
-  @EventHandler(VoiceStateChangedEvent)
+  @EventHandler(VoiceStateChangedEvent, { featureId: FeatureIds.Stats })
   public async onVoiceStateChanged(event: VoiceStateChangedEvent): Promise<void> {
     const { oldState, newState, guild } = event;
     if (!guild) {

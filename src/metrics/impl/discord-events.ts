@@ -12,10 +12,6 @@ export type DiscordEventName =
  * PromQL `rate(discord_events_total{event="..."}[5m])`, never here.
  */
 export class DiscordEventsMetric extends Metric<Record<string, number>> {
-  // Nothing to self-collect: the map is whatever events have made it so
-  // far when the exporter snapshots it. The interval only exists to
-  // satisfy the manager's uniform collect loop.
-  public override readonly collectIntervalMs: number = 60_000;
   private readonly counts: Map<DiscordEventName, number> = new Map<DiscordEventName, number>();
 
   public constructor() {

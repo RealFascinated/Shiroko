@@ -1,9 +1,7 @@
-import { EventBus } from "@/event/event-bus";
 import { EventHandler } from "@/event/event-handler";
-import { EventListener } from "@/event/event-listener";
 import BotReadyEvent from "@/event/events/bot-ready.event";
 import type { Client } from "discord.js";
-import { FETCH_TIMEOUT_MS } from "../fetch";
+import { BotListManager } from "./bot-list";
 
 const API_BASE_URL = "https://topbot.gg/api/v1/bots";
 const STATS_INTERVAL_MS = 30 * 60 * 1000;
@@ -15,61 +13,35 @@ export interface TopbotOptions {
   readonly intervalMs?: number;
 }
 
-export class TopbotManager extends EventListener {
-  private readonly token: string;
-  private readonly intervalMs: number;
-  private timer: Timer | undefined;
-
+export class TopbotManager extends BotListManager {
   public constructor(options: TopbotOptions) {
-    super();
-    this.token = options.token;
-    this.intervalMs = options.intervalMs ?? STATS_INTERVAL_MS;
-    EventBus.subscribe(this);
+    super(
+      {
+        name: "topbot.gg",
+        baseUrl: API_BASE_URL,
+        method: "POST",
+        authorization: `Bearer ${options.token}`,
+      },
+      options.intervalMs ?? STATS_INTERVAL_MS
+    );
   }
 
   @EventHandler(BotReadyEvent)
   public async onBotReady(event: BotReadyEvent): Promise<void> {
-    clearInterval(this.timer);
-    await this.pushStatistics(event.client);
-    this.timer = setInterval(() => void this.pushStatistics(event.client), this.intervalMs);
+    await this.startPolling(event.client);
   }
 
-  /**
-   * Publish the guild and shard counts.
-   */
-  public async pushStatistics(client: Client): Promise<void> {
+  protected statistics(client: Client): { path: string; body: unknown } | null {
     const botId = client.user?.id;
     if (!botId) {
-      return;
+      return null;
     }
-    await this.post(`/${botId}/stats`, {
-      serverCount: client.guilds.cache.size,
-      shardCount: client.shard?.count ?? 1,
-    });
-  }
-
-  /**
-   * POST `body` to a bot endpoint, logging instead of throwing so a failed
-   * publish never breaks the caller.
-   */
-  private async post(path: string, body: unknown): Promise<void> {
-    try {
-      const res = await fetch(`${API_BASE_URL}${path}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      });
-      if (!res.ok) {
-        console.error(
-          `topbot.gg push to ${path} failed: ${res.status} ${res.statusText} ${await res.text().catch(() => "")}`
-        );
-      }
-    } catch (error) {
-      console.error(`topbot.gg push to ${path} failed:`, error);
-    }
+    return {
+      path: `/${botId}/stats`,
+      body: {
+        serverCount: client.guilds.cache.size,
+        shardCount: client.shard?.count ?? 1,
+      },
+    };
   }
 }

@@ -1,4 +1,4 @@
-import type { JoinSource } from "@/feature/impl/invites/join-source";
+import type { JoinSource } from "@/lib/join-source";
 import type { GuildMember } from "discord.js";
 import Event from "../event";
 

@@ -2,6 +2,7 @@ import Command, { type ExecuteContext } from "@/command/command";
 import type { CommandOptionBuilder } from "@/command/option";
 import { stringOption } from "@/command/option";
 import { baseEmbed } from "@/lib/embed";
+import { pick } from "@/lib/utils";
 
 const ANSWERS = [
   "Yes",
@@ -29,7 +30,7 @@ export default class EightBallCommand extends Command {
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const question = ctx.options.getString("question", true);
-    const answer = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
+    const answer = pick(ANSWERS);
     return ctx.reply({
       embeds: [
         baseEmbed(commandName)

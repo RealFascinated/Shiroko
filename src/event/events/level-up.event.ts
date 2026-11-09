@@ -1,4 +1,3 @@
-import { FeatureIds } from "@/feature/feature-ids";
 import type { Guild } from "discord.js";
 import Event from "../event";
 
@@ -19,7 +18,6 @@ export default class LevelUpEvent extends Event {
     super({
       guild: options.guild,
       userId: options.userId,
-      featureId: FeatureIds.Levels,
     });
     this.userId = options.userId;
     this.guildData = options.guild;

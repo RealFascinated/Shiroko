@@ -26,8 +26,6 @@ export default abstract class ContextMenuCommand {
   public readonly id: string;
   public readonly displayName: string;
 
-  private readonly subCommands: Map<string, ContextMenuCommand> = new Map<string, ContextMenuCommand>();
-
   constructor(id: string, displayName: string) {
     this.id = id;
     this.displayName = displayName;
@@ -35,10 +33,6 @@ export default abstract class ContextMenuCommand {
 
   public get userInstallable(): boolean {
     return false;
-  }
-
-  public registerSubCommand(command: ContextMenuCommand): void {
-    this.subCommands.set(command.id, command);
   }
 
   protected abstract get commandType(): ApplicationCommandType.User | ApplicationCommandType.Message;
@@ -69,15 +63,5 @@ export default abstract class ContextMenuCommand {
     return base;
   }
 
-  public async execute(context: ContextMenuExecuteContext): Promise<void> {
-    const { ctx } = context;
-    const subCommandName = ctx.commandName;
-    const subCommand = this.subCommands.get(subCommandName);
-    if (subCommand) {
-      return subCommand.execute(context);
-    }
-    return this.onExecute(context);
-  }
-
-  protected abstract onExecute(context: ContextMenuExecuteContext): Promise<void>;
+  public abstract execute(context: ContextMenuExecuteContext): Promise<void>;
 }

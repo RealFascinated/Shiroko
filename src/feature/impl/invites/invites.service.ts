@@ -9,7 +9,7 @@ import {
   type InviteSnapshot,
   type JoinSource,
   type TrackedInvite,
-} from "./join-source";
+} from "@/lib/join-source";
 
 /**
  * Live invite tracking for one guild: snapshots each invite's `uses` and

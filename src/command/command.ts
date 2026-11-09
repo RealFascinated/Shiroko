@@ -2,13 +2,10 @@ import {
   ApplicationCommandOptionType,
   ApplicationIntegrationType,
   InteractionContextType,
-  MessageFlags,
   SlashCommandBuilder,
   SlashCommandSubcommandBuilder,
   type ChatInputCommandInteraction,
-  type EmbedBuilder,
   type Guild,
-  type InteractionResponse,
   type SlashCommandAttachmentOption,
   type SlashCommandBooleanOption,
   type SlashCommandChannelOption,
@@ -83,15 +80,9 @@ interface OptionHolder {
   ): unknown;
   addAttachmentOption(
     input:
-      SlashCommandAttachmentOption | ((builder: SlashCommandAttachmentOption) => SlashCommandAttachmentOption)
+      | SlashCommandAttachmentOption | ((builder: SlashCommandAttachmentOption) => SlashCommandAttachmentOption)
   ): unknown;
 }
-
-type FollowUp =
-  | { type: "string"; value: string }
-  | { type: "embed"; value: EmbedBuilder }
-  | { type: "error"; value: EmbedBuilder };
-type FollowUpReturn = InteractionResponse<boolean> | FollowUp;
 
 export default abstract class Command {
   public readonly id: string;
@@ -111,6 +102,9 @@ export default abstract class Command {
 
   public readonly subCommands: Map<string, Command> = new Map();
   public parent?: Command;
+
+  /** The builder handed to Discord, cached so a reconnect cannot duplicate its contents. */
+  private builtCommand: SlashCommandBuilder | null = null;
 
   constructor(info: CommandInfo) {
     this.id = info.id;
@@ -139,11 +133,11 @@ export default abstract class Command {
   }
 
   /**
-   * Bot permission flags required to run this command in a guild. `0n`
-   * means anyone. Owner and (optionally) Discord `Administrator` bypass
-   * this; see `Permissions` in `src/permission/permissions.ts`. Only the
-   * top-level command's flags are checked by `CommandManager`; subcommand
-   * flags are not consulted.
+   * Bot permission flags required to run this command in a guild. `0n` means
+   * anyone. A subcommand that declares non-zero flags uses its own gate;
+   * otherwise the parent's applies. Owner and (optionally) Discord
+   * `Administrator` bypass this; see `Permissions` in
+   * `src/permission/permissions.ts`.
    */
   public get requiredFlags(): bigint {
     return 0n;
@@ -172,6 +166,9 @@ export default abstract class Command {
   }
 
   public build(): SlashCommandBuilder {
+    if (this.builtCommand) {
+      return this.builtCommand;
+    }
     if (this.userInstallable) {
       this.slashCommand.setIntegrationTypes(
         ApplicationIntegrationType.GuildInstall,
@@ -195,30 +192,23 @@ export default abstract class Command {
       }
       this.slashCommand.addSubcommand(subBuilder);
     }
-    return this.slashCommand;
+    this.builtCommand = this.slashCommand;
+    return this.builtCommand;
   }
 
-  public async executeSlash(context: ExecuteContext): Promise<FollowUpReturn | void> {
-    const { ctx } = context;
-    const subCommandName = ctx.options.getSubcommand(false);
+  public async executeSlash(context: ExecuteContext): Promise<void> {
+    const subCommandName = context.ctx.options.getSubcommand(false);
     if (this.subCommands.size > 0) {
       // A command with subcommands cannot be invoked directly; Discord
       // always supplies one. Dispatch it; if we somehow can't, do nothing
       // (the parent has no executable body).
       const subCommand = subCommandName ? this.subCommands.get(subCommandName) : undefined;
       if (subCommand) {
-        return subCommand.executeSlash(context);
+        await subCommand.executeSlash(context);
       }
       return;
     }
-    const reply = await this.onExecuteSlash(context);
-    if (reply === undefined) {
-      return;
-    }
-    if (isFollowUp(reply)) {
-      return finishFollowUp(context, reply);
-    }
-    return reply;
+    await this.onExecuteSlash(context);
   }
 
   /**
@@ -226,7 +216,7 @@ export default abstract class Command {
    * never reach this; `executeSlash` short-circuits and dispatches to the
    * subcommand instead, so the default no-op is fine for them.
    */
-  protected async onExecuteSlash(_context: ExecuteContext): Promise<FollowUpReturn | void> {
+  protected async onExecuteSlash(_context: ExecuteContext): Promise<unknown> {
     return;
   }
 
@@ -278,23 +268,17 @@ export default abstract class Command {
         addChoices.call(builder, ...entries.map(([key, label]) => ({ name: String(label), value: key })));
       }
     }
+    // Only integer and number options carry bounds; the rest ignore them.
+    const bounded = builder as {
+      setMinValue?(value: number): unknown;
+      setMaxValue?(value: number): unknown;
+    };
+    if (option.minValue !== undefined) {
+      bounded.setMinValue?.(option.minValue);
+    }
+    if (option.maxValue !== undefined) {
+      bounded.setMaxValue?.(option.maxValue);
+    }
     return builder;
   }
-}
-
-function isFollowUp(reply: FollowUpReturn): reply is FollowUp {
-  return typeof reply === "object" && "type" in reply;
-}
-
-async function finishFollowUp(
-  context: ExecuteContext,
-  reply: FollowUp
-): Promise<InteractionResponse<boolean>> {
-  if (reply.type === "string") {
-    return context.ctx.reply(reply.value);
-  }
-  if (reply.type === "embed") {
-    return context.ctx.reply({ embeds: [reply.value] });
-  }
-  return context.ctx.reply({ embeds: [reply.value], flags: MessageFlags.Ephemeral });
 }

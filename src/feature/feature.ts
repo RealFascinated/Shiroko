@@ -1,7 +1,9 @@
 import type Command from "../command/command";
+import CommandRegistry from "../command/registry";
 import { EventBus } from "../event/event-bus";
 import { EventListener } from "../event/event-listener";
 import { FeatureIds } from "./feature-ids";
+import { registerFeatureMetadata } from "./feature-metadata";
 
 type FeatureOptions = {
   defaultEnabled?: boolean;
@@ -34,6 +36,13 @@ export default class Feature extends EventListener {
     this.name = this.options.name;
     this.emoji = this.options.emoji;
     this.toggleable = this.options.toggleable;
+    registerFeatureMetadata({
+      id,
+      name: this.name,
+      emoji: this.emoji,
+      toggleable: this.toggleable,
+      defaultEnabled: this.options.defaultEnabled,
+    });
     Feature.REGISTRY.set(id, this);
   }
 
@@ -51,11 +60,6 @@ export default class Feature extends EventListener {
   public registerCommand(command: Command): void {
     command.featureId = this.id;
     this.commands.push(command);
-    // Dynamic import breaks the static cycle: `command/index.ts` imports
-    // feature commands, which import `GuildFeatures` → `feature.ts`.
-    void (async (): Promise<void> => {
-      const { default: CommandManager } = await import("../command/index");
-      CommandManager.registerCommand(command);
-    })();
+    CommandRegistry.register(command);
   }
 }

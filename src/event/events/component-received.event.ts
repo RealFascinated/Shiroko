@@ -1,4 +1,4 @@
-import type { Interaction } from "discord.js";
+import type { ComponentInteraction } from "@/component/component";
 import Event from "../event";
 
 /**
@@ -7,12 +7,12 @@ import Event from "../event";
  * settings listener routes them to the same component registry.
  */
 export default class ComponentReceivedEvent extends Event {
-  public readonly interaction: Interaction;
+  public readonly interaction: ComponentInteraction;
 
-  constructor(interaction: Interaction) {
+  constructor(interaction: ComponentInteraction) {
     super({
       guild: interaction.guild ?? null,
-      userId: interaction.user?.id ?? null,
+      userId: interaction.user.id,
     });
     this.interaction = interaction;
   }

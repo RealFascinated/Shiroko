@@ -1,24 +1,8 @@
 import { db } from "@/db/index";
 import { interactionsSchema } from "@/db/schemas/interactions";
+import type { InteractionType } from "./interactions";
 import { sql } from "drizzle-orm";
 
-export type InteractionType =
-  | "hug"
-  | "kiss"
-  | "slap"
-  | "pat"
-  | "cuddle"
-  | "dance"
-  | "feed"
-  | "headpat"
-  | "holdhands"
-  | "poke"
-  | "wink"
-  | "tease"
-  | "tickle"
-  | "bonk"
-  | "blowkiss"
-  | "bite";
 
 export default class SocialService {
   public static async incrementInteraction(

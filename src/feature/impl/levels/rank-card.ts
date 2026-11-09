@@ -1,4 +1,5 @@
 import Canvas from "@/lib/canvas";
+import { formatCount } from "@/lib/format";
 
 /**
  * A configured role reward: the level that grants it and the role's name
@@ -103,8 +104,4 @@ function rewardLine(reward: RankCardReward): string {
   return reward.roleName
     ? `Next reward at level ${reward.level} · ${reward.roleName}`
     : `Next reward at level ${reward.level}`;
-}
-
-function formatCount(value: number): string {
-  return Math.round(value).toLocaleString("en-US");
 }

@@ -1,14 +1,7 @@
 import Canvas from "@/lib/canvas";
-import { pluralise } from "@/lib/format";
+import { formatCount, pluralise } from "@/lib/format";
 import { TimeUnit, formatDuration } from "@/lib/time";
-import type { DaySeries, StatsSummary, VoiceSummary } from "./stats.service";
-
-/**
- * Which activity a card shows. `messages` charts message counts, `voice`
- * charts voice hours, `overall` shows message counts with voice hours
- * underneath each tile.
- */
-export type StatsCardKind = "messages" | "voice" | "overall";
+import type { DaySeries, StatsCardKind, StatsSummary, VoiceSummary } from "./stats.types";
 
 export type StatsCardScope = "user" | "server";
 
@@ -199,9 +192,6 @@ function tileValues(data: StatsCardData): Array<{ value: string; sub?: string }>
   ];
 }
 
-function formatCount(value: number): string {
-  return Math.round(value).toLocaleString("en-US");
-}
 
 /**
  * Format voice seconds compactly for tiles, e.g. `3h, 30m`.

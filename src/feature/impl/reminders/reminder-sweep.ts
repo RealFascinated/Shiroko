@@ -6,10 +6,8 @@ import { reminderService, type Reminder } from "./reminder.service";
 
 /**
  * Deliver every reminder that came due, then forget it. Kept out of
- * `reminder.service.ts` because it builds embeds: `lib/embed.ts` imports
- * `discordClient` from `src/index.ts`, and a module on `src/index.ts`'s
- * static import chain pulling in `embed` re-enters that graph
- * mid-initialization. `birthday-sweep.ts` is split the same way.
+ * `reminder.service.ts` so the service stays a database layer and this
+ * owns the Discord side.
  *
  * Never rejects. A rejected promise out of a `setInterval` callback is an
  * `unhandledRejection`, which this process has no handler for, so the claim

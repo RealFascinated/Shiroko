@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, type ApplicationCommandDataResolvable } from "discord.js";
+import type { ApplicationCommandDataResolvable, Client } from "discord.js";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { CacheListeners } from "./cache/cache-listeners";
 import CommandManager, { SlashCommandListener } from "./command/index";
@@ -14,10 +14,9 @@ import BotReadyEvent from "./event/events/bot-ready.event";
 import GuildJoinedEvent from "./event/events/guild-joined.event";
 import GuildLeftEvent from "./event/events/guild-left.event";
 import PostCommandLoadEvent from "./event/events/post-command-load.event";
+import { discordClient } from "./client";
 import { featureSettings } from "./feature/feature-settings";
-import { settingsPanel } from "./feature/impl/general/command/settings/settings-panel";
-import LoggingFeature from "./feature/impl/logging";
-import FeatureManager from "./feature/index";
+import registerFeatures from "./feature/index";
 import { env } from "./lib/env";
 import { DiscordBotListManager } from "./lib/misc/discordbotlist";
 import { TopbotManager } from "./lib/misc/topbot";
@@ -52,19 +51,6 @@ await migrate(db, { migrationsFolder: "./drizzle" });
 console.log(`Migrations complete in ${formatDuration(Date.now() - beforeMigrate)}`);
 
 await StorageService.init();
-
-export const discordClient = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildVoiceStates,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.GuildInvites,
-    GatewayIntentBits.GuildModeration,
-    GatewayIntentBits.GuildExpressions,
-  ],
-});
 
 new EventBridge(discordClient).registerHandlers();
 
@@ -120,11 +106,10 @@ class LifecycleListeners extends EventListener {
     if (!application) {
       throw new Error("Application is not available");
     }
-    const commandManager = new CommandManager();
-    const globalCommands = [...commandManager.buildGlobal(), ...new ContextMenuCommandManager().build()];
+    const globalCommands = [...CommandManager.buildGlobal(), ...ContextMenuCommandManager.build()];
     await application.commands.set(globalCommands);
     CommandManager.applyApplicationCommandIds(application.commands.cache);
-    await this.syncPrivateCommands(client, commandManager);
+    await this.syncPrivateCommands(client);
     return globalCommands;
   }
 
@@ -132,8 +117,8 @@ class LifecycleListeners extends EventListener {
    * Register the private commands as guild commands on `PRIVATE_COMMANDS_GUILD_ID`. No-op when
    * there are none; warns when they exist but the guild is unreachable.
    */
-  private async syncPrivateCommands(client: Client, commandManager: CommandManager): Promise<void> {
-    const privateCommands = commandManager.buildPrivate();
+  private async syncPrivateCommands(client: Client): Promise<void> {
+    const privateCommands = CommandManager.buildPrivate();
     if (privateCommands.length === 0) {
       return;
     }
@@ -175,13 +160,12 @@ new PresenceListener();
 new PermissionsListeners();
 new CacheListeners();
 new PanelManager();
-PanelManager.register(settingsPanel);
 new ComponentManager();
+new ContextMenuCommandManager();
 new SlashCommandListener();
 new ContextMenuCommandListener();
 
-new FeatureManager();
-new LoggingFeature();
+registerFeatures();
 SettingsManager.register(featureSettings());
 new MediaListeners();
 

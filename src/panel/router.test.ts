@@ -2,23 +2,30 @@ import GlobalUsersManager from "@/user/global-users-manager";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Guild, Interaction } from "discord.js";
 import Panel, { panelCustomId, type PanelView } from "./panel";
-import { setPath } from "./path";
 import { handlePanelInteraction } from "./router";
+
+/** Test-only immutable write of a dotted path, for the recording panel. */
+function setPath<T>(root: T, path: string, value: unknown): T {
+  const [head, ...rest] = path.split(".");
+  const clone = { ...(root as Record<string, unknown>) };
+  clone[head!] = rest.length === 0 ? value : setPath(clone[head!], rest.join("."), value);
+  return clone as T;
+}
 
 interface DemoConfig {
   nested: { on: boolean; mode: string; text: string };
 }
 
 /**
- * A panel recording every write, with the control kinds the router acts
- * on. The config is a plain object, so a write can be asserted directly.
+ * A panel recording every write, with the control kinds the router acts on.
+ * The config is a plain object, so a write can be asserted directly.
  */
 class RecordingPanel extends Panel<DemoConfig> {
   public readonly segment: string = "rec";
   public readonly title: string = "Rec";
   public config: DemoConfig = { nested: { on: false, mode: "embed", text: "original" } };
-  /** Every `[key, value]` the engine asked to persist. */
-  public readonly writes: Array<[string, unknown]> = [];
+  /** Every `[key, value, userId]` the engine asked to persist. */
+  public readonly writes: Array<[string, unknown, string]> = [];
   private rejectText: boolean = false;
 
   public rejectNextText(): void {
@@ -33,9 +40,10 @@ class RecordingPanel extends Panel<DemoConfig> {
     _guild: Guild,
     _view: PanelView<DemoConfig>,
     key: string,
-    value: unknown
+    value: unknown,
+    userId: string
   ): Promise<void> {
-    this.writes.push([key, value]);
+    this.writes.push([key, value, userId]);
     this.config = setPath(this.config, key, value);
   }
 
@@ -233,28 +241,21 @@ describe("panel router dispatch", () => {
     const panel = new RecordingPanel();
     await route(panel, button(panel, "nested.on"));
     expect(panel.writes).toHaveLength(1);
-    expect(panel.writes[0]).toEqual(["nested.on", true]);
+    expect(panel.writes[0]).toEqual(["nested.on", true, "7"]);
   });
 
   test("passes the view the press was rendered under", async () => {
     const panel = new RecordingPanel();
     let seen = "";
     const original = panel.updateConfig.bind(panel);
-    panel.updateConfig = async (guild, view, key, value) => {
+    panel.updateConfig = async (guild, view, key, value, userId) => {
       seen = view.segment;
-      await original(guild, view, key, value);
+      await original(guild, view, key, value, userId);
     };
     await route(panel, button(panel, "nested.on"));
     expect(seen).toBe("v");
   });
 
-  test("a toggle writes immutably, leaving the previous config untouched", async () => {
-    const panel = new RecordingPanel();
-    const before = panel.config;
-    await route(panel, button(panel, "nested.on"));
-    expect(before.nested.on).toBe(false);
-    expect(panel.config).not.toBe(before);
-  });
 
   test("a choice select writes the selected value", async () => {
     const panel = new RecordingPanel();

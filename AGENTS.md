@@ -137,12 +137,12 @@ Nightly jobs use `Bun.cron(CRON, fn, { tz: "UTC" })` with the CRON expression as
 ### Rules
 
 - **`@EventHandler` takes the event class explicitly**; standard decorators can't infer the param type at runtime (no `emitDecoratorMetadata`). Signature: `@EventHandler(MyEvent, { featureId?: FeatureIds })`.
-- **Feature gating is per-listener**: pass `{ featureId: FeatureIds.X }` and the bus checks `GuildFeatures.isFeatureEnabled(event.guild, featureId)` before dispatch. Leave it out for ungated listeners.
+- **Feature gating is per-listener**: pass `{ featureId: FeatureIds.X }`; the bus checks `GuildFeatures.isFeatureEnabled` for the event's guild before running the handler. Leave it out for ungated listeners.
 - **`this` is bound**: the bus binds each handler to its listener instance.
 - **Resolve global users via `GlobalUsersManager.getUser(user)`**; it get-or-creates the row in the DB, cached behind the `global-users` cache. Guild-scoped rows go through `GuildUsersManager.getUser`/`claimLastMessage`, which read the DB every call (the SQL predicate is the cooldown's source of truth; never cache in front of it).
-- **Dispatch order**: handlers run in subscription order (priority tier reserved for later).
+- **Dispatch order**: handlers run in subscription order.
 - **Lifecycle**: listeners subscribe in their constructor via `EventBus.subscribe(this)`.
-- **Import discipline** (avoid cycles): listeners import from leaf modules (`../event-bus`, `../events/<name>.event`), never the `src/event/index.ts` barrel. `Feature` never statically imports `CommandManager` (dynamic import to dodge the command/feature cycle). `src/lib/embed.ts` imports `discordClient` from `src/index.ts`, so modules on that chain must not import embeds at module-init time; a sweep that builds embeds lives in its own file (`birthday-sweep.ts`, `media.service.ts`).
+- **Import discipline** (avoid cycles): listeners import from leaf modules (`../event-bus`, `../events/<name>.event`), never the `src/event/index.ts` barrel. `Feature` registers commands through `CommandRegistry` (`src/command/registry.ts`), a leaf module, rather than importing `CommandManager`. `src/lib/embed.ts` reads `discordClient` from `src/client.ts`, which imports only discord.js, so importing embeds does not pull in the entry point.
 
 ## Read the Subsystem
 
