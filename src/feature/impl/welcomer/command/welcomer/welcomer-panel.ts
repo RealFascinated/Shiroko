@@ -85,14 +85,17 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
                     this.previewEmbed(current, context),
                 },
               ]
-            : [
+            : []),
+          ...(config.mode === "simple"
+            ? [
                 {
                   id: "preview",
                   kind: "text" as const,
                   render: (current: WelcomerSettingsData, context: PanelContext): Promise<string> =>
                     this.previewText(current, context),
                 },
-              ]),
+              ]
+            : []),
           ...(config.mode === "card"
             ? [
                 {
@@ -127,11 +130,7 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
 
   private async previewText(message: WelcomerSettingsData, context: PanelContext): Promise<string> {
     const body = await welcomerService.previewText(context.guild, message, context.user);
-    const note =
-      message.mode === "card"
-        ? "-# Card format: this text is sent above the member's welcome card."
-        : "-# Simple format, rendered with this server's values.";
-    return ["## Preview", note, "", body].join("\n");
+    return ["## Preview", "-# Simple format, rendered with this server's values.", "", body].join("\n");
   }
 }
 
@@ -158,7 +157,7 @@ function formatParagraph(value: unknown): string {
 /**
  * The controls for the message. Only the fields its current mode uses are
  * offered, so a simple message has no title or colour control and a card
- * has no title.
+ * has its three lines in place of a description.
  */
 export function controlsFor(message: WelcomerSettingsData): PanelControl<WelcomerSettingsData>[] {
   const controls: PanelControl<WelcomerSettingsData>[] = [
@@ -173,7 +172,7 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
           description: "A rich embed with a title, colour, and the member's avatar",
         },
         { value: "simple", label: "Simple", description: "A plain text message" },
-        { value: "card", label: "Card", description: "A text message over a generated welcome image" },
+        { value: "card", label: "Card", description: "A generated welcome image" },
       ],
     },
     {
@@ -215,6 +214,18 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       validate: input => (input.trim().length > 0 ? null : "The description cannot be empty."),
     });
     controls.push(colorControl);
+  } else if (message.mode === "card") {
+    for (const key of ["cardLine1", "cardLine2", "cardLine3"] as const) {
+      controls.push({
+        kind: "dialog",
+        key,
+        input: "text",
+        label: `Line ${key.slice(-1)}`,
+        hint: "Placeholders like {user_name} and {member_count} are replaced.",
+        format: formatParagraph,
+      });
+    }
+    controls.push(colorControl);
   } else {
     controls.push({
       kind: "dialog",
@@ -225,9 +236,6 @@ export function controlsFor(message: WelcomerSettingsData): PanelControl<Welcome
       format: formatParagraph,
       validate: input => (input.trim().length > 0 ? null : "The description cannot be empty."),
     });
-    if (message.mode === "card") {
-      controls.push(colorControl);
-    }
   }
 
   controls.push({

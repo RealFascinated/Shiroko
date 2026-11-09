@@ -11,8 +11,12 @@ export interface WelcomerSettingsData {
   title: string;
   /** The embed's body, used in embed mode. */
   description: string;
-  /** The plain message body, used in simple and card modes; neither has a title. */
+  /** The plain message body, used in simple mode. */
   simpleDescription: string;
+  /** The card's three text lines, above, as, and below the headline, used in card mode. */
+  cardLine1: string;
+  cardLine2: string;
+  cardLine3: string;
   /** Embed or card accent colour; unused in simple mode. */
   color: number;
   ping: boolean;
@@ -35,6 +39,9 @@ export const welcomerSettings = new SettingsModule<WelcomerSettingsData>({
     title: "Welcome!",
     description: "Welcome to **{guild_name}**, {user_mention}! You are member **#{member_count}**.",
     simpleDescription: "Welcome to **{guild_name}**, {user_mention}!",
+    cardLine1: "WELCOME",
+    cardLine2: "{user_name}",
+    cardLine3: "Member #{member_count} of {guild_name}",
     color: Constants.mainColor,
     ping: true,
   },
@@ -65,6 +72,14 @@ export const welcomerSettings = new SettingsModule<WelcomerSettingsData>({
       label: "Simple description",
       type: "string",
       default: "Welcome to **{guild_name}**, {user_mention}!",
+    },
+    { key: "cardLine1", label: "Card line 1", type: "string", default: "WELCOME" },
+    { key: "cardLine2", label: "Card line 2", type: "string", default: "{user_name}" },
+    {
+      key: "cardLine3",
+      label: "Card line 3",
+      type: "string",
+      default: "Member #{member_count} of {guild_name}",
     },
     { key: "color", label: "Color", type: "number", default: Constants.mainColor },
     { key: "ping", label: "Ping member", type: "boolean", default: true },

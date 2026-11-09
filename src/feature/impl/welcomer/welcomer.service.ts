@@ -12,7 +12,7 @@ export interface WelcomerEmbedContent {
   description: string;
 }
 
-/** What a rendered message sends: an embed, simple markdown, or markdown over a card image. */
+/** What a rendered message sends: an embed, simple markdown, or a card image. */
 export interface WelcomerPayload {
   embeds?: EmbedBuilder[];
   content?: string;
@@ -82,11 +82,13 @@ export default class WelcomerService {
       return { content: await this.resolveSimple(guild, message, globalUser), allowedMentions };
     }
     if (message.mode === "card") {
-      const [content, card] = await Promise.all([
-        this.resolveSimple(guild, message, globalUser),
-        this.renderCard(guild, message, globalUser, member),
-      ]);
-      return { content, files: [{ attachment: card, name: "welcome.png" }], allowedMentions };
+      const card = await this.renderCard(guild, message, globalUser, member);
+      return {
+        // The card carries no text, so a mention is the only way to ping.
+        content: message.ping ? `<@${globalUser.id}>` : undefined,
+        files: [{ attachment: card, name: "welcome.png" }],
+        allowedMentions,
+      };
     }
     const content = await this.resolveEmbed(guild, message, globalUser);
     const embed = new EmbedBuilder()
@@ -112,11 +114,16 @@ export default class WelcomerService {
     member: GuildMember | null
   ): Promise<Buffer> {
     const user = globalUser.discordUser;
+    const context = { globalUser, guild };
+    const lines = await Promise.all([
+      placeholders.replace(context, message.cardLine1),
+      placeholders.replace(context, message.cardLine2),
+      placeholders.replace(context, message.cardLine3),
+    ]);
     return renderWelcomeCard({
       name: member?.displayName ?? user.displayName,
       avatarUrl: (member ?? user).displayAvatarURL({ size: 256, extension: "png" }),
-      guildName: guild.name,
-      memberCount: guild.memberCount,
+      lines,
       accent: formatColor(message.color),
     });
   }
