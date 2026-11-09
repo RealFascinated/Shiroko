@@ -1099,8 +1099,7 @@
                         "legendFormat": "{{command}}",
                         "queryType": "MetricsQL",
                         "instant": true,
-                        "range": false,
-                        "format": "table"
+                        "range": false
                       },
                       "version": "v0"
                     },
@@ -1454,8 +1453,7 @@
                         "legendFormat": "{{command}}",
                         "queryType": "MetricsQL",
                         "instant": true,
-                        "range": false,
-                        "format": "table"
+                        "range": false
                       },
                       "version": "v0"
                     },
@@ -3332,8 +3330,7 @@
                         "legendFormat": "{{handler}}",
                         "queryType": "MetricsQL",
                         "instant": true,
-                        "range": false,
-                        "format": "table"
+                        "range": false
                       },
                       "version": "v0"
                     },
@@ -4215,8 +4212,7 @@
                         "legendFormat": "{{route}}",
                         "queryType": "MetricsQL",
                         "instant": true,
-                        "range": false,
-                        "format": "table"
+                        "range": false
                       },
                       "version": "v0"
                     },
@@ -5038,8 +5034,7 @@
                         "legendFormat": "{{route}}",
                         "queryType": "MetricsQL",
                         "instant": true,
-                        "range": false,
-                        "format": "table"
+                        "range": false
                       },
                       "version": "v0"
                     },
@@ -6223,8 +6218,7 @@
                         "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL",
                         "instant": true,
-                        "range": false,
-                        "format": "table"
+                        "range": false
                       },
                       "version": "v0"
                     },
@@ -6313,8 +6307,7 @@
                         "legendFormat": "{{cache}}",
                         "queryType": "MetricsQL",
                         "instant": true,
-                        "range": false,
-                        "format": "table"
+                        "range": false
                       },
                       "version": "v0"
                     },

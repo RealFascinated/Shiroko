@@ -683,7 +683,7 @@ CATEGORIES = [
 ]
 
 
-def data_query(expr: str, legend: str, min_step: str | None, instant: bool) -> dict:
+def data_query(expr: str, legend: str, min_step: str | None, instant: bool, table: bool) -> dict:
     """A v2 DataQueryKind: datasource ref + group (datasource type) on the query.
 
     `min_step` is the query editor's Min step, which the plugin sends as the
@@ -693,7 +693,11 @@ def data_query(expr: str, legend: str, min_step: str | None, instant: bool) -> d
     if min_step is not None:
         spec["interval"] = min_step
     if instant:
-        spec.update({"instant": True, "range": False, "format": "table"})
+        spec.update({"instant": True, "range": False})
+    # Table format folds every series into one frame, which a bar gauge
+    # would reduce to a single bar; only the table viz wants that.
+    if table:
+        spec["format"] = "table"
     return {
         "datasource": {"name": "${vm}"},
         "group": VM_PLUGIN,
@@ -872,7 +876,7 @@ def panel(panel_id: int, p: dict) -> dict:
                             "kind": "PanelQuery",
                             "spec": {
                                 "hidden": False,
-                                "query": data_query(expr, legend, p.get("minStep"), instant),
+                                "query": data_query(expr, legend, p.get("minStep"), instant, kind == "table"),
                                 "refId": chr(65 + i),
                             },
                         }
