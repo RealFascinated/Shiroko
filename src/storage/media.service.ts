@@ -23,25 +23,6 @@ export interface StoreMediaOptions {
 export const MEDIA_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
- * The nightly media sweep: delete the stored file of every superseded avatar
- * and banner whose TTL has passed. The rows stay.
- *
- * Never rejects. `Bun.cron` turns a rejected promise into an
- * `unhandledRejection`, which exits the process without a handler, so the
- * body is guarded the way the birthday sweep is.
- */
-export async function runMediaSweep(now: Date = new Date()): Promise<void> {
-  try {
-    const removed = await MediaService.deleteExpiredFiles(now);
-    if (removed > 0) {
-      console.log(`Deleted ${removed} expired media file(s) past the ${MEDIA_TTL_MS / 86_400_000}-day TTL`);
-    }
-  } catch (error) {
-    console.error("Media sweep failed:", error);
-  }
-}
-
-/**
  * Generic storage for user media (avatars, banners, and anything added to
  * {@link MediaKind}).
  *
@@ -294,6 +275,18 @@ export default class MediaService {
       supersededAt,
       expiresAt: supersededAt && MediaService.superseded(supersededAt).expiresAt,
     };
+  }
+
+  /**
+   * Every user's live hash of a kind, for comparing in bulk without a query
+   * per user.
+   */
+  public static async liveHashes(kind: MediaKind): Promise<Map<string, string>> {
+    const rows = await db
+      .select({ userId: mediaSchema.userId, hash: mediaSchema.hash })
+      .from(mediaSchema)
+      .where(and(eq(mediaSchema.kind, kind), isNull(mediaSchema.supersededAt)));
+    return new Map(rows.map(row => [row.userId, row.hash]));
   }
 
   private static async liveHash(userId: string, kind: MediaKind): Promise<string | null> {

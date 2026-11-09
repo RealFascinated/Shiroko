@@ -21,8 +21,14 @@ import { env } from "./lib/env";
 import { DiscordBotListManager } from "./lib/misc/discordbotlist";
 import { TopbotManager } from "./lib/misc/topbot";
 import { TopggManager } from "./lib/misc/topgg";
-import { PresenceListener } from "./lib/presence";
 import { formatDuration } from "./lib/time";
+import JobManager from "./jobs/index";
+import BirthdaySweepJob from "./jobs/impl/birthday-sweep";
+import ComponentSweepJob from "./jobs/impl/component-sweep";
+import MediaSweepJob from "./jobs/impl/media-sweep";
+import MediaSyncJob from "./jobs/impl/media-sync";
+import PresenceJob from "./jobs/impl/presence";
+import ReminderSweepJob from "./jobs/impl/reminder-sweep";
 import { EventVolumeListeners } from "./metrics/event-volume-listeners";
 import { VictoriaMetricsExporter } from "./metrics/exporter";
 import { CacheMetricsMetric } from "./metrics/impl/cache";
@@ -44,7 +50,6 @@ import PanelManager from "./panel/index";
 import { PermissionsListeners } from "./permission/permissions";
 import SettingsManager from "./settings/index";
 import Audit from "./audit/audit";
-import { MediaListeners } from "./storage/media-listeners";
 import StorageService from "./storage/storage";
 
 const beforeMigrate = Date.now();
@@ -74,6 +79,17 @@ new EventVolumeListeners(discordEventsMetric);
 
 const restListeners = new RestListeners(discordClient);
 for (const metric of restListeners.metrics) {
+  metricManager.register(metric);
+}
+
+const jobManager = new JobManager();
+jobManager.register(new PresenceJob());
+jobManager.register(new BirthdaySweepJob());
+jobManager.register(new ReminderSweepJob());
+jobManager.register(new ComponentSweepJob());
+jobManager.register(new MediaSweepJob());
+jobManager.register(new MediaSyncJob());
+for (const metric of jobManager.metrics) {
   metricManager.register(metric);
 }
 
@@ -157,7 +173,6 @@ class LifecycleListeners extends EventListener {
 }
 
 new LifecycleListeners();
-new PresenceListener();
 new PermissionsListeners();
 new CacheListeners();
 new PanelManager();
@@ -168,7 +183,6 @@ new ContextMenuCommandListener();
 
 registerFeatures();
 SettingsManager.register(featureSettings());
-new MediaListeners();
 new Audit();
 
 if (env.VM_PUSH_URL) {

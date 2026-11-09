@@ -2,30 +2,28 @@ import { openDmChannel } from "@/lib/dm";
 import { baseEmbed } from "@/lib/embed";
 import { discordTimestamp } from "@/lib/time";
 import type { Client, SendableChannels } from "discord.js";
-import { reminderService, type Reminder } from "./reminder.service";
+import { reminderService, type Reminder } from "@/feature/impl/reminders/reminder.service";
+import Job from "../job";
+import { IntervalSchedule } from "../schedule";
 
 /**
  * Deliver every reminder that came due, then forget it. Kept out of
  * `reminder.service.ts` so the service stays a database layer and this
- * owns the Discord side.
- *
- * Never rejects. A rejected promise out of a `setInterval` callback is an
- * `unhandledRejection`, which this process has no handler for, so the claim
- * is guarded and each row is isolated.
+ * owns the Discord side. Each row is isolated so one bad target cannot
+ * hold up the rest of the batch.
  */
-export async function runReminderSweep(client: Client, now: Date = new Date()): Promise<void> {
-  let due: Reminder[];
-  try {
-    due = await reminderService.claimDue(now);
-  } catch (error) {
-    console.error("Reminder sweep failed to claim due reminders:", error);
-    return;
+export default class ReminderSweepJob extends Job {
+  public constructor() {
+    super({ id: "reminder_sweep", schedule: new IntervalSchedule(30_000) });
   }
-  for (const reminder of due) {
-    try {
-      await deliver(client, reminder);
-    } catch (error) {
-      console.error(`Failed to deliver reminder #${reminder.id}:`, error);
+
+  public override async run(client: Client): Promise<void> {
+    for (const reminder of await reminderService.claimDue(new Date())) {
+      try {
+        await deliver(client, reminder);
+      } catch (error) {
+        console.error(`Failed to deliver reminder #${reminder.id}:`, error);
+      }
     }
   }
 }

@@ -523,6 +523,63 @@ CATEGORIES = [
             },
         ],
     },
+    {
+        # Scheduled jobs from `JobManager`. The counters are per boot, so
+        # `increase()` absorbs the reset a restart causes. Last-success is
+        # absent until a job first succeeds, so a missing series there is a
+        # job that has never completed since boot.
+        "key": "jobs",
+        "title": "⏲️ Jobs",
+        "panels": [
+            {
+                "key": "job-runs",
+                "title": "Runs per hour",
+                "expr": "increase(job_runs_total{job=\"$job\"}[1h])",
+                "unit": "short",
+                "min": 0,
+                "width": 12,
+                "legend": "{{name}}",
+            },
+            {
+                "key": "job-failures",
+                "title": "Failures per hour",
+                "expr": "increase(job_failures_total{job=\"$job\"}[1h])",
+                "unit": "short",
+                "min": 0,
+                "width": 12,
+                "legend": "{{name}}",
+            },
+            {
+                "key": "job-duration",
+                "title": "Last run duration",
+                "expr": "job_last_duration_seconds{job=\"$job\"}",
+                "unit": "s",
+                "min": 0,
+                "width": 12,
+                "legend": "{{name}}",
+            },
+            {
+                "key": "job-since-success",
+                "title": "Time since last success",
+                "expr": "time() - job_last_success_timestamp_seconds{job=\"$job\"}",
+                "unit": "s",
+                "min": 0,
+                "width": 12,
+                "legend": "{{name}}",
+            },
+            {
+                "key": "job-skips",
+                # A tick is skipped when the previous run is still going, so a
+                # nonzero series is a job that outlasts its period.
+                "title": "Skipped ticks per hour",
+                "expr": "increase(job_skips_total{job=\"$job\"}[1h])",
+                "unit": "short",
+                "min": 0,
+                "width": 24,
+                "legend": "{{name}}",
+            },
+        ],
+    },
 ]
 
 

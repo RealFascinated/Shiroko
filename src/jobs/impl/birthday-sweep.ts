@@ -16,13 +16,15 @@ import {
   type Message,
   type SendableChannels,
 } from "discord.js";
-import { birthdaySettings } from "./birthday-settings";
-import { birthdayService, type Celebrant } from "./birthday.service";
+import { birthdaySettings } from "@/feature/impl/birthday/birthday-settings";
+import { birthdayService, type Celebrant } from "@/feature/impl/birthday/birthday.service";
 import {
   BIRTHDAY_WISH_COMPONENT_ID,
   birthdayEmbed,
   type BirthdayWishPayload,
-} from "./birthday-wish.component";
+} from "@/feature/impl/birthday/birthday-wish.component";
+import Job from "../job";
+import { CronSchedule } from "../schedule";
 
 const WISH_WINDOW_MS = TimeUnit.toMillis(TimeUnit.Day, 7);
 
@@ -37,16 +39,18 @@ interface ResolvedCelebrant {
  * whoever still holds it, grant it to today's celebrants, then announce
  * each one that has not been announced yet this year.
  *
- * Safe to run any number of times a day: announcements are claimed in
- * `birthday_announcements`, so a sweep that runs late, twice, or after a
- * restart posts each celebrant once.
- *
- * Never rejects. `Bun.cron` turns a rejected promise into an
- * `unhandledRejection`, which exits the process without a handler, so each
- * guild is isolated and the whole body is guarded.
+ * Runs hourly and once on ready, so a missed midnight or a restart across
+ * it still announces. Safe to run any number of times a day: announcements
+ * are claimed in `birthday_announcements`, so a sweep that runs late, twice,
+ * or after a restart posts each celebrant once.
  */
-export async function runBirthdaySweep(client: Client, now: Date = new Date()): Promise<void> {
-  try {
+export default class BirthdaySweepJob extends Job {
+  public constructor() {
+    super({ id: "birthday_sweep", schedule: new CronSchedule("1 * * * *"), runOnReady: true });
+  }
+
+  public override async run(client: Client): Promise<void> {
+    const now = new Date();
     const { month, day } = todayUtc(now);
     const byGuild = await birthdayService.birthdaysOn(month, day, now);
 
@@ -58,8 +62,6 @@ export async function runBirthdaySweep(client: Client, now: Date = new Date()): 
       }
     }
     await birthdayService.pruneAnnouncements(now.getUTCFullYear());
-  } catch (error) {
-    console.error("Birthday sweep failed:", error);
   }
 }
 

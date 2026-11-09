@@ -19,7 +19,7 @@ export const REMINDER_RELATIVE_WINDOW_MS = TimeUnit.toMillis(TimeUnit.Day, 1);
 
 /**
  * Reminder storage: reads and writes `reminders` and nothing else. The
- * 30-second sweep that renders and posts lives in `reminder-sweep.ts`, so
+ * 30-second sweep that renders and posts lives in `src/jobs/impl/reminder-sweep.ts`, so
  * this module stays off the `lib/embed.ts` -> `src/index.ts` import cycle.
  *
  * Like the other feature services, nothing is cached: every read hits the

@@ -62,7 +62,7 @@ function nextOccurrence(today: string): SQL {
 
 /**
  * Birthday storage: reads and writes `guild_birthdays` and nothing else.
- * The nightly sweep that renders and posts lives in `birthday-sweep.ts`, so
+ * The nightly sweep that renders and posts lives in `src/jobs/impl/birthday-sweep.ts`, so
  * this module stays off the `lib/embed.ts` -> `src/index.ts` import cycle.
  *
  * Like the other feature services, nothing is cached: every read hits the
