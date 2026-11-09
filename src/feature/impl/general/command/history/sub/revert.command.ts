@@ -1,28 +1,28 @@
-import AuditLog from "@/audit/audit-log";
-import { AUDIT_KINDS } from "@/audit/kinds";
 import Command, { type ExecuteContext } from "@/command/command";
 import { integerOption, type CommandOptionBuilder } from "@/command/option";
+import History from "@/history/history";
+import { GUILD_KIND_BY_ID } from "@/history/kinds";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
 import { fetchGuildMember } from "@/lib/guild";
 import Permissions from "@/permission/permissions";
 
-export default class ConfigRevertCommand extends Command {
+export default class RevertCommand extends Command {
   constructor() {
-    super({ id: "config-revert", displayName: "Restore the value from before a change" });
+    super({ id: "revert", displayName: "Restore the value from before a change" });
   }
 
   public override get options(): CommandOptionBuilder[] {
-    return [integerOption(true, "id", "The entry number shown in /audit config", 1)];
+    return [integerOption(true, "id", "The entry number shown in /history config", 1)];
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
     const fail = (message: string) =>
       ctx.reply(ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription(message)));
-    const entry = await AuditLog.get(guild.id, ctx.options.getInteger("id", true));
-    const kind = entry ? AUDIT_KINDS[entry.kind] : undefined;
-    if (!entry || !kind) {
-      return fail("No audit log entry with that number.");
+    const entry = await History.get(guild.id, ctx.options.getInteger("id", true));
+    const kind = entry ? GUILD_KIND_BY_ID[entry.kind] : undefined;
+    if (!entry || !kind || kind.revertFlags === null) {
+      return fail("No revertable history entry with that number.");
     }
     const member = await fetchGuildMember(guild, ctx.user.id);
     if (!member || !(await Permissions.memberHas(guild, member, kind.revertFlags))) {
@@ -37,7 +37,7 @@ export default class ConfigRevertCommand extends Command {
       embeds: [
         baseEmbed(commandName)
           .setTitle("↩️ Change Reverted")
-          .setDescription(`Entry **#${entry.id}** was undone.\n${kind.describe(entry)}`),
+          .setDescription(`Entry **#${entry.id}** was undone.\n${await kind.summary(entry)}`),
       ],
     });
   }

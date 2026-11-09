@@ -1,6 +1,6 @@
 import { PermissionFlagsBits, type Guild, type GuildMember } from "discord.js";
 import { and, eq, sql, type SQL } from "drizzle-orm";
-import AuditLog, { type AuditActor } from "../audit/audit-log";
+import HistoryWriter, { type HistoryActor } from "../history/history-writer";
 import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
 import { guildKey } from "../cache/key";
@@ -28,7 +28,7 @@ export const PermissionFlags = Object.freeze({
   WELCOMER_COMMAND: 1n << 6n,
   LOGGING_COMMAND: 1n << 7n,
   LEVELS_COMMAND: 1n << 9n,
-  AUDIT_LOG_COMMAND: 1n << 10n,
+  HISTORY_COMMAND: 1n << 10n,
   // 1n << 8n was retired with the YouTube feature; never reuse a retired bit.
 } as const satisfies Record<string, bigint>);
 
@@ -44,7 +44,7 @@ export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: st
   { flag: PermissionFlags.WELCOMER_COMMAND, label: "Welcomer Command" },
   { flag: PermissionFlags.LOGGING_COMMAND, label: "Logging Command" },
   { flag: PermissionFlags.LEVELS_COMMAND, label: "Levels Command" },
-  { flag: PermissionFlags.AUDIT_LOG_COMMAND, label: "Audit Log Command" },
+  { flag: PermissionFlags.HISTORY_COMMAND, label: "History Command" },
 ];
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];
@@ -118,11 +118,11 @@ export default class Permissions {
     roleId: string,
     ownFlags: bigint,
     parentRoleId: string | null,
-    actor: AuditActor
+    actor: HistoryActor
   ): Promise<bigint> {
     const guildId = guild.id;
     await Permissions.assertNoCycle(guildId, roleId, parentRoleId);
-    await AuditLog.write(
+    await HistoryWriter.write(
       actor,
       "permissions",
       roleId,
@@ -159,7 +159,7 @@ export default class Permissions {
     guild: Guild,
     roleId: string,
     parentRoleId: string | null,
-    actor: AuditActor
+    actor: HistoryActor
   ): Promise<bigint> {
     // Validate before any DB access so a clean rejection doesn't touch the DB.
     await Permissions.assertNoCycle(guild.id, roleId, parentRoleId);
@@ -171,9 +171,9 @@ export default class Permissions {
    * Delete a role's row entirely; the role then resolves to no flags.
    * Descendants pointing at it become dangling-parent → no inherited flags.
    */
-  public static async clearRole(guild: Guild, roleId: string, actor: AuditActor): Promise<void> {
+  public static async clearRole(guild: Guild, roleId: string, actor: HistoryActor): Promise<void> {
     const guildId = guild.id;
-    await AuditLog.write(
+    await HistoryWriter.write(
       actor,
       "permissions",
       roleId,

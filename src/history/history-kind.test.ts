@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import type Event from "../event/event";
 import { diffFields, type HistoryEntry } from "./history-kind";
+import type GuildEventKind from "./guild-event-kind";
 import { GUILD_HISTORY_GROUPS, GUILD_KIND_BY_ID, USER_HISTORY_GROUPS, USER_KIND_BY_ID } from "./kinds";
 
 const at = new Date("2026-01-01T00:00:00Z");
@@ -153,11 +155,11 @@ describe("guild kinds", () => {
   test("an unchanged update records nothing", () => {
     const channel = { name: "a", type: 0, parentId: null, topic: null, nsfw: false, rateLimitPerUser: 0 };
     const event = { guildData: {}, channelId: "1", oldChannel: channel, newChannel: channel } as never;
-    expect(GUILD_KIND_BY_ID.channel_update!.draft(event)).toBeNull();
+    expect((GUILD_KIND_BY_ID.channel_update as GuildEventKind<Event>).draft(event)).toBeNull();
   });
 
   test("every kind id is unique", () => {
-    expect(Object.keys(GUILD_KIND_BY_ID).length).toBe(26);
+    expect(Object.keys(GUILD_KIND_BY_ID).length).toBe(28);
   });
 });
 

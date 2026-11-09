@@ -2,9 +2,9 @@ import type { ExecuteContext } from "@/command/command";
 import { userOption, type CommandOptionBuilder } from "@/command/option";
 import History from "@/history/history";
 import { USER_HISTORY_GROUPS, type HistoryGroup } from "@/history/kinds";
-import HistoryCommand, { type HistorySource } from "./history-command";
+import HistoryListCommand, { type HistorySource } from "./history-list-command";
 
-export default class UserCommand extends HistoryCommand {
+export default class UserCommand extends HistoryListCommand {
   protected readonly groups: readonly HistoryGroup[] = USER_HISTORY_GROUPS;
 
   constructor() {

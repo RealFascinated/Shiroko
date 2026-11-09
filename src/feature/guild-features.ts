@@ -1,4 +1,4 @@
-import type { AuditActor } from "@/audit/audit-log";
+import type { HistoryActor } from "@/history/history-writer";
 import type { Guild } from "discord.js";
 import { getFeatureMetadata } from "./feature-metadata";
 import { featureSettings } from "./feature-settings";
@@ -24,7 +24,7 @@ export default class GuildFeatures {
     enabled: boolean,
     userId: string
   ): Promise<boolean> {
-    const actor: AuditActor = { guild, userId };
+    const actor: HistoryActor = { guild, userId };
     await featureSettings().set(guild.id, `enabled.${`${featureId}` as FeatureId}`, enabled, actor);
     return enabled;
   }

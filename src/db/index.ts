@@ -6,7 +6,6 @@ import { birthdayWishesSchema } from "./schemas/birthday-wishes";
 import { commandCallsSchema } from "./schemas/command-calls";
 import { componentsSchema } from "./schemas/components";
 import { globalUsersSchema } from "./schemas/global-users";
-import { guildAuditLogSchema } from "./schemas/guild-audit-log";
 import { guildBirthdaysSchema } from "./schemas/guild-birthdays";
 import { guildHistorySchema } from "./schemas/guild-history";
 import { guildInvitesSchema } from "./schemas/guild-invites";
@@ -32,7 +31,6 @@ export const schema = {
   commandCalls: commandCallsSchema,
   components: componentsSchema,
   globalUsers: globalUsersSchema,
-  guildAuditLog: guildAuditLogSchema,
   guildBirthdays: guildBirthdaysSchema,
   guildHistory: guildHistorySchema,
   guildUsers: guildUsersSchema,

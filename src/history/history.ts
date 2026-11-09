@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, inArray, like, or, sql, type SQL } from "drizzle-orm";
 import { unionAll } from "drizzle-orm/pg-core";
 import { db } from "../db/index";
 import { guildHistorySchema } from "../db/schemas/guild-history";
@@ -9,13 +9,26 @@ import { EventListener } from "../event/event-listener";
 import { resolveAuditActor } from "../feature/impl/logging/lib/audit-log";
 import { loadPage, type Page } from "../lib/pagination";
 import GlobalUsersManager from "../user/global-users-manager";
-import type { GuildHistoryKind, HistoryEntry, UserChangeEvent, UserHistoryKind } from "./history-kind";
-import { GUILD_HISTORY_KINDS, GUILD_KIND_BY_ID, USER_HISTORY_KINDS, USER_KIND_BY_ID } from "./kinds";
+import type { HistoryEntry } from "./history-kind";
+import type GuildEventKind from "./guild-event-kind";
+import type UserHistoryKind from "./user-history-kind";
+import type { UserChangeEvent } from "./user-history-kind";
+import { GUILD_EVENT_KINDS, GUILD_KIND_BY_ID, USER_HISTORY_KINDS, USER_KIND_BY_ID } from "./kinds";
+
+export interface GuildHistoryFilter {
+  /** Defaults to every guild kind. */
+  kinds?: readonly string[];
+  /** A subject id or a dotted prefix of one: `levels` matches `levels.messageXp`. */
+  subject?: string;
+  actorId?: string;
+}
 
 /**
  * Records every change its kinds describe into `user_history` (global
  * account changes) and `guild_history` (everything inside one guild), and
- * reads them back. A new kind needs no code here: add it to `kinds.ts`.
+ * reads them back. A new event-driven kind needs no code here: add it to
+ * `kinds.ts`. Kinds without an event (settings, permissions) are written by
+ * `HistoryWriter` into the same table.
  */
 export default class History extends EventListener {
   constructor() {
@@ -23,7 +36,7 @@ export default class History extends EventListener {
     for (const kind of USER_HISTORY_KINDS) {
       EventBus.register(this, kind.eventClass, event => this.recordUser(kind, event));
     }
-    for (const kind of GUILD_HISTORY_KINDS) {
+    for (const kind of GUILD_EVENT_KINDS) {
       EventBus.register(this, kind.eventClass, event => this.recordGuild(kind, event));
     }
   }
@@ -39,7 +52,7 @@ export default class History extends EventListener {
       .values({ userId: user.id, kind: kind.id, oldValue: draft.oldValue, newValue: draft.newValue });
   }
 
-  private async recordGuild(kind: GuildHistoryKind<Event>, event: Event): Promise<void> {
+  private async recordGuild(kind: GuildEventKind<Event>, event: Event): Promise<void> {
     const draft = kind.draft(event);
     if (!draft) {
       return;
@@ -102,16 +115,28 @@ export default class History extends EventListener {
     });
   }
 
-  /** Every recorded change in the guild, newest first, optionally of the given kinds. */
+  public static async get(guildId: string, id: number): Promise<HistoryEntry | null> {
+    const [row] = await History.serverEntries(
+      and(eq(guildHistorySchema.guildId, guildId), eq(guildHistorySchema.id, id))
+    );
+    return row ?? null;
+  }
+
+  /** Every recorded change in the guild, newest first, optionally narrowed by `filter`. */
   public static async guildPage(
     guildId: string,
     page: number,
     pageSize: number,
-    kinds?: readonly string[]
+    filter: GuildHistoryFilter = {}
   ): Promise<Page<HistoryEntry>> {
+    const { kinds = Object.keys(GUILD_KIND_BY_ID), subject, actorId } = filter;
     const where = and(
       eq(guildHistorySchema.guildId, guildId),
-      kinds ? inArray(guildHistorySchema.kind, [...kinds]) : undefined
+      inArray(guildHistorySchema.kind, [...kinds]),
+      subject
+        ? or(eq(guildHistorySchema.subjectId, subject), like(guildHistorySchema.subjectId, `${subject}.%`))
+        : undefined,
+      actorId ? eq(guildHistorySchema.actorId, actorId) : undefined
     );
     return loadPage({
       page,
@@ -119,7 +144,7 @@ export default class History extends EventListener {
       count: () => History.total(guildHistorySchema, where),
       rows: (limit, offset) =>
         History.serverEntries(where)
-          .orderBy(desc(sql`created_at`))
+          .orderBy(desc(sql`created_at`), desc(sql`id`))
           .limit(limit)
           .offset(offset),
     });
@@ -136,6 +161,7 @@ export default class History extends EventListener {
   private static accountEntries(where?: SQL) {
     return db
       .select({
+        id: userHistorySchema.id,
         kind: userHistorySchema.kind,
         subjectId: userHistorySchema.userId,
         actorId: sql<string | null>`null::text`,
@@ -150,6 +176,7 @@ export default class History extends EventListener {
   private static serverEntries(where?: SQL) {
     return db
       .select({
+        id: guildHistorySchema.id,
         kind: guildHistorySchema.kind,
         subjectId: guildHistorySchema.subjectId,
         actorId: guildHistorySchema.actorId,

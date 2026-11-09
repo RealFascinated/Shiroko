@@ -16,7 +16,7 @@ export interface HistorySource {
  * A paged, newest-first list of recorded history. Subclasses choose what is
  * listed and which kinds can filter it; the paging and layout are shared.
  */
-export default abstract class HistoryCommand extends Command {
+export default abstract class HistoryListCommand extends Command {
   /** Groups offered in the `type` option, in display order. */
   protected abstract readonly groups: readonly HistoryGroup[];
 
@@ -59,7 +59,7 @@ export default abstract class HistoryCommand extends Command {
     };
     const firstPage = await fetchPage(1);
     const pager = createPager({
-      namespace: `audit-${commandName}`,
+      namespace: `history-${commandName}`,
       userId: ctx.user.id,
       page: firstPage,
       fetchPage,

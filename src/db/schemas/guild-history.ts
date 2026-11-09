@@ -10,7 +10,7 @@ export const guildHistorySchema = pgTable(
     // The user, role, channel, emoji or invite the change is about; not a
     // foreign key because it is not always a user.
     subjectId: text("subject_id").notNull(),
-    // null = unknown (no audit log entry) or the bot itself
+    // null = unknown (no actor found) or the bot itself
     actorId: text("actor_id"),
     // null = unset
     oldValue: jsonb("old_value").$type<JsonValue>(),
