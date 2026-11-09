@@ -18,6 +18,11 @@ export function changeLine(label: string, before: string, after: string): string
   return detailLine(label, changeDetail(before, after));
 }
 
+/** The headline plus a before/after pair, each value in code. */
+export function beforeAfterLines(headline: string, before: string, after: string): string[] {
+  return [headline, "", detailLine("Before", code(before)), detailLine("After", code(after))];
+}
+
 export function codeList(values: readonly string[]): string {
   return values.length > 0 ? values.map(code).join(", ") : "None";
 }

@@ -4,6 +4,7 @@ import { FeatureIds } from "@/feature/feature-ids";
 import GuildFeatures from "@/feature/guild-features";
 import { todayUtc } from "@/lib/date";
 import { fetchGuildMember } from "@/lib/guild";
+import { outranksBot } from "@/lib/roles";
 import { TimeUnit } from "@/lib/time";
 import {
   ActionRowBuilder,
@@ -104,8 +105,7 @@ async function swapRoles(guild: Guild, roleId: string, celebrants: ResolvedCeleb
     console.error(`Birthday role ${roleId} not found in ${guild.id}`);
     return;
   }
-  const me = guild.members.me;
-  if (me && role.position >= me.roles.highest.position) {
+  if (outranksBot(role)) {
     console.error(`Birthday role ${roleId} is above the bot's highest role in ${guild.id}`);
     return;
   }

@@ -1,8 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { autorolesService } from "@/feature/impl/autoroles/autoroles.service";
 import { baseEmbed } from "@/lib/embed";
-import { pluralise } from "@/lib/format";
-import type { EmbedBuilder } from "discord.js";
+import { replyWithSync } from "@/lib/sync-reply";
 
 /**
  * Grant every missing autorole across the guild's existing members. Useful
@@ -14,7 +13,8 @@ export default class SyncCommand extends Command {
     super({ id: "sync", displayName: "Grant missing autoroles to existing members" });
   }
 
-  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext): Promise<void> {
+  protected override async onExecuteSlash(context: ExecuteContext): Promise<void> {
+    const { ctx, commandName } = context;
     const guild = ctx.guild!;
     const roles = await autorolesService.list(guild);
     if (roles.length === 0) {
@@ -27,34 +27,6 @@ export default class SyncCommand extends Command {
       });
       return;
     }
-
-    await ctx.deferReply();
-    const result = await autorolesService.syncToGuild(guild, async (scanned, total) => {
-      await ctx.editReply({ embeds: [progressEmbed(commandName, scanned, total)] });
-    });
-
-    const lines = [
-      `Checked ${result.scanned.toLocaleString("en-US")} ${pluralise(result.scanned, "member")}.`,
-      `Granted ${result.granted.toLocaleString("en-US")} ${pluralise(result.granted, "role")} to ${result.changed.toLocaleString("en-US")} ${pluralise(result.changed, "member")}.`,
-    ];
-    if (result.failed > 0) {
-      lines.push(
-        `${result.failed.toLocaleString("en-US")} ${pluralise(result.failed, "member")} could not be updated.`
-      );
-    }
-    await ctx.editReply({
-      embeds: [baseEmbed(commandName).setTitle("Autoroles synced").setDescription(lines.join("\n"))],
-    });
+    await replyWithSync(context, "autoroles", onProgress => autorolesService.syncToGuild(guild, onProgress));
   }
-}
-
-/**
- * The in-progress card, redrawn every 100 members and once the sweep ends.
- */
-function progressEmbed(command: string, scanned: number, total: number): EmbedBuilder {
-  return baseEmbed(command)
-    .setTitle("Syncing autoroles")
-    .setDescription(
-      `Checking ${scanned.toLocaleString("en-US")}/${total.toLocaleString("en-US")} members...`
-    );
 }

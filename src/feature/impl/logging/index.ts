@@ -51,7 +51,18 @@ import { FeatureIds } from "@/feature/feature-ids";
 import { baseEmbed } from "@/lib/embed";
 import { yesNo } from "@/lib/format";
 import SettingsManager from "@/settings/index";
-import { AuditLogEvent, ChannelType, EmbedBuilder, type Guild, type TextChannel } from "discord.js";
+import {
+  AuditLogEvent,
+  ChannelType,
+  EmbedBuilder,
+  type Guild,
+  type GuildMember,
+  type PartialUser,
+  type ReadonlyCollection,
+  type Role,
+  type TextChannel,
+  type User,
+} from "discord.js";
 import { actorLines, moderatorLines } from "./lib/actor-log";
 import { resolveAuditActor } from "./lib/audit-log";
 import {
@@ -73,15 +84,16 @@ import { describeGuildChanges, PREMIUM_TIER_NAMES } from "./lib/guild-log";
 import { LEAVE_VERBS, describeVoiceChange, joinSourceLines } from "./lib/member-log";
 import { describeRoleChanges } from "./lib/role-log";
 import {
+  type ScheduledEvent,
   describeScheduledEventChanges,
   scheduledEventDetailLines,
   scheduledEventName,
 } from "./lib/scheduled-event-log";
 import { describeStageChanges, stageDetailLines } from "./lib/stage-log";
 import { describeStickerChanges, stickerFormatLabel } from "./lib/sticker-log";
-import { detailLine, timestamp } from "./lib/text";
+import { beforeAfterLines, code, detailLine, timestamp } from "./lib/text";
 import { describeThreadChanges, threadDetailLines } from "./lib/thread-log";
-import { userLabel, assetLink, subjectAuthor } from "./lib/user-log";
+import { assetChangeLines, subjectAuthor, userLabel } from "./lib/user-log";
 import LoggingCommand from "./command/logging/logging.command";
 import type { LogType } from "./log-type";
 import { loggingSettings } from "./logging-settings";
@@ -94,32 +106,24 @@ export default class LoggingFeature extends Feature {
     SettingsManager.register(loggingSettings);
     this.registerCommand(new LoggingCommand());
 
-    this.handleEvent(MemberGuildJoinEvent, "member_join", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.member.id, [
-            `${event.member} joined the server.`,
-            ...joinSourceLines(event.source),
-            "",
-            detailLine("Account Created", timestamp(event.member.user.createdAt)),
-          ]).setAuthor(subjectAuthor(event.member)),
-        ],
-      });
+    this.handleEvent(MemberGuildJoinEvent, "member_join", async event => {
+      return this.baseLogEmbed(event.member.id, [
+        `${event.member} joined the server.`,
+        ...joinSourceLines(event.source),
+        "",
+        detailLine("Account Created", timestamp(event.member.user.createdAt)),
+      ]).setAuthor(subjectAuthor(event.member));
     });
 
-    this.handleEvent(BotAddedEvent, "bot_add", async (event, channel) => {
+    this.handleEvent(BotAddedEvent, "bot_add", async event => {
       const actor = await resolveAuditActor(event.member.guild, [AuditLogEvent.BotAdd], event.member.id);
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.member.id, [
-            `${event.member} was added to the server.`,
-            ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setAuthor(subjectAuthor(event.member)),
-        ],
-      });
+      return this.baseLogEmbed(event.member.id, [
+        `${event.member} was added to the server.`,
+        ...(actor ? ["", ...actorLines(actor)] : []),
+      ]).setAuthor(subjectAuthor(event.member));
     });
 
-    this.handleEvent(MemberGuildLeaveEvent, "member_leave", async (event, channel) => {
+    this.handleEvent(MemberGuildLeaveEvent, "member_leave", async event => {
       // A ban fires both `GuildMemberRemove` and `GuildBanAdd`, and the ban
       // log already names the moderator, so only kicks and prunes are
       // resolved here.
@@ -128,17 +132,13 @@ export default class LoggingFeature extends Feature {
         [AuditLogEvent.MemberKick, AuditLogEvent.MemberPrune],
         event.member.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.member.id, [
-            `${event.member} ${(actor && LEAVE_VERBS[actor.action]) ?? "left the server."}`,
-            ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setAuthor(subjectAuthor(event.member)),
-        ],
-      });
+      return this.baseLogEmbed(event.member.id, [
+        `${event.member} ${(actor && LEAVE_VERBS[actor.action]) ?? "left the server."}`,
+        ...(actor ? ["", ...actorLines(actor)] : []),
+      ]).setAuthor(subjectAuthor(event.member));
     });
 
-    this.handleEvent(VoiceStateChangedEvent, "voice", async (event, channel) => {
+    this.handleEvent(VoiceStateChangedEvent, "voice", async event => {
       const member = event.newState.member ?? event.oldState?.member ?? null;
       if (!member) {
         return;
@@ -147,163 +147,119 @@ export default class LoggingFeature extends Feature {
       if (!line) {
         return;
       }
-      await channel.send({
-        embeds: [this.baseLogEmbed(member.id, [line]).setAuthor(subjectAuthor(member))],
-      });
+      return this.baseLogEmbed(member.id, [line]).setAuthor(subjectAuthor(member));
     });
 
-    this.handleEvent(UserAvatarUpdatedEvent, "avatar_update", async (event, channel) => {
+    this.handleEvent(UserAvatarUpdatedEvent, "avatar_update", async event => {
       const hadAvatar = event.oldUser.avatar !== null;
       const removed = hadAvatar && event.newUser.avatar === null;
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newUser.id, [
-            removed ? `${event.newUser} removed their avatar.` : `${event.newUser} changed their avatar.`,
-            "",
-            `**➜** Avatar: ${hadAvatar ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
-              removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
-            }`,
-          ])
-            .setAuthor(subjectAuthor(event.newUser))
-            .setThumbnail(event.afterAssetUrl),
-        ],
-      });
+      return this.baseLogEmbed(
+        event.newUser.id,
+        assetChangeLines(
+          event.newUser,
+          "avatar",
+          hadAvatar,
+          removed,
+          event.beforeAssetUrl,
+          event.afterAssetUrl
+        )
+      )
+        .setAuthor(subjectAuthor(event.newUser))
+        .setThumbnail(event.afterAssetUrl);
     });
-    this.handleEvent(UserBannerUpdatedEvent, "banner_update", async (event, channel) => {
+    this.handleEvent(UserBannerUpdatedEvent, "banner_update", async event => {
       const hadBanner = event.oldUser.banner !== null;
       const removed = hadBanner && event.newUser.banner === null;
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newUser.id, [
-            removed ? `${event.newUser} removed their banner.` : `${event.newUser} changed their banner.`,
-            "",
-            `**➜** Banner: ${hadBanner ? assetLink(event.beforeAssetUrl, "before") : "None"} → ${
-              removed ? "Removed" : assetLink(event.afterAssetUrl, "after")
-            }`,
-          ])
-            .setAuthor(subjectAuthor(event.newUser))
-            .setImage(event.afterAssetUrl),
-        ],
-      });
+      return this.baseLogEmbed(
+        event.newUser.id,
+        assetChangeLines(
+          event.newUser,
+          "banner",
+          hadBanner,
+          removed,
+          event.beforeAssetUrl,
+          event.afterAssetUrl
+        )
+      )
+        .setAuthor(subjectAuthor(event.newUser))
+        .setImage(event.afterAssetUrl);
     });
-    this.handleEvent(UserUsernameUpdatedEvent, "username_update", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newUser.id, [
-            `${event.newUser} changed their username.`,
-            "",
-            `**➜** Before: \`${event.oldUser.username}\``,
-            `**➜** After: \`${event.newUser.username}\``,
-          ]).setAuthor(subjectAuthor(event.newUser)),
-        ],
-      });
+    this.handleEvent(UserUsernameUpdatedEvent, "username_update", async event => {
+      return this.baseLogEmbed(
+        event.newUser.id,
+        beforeAfterLines(
+          `${event.newUser} changed their username.`,
+          event.oldUser.username ?? "Unknown",
+          event.newUser.username ?? "Unknown"
+        )
+      ).setAuthor(subjectAuthor(event.newUser));
     });
 
-    this.handleEvent(UserDisplayNameUpdatedEvent, "display_name_update", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newUser.id, [
-            `${event.newUser} changed their display name.`,
-            "",
-            `**➜** Before: \`${event.oldUser.displayName}\``,
-            `**➜** After: \`${event.newUser.displayName}\``,
-          ]).setAuthor(subjectAuthor(event.newUser)),
-        ],
-      });
+    this.handleEvent(UserDisplayNameUpdatedEvent, "display_name_update", async event => {
+      return this.baseLogEmbed(
+        event.newUser.id,
+        beforeAfterLines(
+          `${event.newUser} changed their display name.`,
+          event.oldUser.displayName,
+          event.newUser.displayName
+        )
+      ).setAuthor(subjectAuthor(event.newUser));
     });
 
-    this.handleEvent(MemberRolesUpdatedEvent, "member_roles", async (event, channel) => {
+    this.handleEvent(MemberRolesUpdatedEvent, "member_roles", async event => {
       if (event.added.size === 0) {
         return;
       }
-      const actor = await resolveAuditActor(
-        event.newMember.guild,
-        [AuditLogEvent.MemberRoleUpdate],
-        event.newMember.id
-      );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newMember.id, [
-            `${event.newMember} was given roles.`,
-            "",
-            `**➜** Roles: ${event.added.map(role => role.toString()).join(", ")}`,
-            ...actorLines(actor),
-          ]).setAuthor(subjectAuthor(event.newMember)),
-        ],
-      });
+      return this.memberRolesEmbed(event.newMember, "was given roles.", event.added);
     });
 
-    this.handleEvent(MemberRolesUpdatedEvent, "member_roles", async (event, channel) => {
+    this.handleEvent(MemberRolesUpdatedEvent, "member_roles", async event => {
       if (event.removed.size === 0) {
         return;
       }
-      const actor = await resolveAuditActor(
-        event.newMember.guild,
-        [AuditLogEvent.MemberRoleUpdate],
-        event.newMember.id
-      );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newMember.id, [
-            `${event.newMember} had roles removed.`,
-            "",
-            `**➜** Roles: ${event.removed.map(role => role.toString()).join(", ")}`,
-            ...actorLines(actor),
-          ]).setAuthor(subjectAuthor(event.newMember)),
-        ],
-      });
+      return this.memberRolesEmbed(event.newMember, "had roles removed.", event.removed);
     });
 
-    this.handleEvent(MemberNicknameUpdatedEvent, "nickname_update", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newMember.id, [
-            `${event.newMember} changed their nickname.`,
-            "",
-            `**➜** Before: \`${event.oldMember.nickname ?? "None"}\``,
-            `**➜** After: \`${event.newMember.nickname ?? "Removed"}\``,
-          ]).setAuthor(subjectAuthor(event.newMember)),
-        ],
-      });
+    this.handleEvent(MemberNicknameUpdatedEvent, "nickname_update", async event => {
+      return this.baseLogEmbed(
+        event.newMember.id,
+        beforeAfterLines(
+          `${event.newMember} changed their nickname.`,
+          event.oldMember.nickname ?? "None",
+          event.newMember.nickname ?? "Removed"
+        )
+      ).setAuthor(subjectAuthor(event.newMember));
     });
 
-    this.handleEvent(MemberTimeoutUpdatedEvent, "member_timeout", async (event, channel) => {
+    this.handleEvent(MemberTimeoutUpdatedEvent, "member_timeout", async event => {
       const actor = await resolveAuditActor(
         event.newMember.guild,
         [AuditLogEvent.MemberUpdate],
         event.newMember.id
       );
       const until = event.timeoutUntil;
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newMember.id, [
-            until
-              ? `${event.newMember} was timed out until ${timestamp(until)}.`
-              : `${event.newMember} is no longer timed out.`,
-            ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setAuthor(subjectAuthor(event.newMember)),
-        ],
-      });
+      return this.baseLogEmbed(event.newMember.id, [
+        until
+          ? `${event.newMember} was timed out until ${timestamp(until)}.`
+          : `${event.newMember} is no longer timed out.`,
+        ...(actor ? ["", ...actorLines(actor)] : []),
+      ]).setAuthor(subjectAuthor(event.newMember));
     });
 
-    this.handleEvent(MemberBoostUpdatedEvent, "boost", async (event, channel) => {
+    this.handleEvent(MemberBoostUpdatedEvent, "boost", async event => {
       const count = event.newMember.guild.premiumSubscriptionCount ?? 0;
       const tier = event.newMember.guild.premiumTier;
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newMember.id, [
-            event.boosted
-              ? `${event.newMember} started boosting the server!`
-              : `${event.newMember} stopped boosting the server.`,
-            "",
-            `**➜** Boosts: ${count}`,
-            `**➜** Tier: ${PREMIUM_TIER_NAMES[tier] ?? String(tier)}`,
-          ]).setAuthor(subjectAuthor(event.newMember)),
-        ],
-      });
+      return this.baseLogEmbed(event.newMember.id, [
+        event.boosted
+          ? `${event.newMember} started boosting the server!`
+          : `${event.newMember} stopped boosting the server.`,
+        "",
+        detailLine("Boosts", String(count)),
+        detailLine("Tier", PREMIUM_TIER_NAMES[tier] ?? String(tier)),
+      ]).setAuthor(subjectAuthor(event.newMember));
     });
 
-    this.handleEvent(GuildUpdatedEvent, "server_update", async (event, channel) => {
+    this.handleEvent(GuildUpdatedEvent, "server_update", async event => {
       const changes = describeGuildChanges(event.oldGuild, event.guildData);
       if (changes.length === 0) {
         return;
@@ -313,45 +269,37 @@ export default class LoggingFeature extends Feature {
         "",
         ...changes,
       ]);
-      await channel.send({ embeds: [embed] });
+      return embed;
     });
 
-    this.handleEvent(AuditEntryRecordedEvent, "config_change", async (event, channel) => {
+    this.handleEvent(AuditEntryRecordedEvent, "config_change", async event => {
       const { entry } = event;
       const actor = entry.actorId ? `<@${entry.actorId}>` : "The bot";
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(String(entry.id), [
-            `${actor} changed the configuration.`,
-            "",
-            AUDIT_KINDS[entry.kind]?.describe(entry) ?? `\`${entry.key}\` changed`,
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(String(entry.id), [
+        `${actor} changed the configuration.`,
+        "",
+        AUDIT_KINDS[entry.kind]?.describe(entry) ?? `\`${entry.key}\` changed`,
+      ]);
     });
 
-    this.handleEvent(ChannelCreatedEvent, "channel", async (event, channel) => {
+    this.handleEvent(ChannelCreatedEvent, "channel", async event => {
       const actor = await resolveAuditActor(
         event.channel.guild,
         [AuditLogEvent.ChannelCreate],
         event.channel.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.channel.id, [
-            `${channelLabel(event.channel)} was created.`,
-            "",
-            `**➜** Name: \`${event.channel.name}\``,
-            `**➜** Type: \`${channelTypeLabel(event.channel.type)}\``,
-            ...channelDetails(event.channel),
-            ...channelOverwriteLines(event.channel),
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.channel.id, [
+        `${channelLabel(event.channel)} was created.`,
+        "",
+        detailLine("Name", code(event.channel.name)),
+        detailLine("Type", code(channelTypeLabel(event.channel.type))),
+        ...channelDetails(event.channel),
+        ...channelOverwriteLines(event.channel),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(ChannelUpdatedEvent, "channel", async (event, channel) => {
+    this.handleEvent(ChannelUpdatedEvent, "channel", async event => {
       const lines = channelUpdateLines(
         event.newChannel,
         describeChannelChanges(event.oldChannel, event.newChannel)
@@ -363,44 +311,34 @@ export default class LoggingFeature extends Feature {
       // overwrite actions share the channel as their target, so the newest
       // matching entry may belong to a different edit. A missing moderator
       // beats naming the wrong one.
-      await channel.send({
-        embeds: [this.baseLogEmbed(event.newChannel.id, lines)],
-      });
+      return this.baseLogEmbed(event.newChannel.id, lines);
     });
 
-    this.handleEvent(ChannelDeletedEvent, "channel", async (event, channel) => {
+    this.handleEvent(ChannelDeletedEvent, "channel", async event => {
       const actor = await resolveAuditActor(
         event.channel.guild,
         [AuditLogEvent.ChannelDelete],
         event.channel.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.channel.id, [
-            `Channel \`${event.channel.name}\` was deleted.`,
-            "",
-            `**➜** Type: \`${channelTypeLabel(event.channel.type)}\``,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.channel.id, [
+        `Channel \`${event.channel.name}\` was deleted.`,
+        "",
+        detailLine("Type", code(channelTypeLabel(event.channel.type))),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(ThreadCreatedEvent, "thread", async (event, channel) => {
+    this.handleEvent(ThreadCreatedEvent, "thread", async event => {
       // A thread's creator is its owner, which `threadDetailLines` already
       // names, so the audit entry would only repeat that same user.
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.thread.id, [
-            `Thread <#${event.thread.id}> was created.`,
-            "",
-            ...threadDetailLines(event.thread),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.thread.id, [
+        `Thread <#${event.thread.id}> was created.`,
+        "",
+        ...threadDetailLines(event.thread),
+      ]);
     });
 
-    this.handleEvent(ThreadUpdatedEvent, "thread", async (event, channel) => {
+    this.handleEvent(ThreadUpdatedEvent, "thread", async event => {
       const changes = describeThreadChanges(event.oldThread, event.newThread);
       if (changes.length === 0) {
         return;
@@ -412,56 +350,44 @@ export default class LoggingFeature extends Feature {
         [AuditLogEvent.ThreadUpdate],
         event.newThread.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newThread.id, [
-            `Thread <#${event.newThread.id}> was updated.`,
-            "",
-            `**➜** Name: \`${event.newThread.name}\``,
-            ...changes,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.newThread.id, [
+        `Thread <#${event.newThread.id}> was updated.`,
+        "",
+        detailLine("Name", code(event.newThread.name)),
+        ...changes,
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(ThreadDeletedEvent, "thread", async (event, channel) => {
+    this.handleEvent(ThreadDeletedEvent, "thread", async event => {
       const actor = await resolveAuditActor(
         event.thread.guild,
         [AuditLogEvent.ThreadDelete],
         event.thread.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.thread.id, [
-            `Thread \`${event.thread.name}\` was deleted.`,
-            "",
-            `**➜** Parent: ${event.thread.parentId ? `<#${event.thread.parentId}>` : "None"}`,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.thread.id, [
+        `Thread \`${event.thread.name}\` was deleted.`,
+        "",
+        detailLine("Parent", event.thread.parentId ? `<#${event.thread.parentId}>` : "None"),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(StageInstanceCreatedEvent, "stage", async (event, channel) => {
+    this.handleEvent(StageInstanceCreatedEvent, "stage", async event => {
       const actor = await resolveAuditActor(
         event.instance.guild!,
         [AuditLogEvent.StageInstanceCreate],
         event.instance.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.instance.id, [
-            `Stage instance started in <#${event.instance.channelId}>.`,
-            "",
-            ...stageDetailLines(event.instance),
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.instance.id, [
+        `Stage instance started in <#${event.instance.channelId}>.`,
+        "",
+        ...stageDetailLines(event.instance),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(StageInstanceUpdatedEvent, "stage", async (event, channel) => {
+    this.handleEvent(StageInstanceUpdatedEvent, "stage", async event => {
       const changes = describeStageChanges(event.oldInstance, event.newInstance);
       if (changes.length === 0) {
         return;
@@ -471,55 +397,43 @@ export default class LoggingFeature extends Feature {
         [AuditLogEvent.StageInstanceUpdate],
         event.newInstance.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newInstance.id, [
-            `Stage instance in <#${event.newInstance.channelId}> was updated.`,
-            "",
-            ...changes,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.newInstance.id, [
+        `Stage instance in <#${event.newInstance.channelId}> was updated.`,
+        "",
+        ...changes,
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(StageInstanceDeletedEvent, "stage", async (event, channel) => {
+    this.handleEvent(StageInstanceDeletedEvent, "stage", async event => {
       const actor = await resolveAuditActor(
         event.instance.guild!,
         [AuditLogEvent.StageInstanceDelete],
         event.instance.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.instance.id, [
-            `Stage instance ended in <#${event.instance.channelId}>.`,
-            "",
-            `**➜** Topic: \`${event.instance.topic}\``,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.instance.id, [
+        `Stage instance ended in <#${event.instance.channelId}>.`,
+        "",
+        detailLine("Topic", code(event.instance.topic)),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(ScheduledEventCreatedEvent, "scheduled_event", async (event, channel) => {
+    this.handleEvent(ScheduledEventCreatedEvent, "scheduled_event", async event => {
       const actor = await resolveAuditActor(
         event.guild!,
         [AuditLogEvent.GuildScheduledEventCreate],
         event.scheduledEvent.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.scheduledEvent.id, [
-            `Scheduled event ${scheduledEventName(event.scheduledEvent)} was created.`,
-            "",
-            ...scheduledEventDetailLines(event.scheduledEvent),
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.scheduledEvent.id, [
+        `Scheduled event ${scheduledEventName(event.scheduledEvent)} was created.`,
+        "",
+        ...scheduledEventDetailLines(event.scheduledEvent),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(ScheduledEventUpdatedEvent, "scheduled_event", async (event, channel) => {
+    this.handleEvent(ScheduledEventUpdatedEvent, "scheduled_event", async event => {
       const changes = describeScheduledEventChanges(event.oldEvent, event.newEvent);
       if (changes.length === 0) {
         return;
@@ -529,79 +443,51 @@ export default class LoggingFeature extends Feature {
         [AuditLogEvent.GuildScheduledEventUpdate],
         event.newEvent.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newEvent.id, [
-            `Scheduled event ${scheduledEventName(event.newEvent)} was updated.`,
-            "",
-            ...changes,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.newEvent.id, [
+        `Scheduled event ${scheduledEventName(event.newEvent)} was updated.`,
+        "",
+        ...changes,
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(ScheduledEventDeletedEvent, "scheduled_event", async (event, channel) => {
+    this.handleEvent(ScheduledEventDeletedEvent, "scheduled_event", async event => {
       const actor = await resolveAuditActor(
         event.guild!,
         [AuditLogEvent.GuildScheduledEventDelete],
         event.scheduledEvent.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.scheduledEvent.id, [
-            `Scheduled event ${scheduledEventName(event.scheduledEvent)} was deleted.`,
-            "",
-            ...scheduledEventDetailLines(event.scheduledEvent),
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.scheduledEvent.id, [
+        `Scheduled event ${scheduledEventName(event.scheduledEvent)} was deleted.`,
+        "",
+        ...scheduledEventDetailLines(event.scheduledEvent),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(ScheduledEventUserAddedEvent, "scheduled_event", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.user.id, [
-            `${event.user} is interested in ${scheduledEventName(event.scheduledEvent)}.`,
-            "",
-            `**➜** Interested: ${event.scheduledEvent.userCount ?? "Unknown"}`,
-          ]).setAuthor(subjectAuthor(event.user)),
-        ],
-      });
+    this.handleEvent(ScheduledEventUserAddedEvent, "scheduled_event", async event => {
+      return this.interestEmbed(event.user, event.scheduledEvent, "is interested in");
     });
 
-    this.handleEvent(ScheduledEventUserRemovedEvent, "scheduled_event", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.user.id, [
-            `${event.user} is no longer interested in ${scheduledEventName(event.scheduledEvent)}.`,
-            "",
-            `**➜** Interested: ${event.scheduledEvent.userCount ?? "Unknown"}`,
-          ]).setAuthor(subjectAuthor(event.user)),
-        ],
-      });
+    this.handleEvent(ScheduledEventUserRemovedEvent, "scheduled_event", async event => {
+      return this.interestEmbed(event.user, event.scheduledEvent, "is no longer interested in");
     });
 
-    this.handleEvent(AutoModRuleCreatedEvent, "automod", async (event, channel) => {
+    this.handleEvent(AutoModRuleCreatedEvent, "automod", async event => {
       const actor = await resolveAuditActor(
         event.rule.guild,
         [AuditLogEvent.AutoModerationRuleCreate],
         event.rule.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.rule.id, [
-            `AutoMod rule \`${event.rule.name}\` was created.`,
-            "",
-            ...automodRuleDetailLines(event.rule),
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.rule.id, [
+        `AutoMod rule \`${event.rule.name}\` was created.`,
+        "",
+        ...automodRuleDetailLines(event.rule),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(AutoModRuleUpdatedEvent, "automod", async (event, channel) => {
+    this.handleEvent(AutoModRuleUpdatedEvent, "automod", async event => {
       const changes = describeAutomodRuleChanges(event.oldRule, event.newRule);
       if (changes.length === 0) {
         return;
@@ -611,65 +497,49 @@ export default class LoggingFeature extends Feature {
         [AuditLogEvent.AutoModerationRuleUpdate],
         event.newRule.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newRule.id, [
-            `AutoMod rule \`${event.newRule.name}\` was updated.`,
-            "",
-            ...changes,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.newRule.id, [
+        `AutoMod rule \`${event.newRule.name}\` was updated.`,
+        "",
+        ...changes,
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(AutoModRuleDeletedEvent, "automod", async (event, channel) => {
+    this.handleEvent(AutoModRuleDeletedEvent, "automod", async event => {
       const actor = await resolveAuditActor(
         event.rule.guild,
         [AuditLogEvent.AutoModerationRuleDelete],
         event.rule.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.rule.id, [
-            `AutoMod rule \`${event.rule.name}\` was deleted.`,
-            "",
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.rule.id, [
+        `AutoMod rule \`${event.rule.name}\` was deleted.`,
+        "",
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(AutoModActionExecutedEvent, "automod", async (event, channel) => {
+    this.handleEvent(AutoModActionExecutedEvent, "automod", async event => {
       const { execution } = event;
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(execution.ruleId, [
-            `AutoMod rule ${automodRuleLabel(execution.autoModerationRule, execution.ruleId)} took action.`,
-            "",
-            ...automodExecutionLines(execution),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(execution.ruleId, [
+        `AutoMod rule ${automodRuleLabel(execution.autoModerationRule, execution.ruleId)} took action.`,
+        "",
+        ...automodExecutionLines(execution),
+      ]);
     });
 
-    this.handleEvent(RoleCreatedEvent, "role", async (event, channel) => {
+    this.handleEvent(RoleCreatedEvent, "role", async event => {
       const actor = await resolveAuditActor(event.role.guild, [AuditLogEvent.RoleCreate], event.role.id);
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.role.id, [
-            `${event.role} was created.`,
-            "",
-            `**➜** Color: \`${event.role.hexColor}\``,
-            `**➜** Hoisted: \`${yesNo(event.role.hoist)}\``,
-            `**➜** Mentionable: \`${yesNo(event.role.mentionable)}\``,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.role.id, [
+        `${event.role} was created.`,
+        "",
+        detailLine("Color", code(event.role.hexColor)),
+        detailLine("Hoisted", code(yesNo(event.role.hoist))),
+        detailLine("Mentionable", code(yesNo(event.role.mentionable))),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(RoleUpdatedEvent, "role", async (event, channel) => {
+    this.handleEvent(RoleUpdatedEvent, "role", async event => {
       const changes = describeRoleChanges(event.oldRole, event.newRole);
       if (changes.length === 0) {
         return;
@@ -679,174 +549,152 @@ export default class LoggingFeature extends Feature {
         [AuditLogEvent.RoleUpdate],
         event.newRole.id
       );
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newRole.id, [
-            `${event.newRole} was updated.`,
-            "",
-            ...changes,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.newRole.id, [
+        `${event.newRole} was updated.`,
+        "",
+        ...changes,
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(RoleDeletedEvent, "role", async (event, channel) => {
+    this.handleEvent(RoleDeletedEvent, "role", async event => {
       const actor = await resolveAuditActor(event.role.guild, [AuditLogEvent.RoleDelete], event.role.id);
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.role.id, [
-            `${event.role} was deleted.`,
-            "",
-            `**➜** Color: \`${event.role.hexColor}\``,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(event.role.id, [
+        `${event.role} was deleted.`,
+        "",
+        detailLine("Color", code(event.role.hexColor)),
+        ...actorLines(actor),
+      ]);
     });
 
-    this.handleEvent(EmojiCreatedEvent, "emoji", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.emoji.id, [
-            `Emoji ${event.emoji} was created.`,
-            "",
-            `**➜** Name: \`${event.emoji.name}\``,
-            `**➜** Animated: \`${yesNo(event.emoji.animated)}\``,
-          ]).setThumbnail(event.emoji.imageURL({ size: 4096 })),
-        ],
-      });
+    this.handleEvent(EmojiCreatedEvent, "emoji", async event => {
+      return this.baseLogEmbed(event.emoji.id, [
+        `Emoji ${event.emoji} was created.`,
+        "",
+        detailLine("Name", code(event.emoji.name)),
+        detailLine("Animated", code(yesNo(event.emoji.animated))),
+      ]).setThumbnail(event.emoji.imageURL({ size: 4096 }));
     });
 
-    this.handleEvent(EmojiUpdatedEvent, "emoji", async (event, channel) => {
+    this.handleEvent(EmojiUpdatedEvent, "emoji", async event => {
       const changes = describeEmojiChanges(event.oldEmoji, event.newEmoji);
       if (changes.length === 0) {
         return;
       }
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newEmoji.id, [
-            `Emoji ${event.newEmoji} was updated.`,
-            "",
-            ...changes,
-          ]).setThumbnail(event.newEmoji.imageURL({ size: 4096 })),
-        ],
-      });
+      return this.baseLogEmbed(event.newEmoji.id, [
+        `Emoji ${event.newEmoji} was updated.`,
+        "",
+        ...changes,
+      ]).setThumbnail(event.newEmoji.imageURL({ size: 4096 }));
     });
 
-    this.handleEvent(EmojiDeletedEvent, "emoji", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.emoji.id, [
-            `Emoji ${event.emoji} was deleted.`,
-            "",
-            `**➜** Animated: \`${yesNo(event.emoji.animated)}\``,
-          ]).setThumbnail(event.emoji.imageURL({ size: 4096 })),
-        ],
-      });
+    this.handleEvent(EmojiDeletedEvent, "emoji", async event => {
+      return this.baseLogEmbed(event.emoji.id, [
+        `Emoji ${event.emoji} was deleted.`,
+        "",
+        detailLine("Animated", code(yesNo(event.emoji.animated))),
+      ]).setThumbnail(event.emoji.imageURL({ size: 4096 }));
     });
 
-    this.handleEvent(StickerCreatedEvent, "sticker", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.sticker.id, [
-            `Sticker **${event.sticker.name}** was created.`,
-            "",
-            `**➜** Description: \`${event.sticker.description ?? "None"}\``,
-            `**➜** Format: \`${stickerFormatLabel(event.sticker.format)}\``,
-            `**➜** Tags: \`${event.sticker.tags ?? "None"}\``,
-          ]).setImage(event.sticker.url),
-        ],
-      });
+    this.handleEvent(StickerCreatedEvent, "sticker", async event => {
+      return this.baseLogEmbed(event.sticker.id, [
+        `Sticker **${event.sticker.name}** was created.`,
+        "",
+        detailLine("Description", code(event.sticker.description ?? "None")),
+        detailLine("Format", code(stickerFormatLabel(event.sticker.format))),
+        detailLine("Tags", code(event.sticker.tags ?? "None")),
+      ]).setImage(event.sticker.url);
     });
 
-    this.handleEvent(StickerUpdatedEvent, "sticker", async (event, channel) => {
+    this.handleEvent(StickerUpdatedEvent, "sticker", async event => {
       const changes = describeStickerChanges(event.oldSticker, event.newSticker);
       if (changes.length === 0) {
         return;
       }
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.newSticker.id, [
-            `Sticker **${event.newSticker.name}** was updated.`,
-            "",
-            ...changes,
-          ]).setImage(event.newSticker.url),
-        ],
-      });
+      return this.baseLogEmbed(event.newSticker.id, [
+        `Sticker **${event.newSticker.name}** was updated.`,
+        "",
+        ...changes,
+      ]).setImage(event.newSticker.url);
     });
 
-    this.handleEvent(StickerDeletedEvent, "sticker", async (event, channel) => {
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(event.sticker.id, [
-            `Sticker **${event.sticker.name}** was deleted.`,
-            "",
-            `**➜** Format: \`${stickerFormatLabel(event.sticker.format)}\``,
-          ]).setImage(event.sticker.url),
-        ],
-      });
+    this.handleEvent(StickerDeletedEvent, "sticker", async event => {
+      return this.baseLogEmbed(event.sticker.id, [
+        `Sticker **${event.sticker.name}** was deleted.`,
+        "",
+        detailLine("Format", code(stickerFormatLabel(event.sticker.format))),
+      ]).setImage(event.sticker.url);
     });
 
-    this.handleEvent(MemberBannedEvent, "ban", async (event, channel) => {
+    this.handleEvent(MemberBannedEvent, "ban", async event => {
       const { ban } = event;
       const actor = await resolveAuditActor(ban.guild, [AuditLogEvent.MemberBanAdd], ban.user.id);
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(ban.user.id, [
-            `${ban.user} was banned.`,
-            "",
-            ...moderatorLines(actor),
-            `**➜** Reason: \`${ban.reason ?? actor?.reason ?? "None"}\``,
-          ]).setAuthor(subjectAuthor(ban.user)),
-        ],
-      });
+      return this.baseLogEmbed(ban.user.id, [
+        `${ban.user} was banned.`,
+        "",
+        ...moderatorLines(actor),
+        detailLine("Reason", code(ban.reason ?? actor?.reason ?? "None")),
+      ]).setAuthor(subjectAuthor(ban.user));
     });
 
-    this.handleEvent(MemberUnbannedEvent, "ban", async (event, channel) => {
+    this.handleEvent(MemberUnbannedEvent, "ban", async event => {
       const { ban } = event;
       const actor = await resolveAuditActor(ban.guild, [AuditLogEvent.MemberBanRemove], ban.user.id);
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(ban.user.id, [
-            `${ban.user} was unbanned.`,
-            ...(actor ? ["", ...actorLines(actor)] : []),
-          ]).setAuthor(subjectAuthor(ban.user)),
-        ],
-      });
+      return this.baseLogEmbed(ban.user.id, [
+        `${ban.user} was unbanned.`,
+        ...(actor ? ["", ...actorLines(actor)] : []),
+      ]).setAuthor(subjectAuthor(ban.user));
     });
 
-    this.handleEvent(InviteCreatedEvent, "invite", async (event, channel) => {
+    this.handleEvent(InviteCreatedEvent, "invite", async event => {
       const { invite } = event;
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(null, [
-            `**${event.guild!.name}** had an invite created.`,
-            "",
-            `**➜** Code: \`${invite.code}\``,
-            `**➜** Channel: ${invite.channel ? `<#${invite.channel.id}>` : "`unknown`"}`,
-            detailLine("Expires", invite.expiresAt ? timestamp(invite.expiresAt) : "never"),
-            ...(invite.inviter ? [`**➜** Created By: ${userLabel(invite.inviter)}`] : []),
-          ]).setThumbnail(invite.inviter?.displayAvatarURL({ size: 4096, extension: "webp" }) ?? null),
-        ],
-      });
+      return this.baseLogEmbed(null, [
+        `**${event.guild!.name}** had an invite created.`,
+        "",
+        detailLine("Code", code(invite.code)),
+        detailLine("Channel", invite.channel ? `<#${invite.channel.id}>` : "`unknown`"),
+        detailLine("Expires", invite.expiresAt ? timestamp(invite.expiresAt) : "never"),
+        ...(invite.inviter ? [detailLine("Created By", userLabel(invite.inviter))] : []),
+      ]).setThumbnail(invite.inviter?.displayAvatarURL({ size: 4096, extension: "webp" }) ?? null);
     });
 
-    this.handleEvent(InviteDeletedEvent, "invite", async (event, channel) => {
+    this.handleEvent(InviteDeletedEvent, "invite", async event => {
       const actor = event.guild
         ? await resolveAuditActor(event.guild, [AuditLogEvent.InviteDelete], event.invite.code)
         : null;
-      await channel.send({
-        embeds: [
-          this.baseLogEmbed(null, [
-            `**${event.guild!.name}** had an invite deleted.`,
-            "",
-            `**➜** Code: \`${event.invite.code}\``,
-            ...actorLines(actor),
-          ]),
-        ],
-      });
+      return this.baseLogEmbed(null, [
+        `**${event.guild!.name}** had an invite deleted.`,
+        "",
+        detailLine("Code", code(event.invite.code)),
+        ...actorLines(actor),
+      ]);
     });
+  }
+
+  private async memberRolesEmbed(
+    member: GuildMember,
+    headline: string,
+    roles: ReadonlyCollection<string, Role>
+  ): Promise<EmbedBuilder> {
+    const actor = await resolveAuditActor(member.guild, [AuditLogEvent.MemberRoleUpdate], member.id);
+    return this.baseLogEmbed(member.id, [
+      `${member} ${headline}`,
+      "",
+      detailLine("Roles", roles.map(role => role.toString()).join(", ")),
+      ...actorLines(actor),
+    ]).setAuthor(subjectAuthor(member));
+  }
+
+  private interestEmbed(
+    user: User | PartialUser,
+    scheduledEvent: ScheduledEvent,
+    verb: string
+  ): EmbedBuilder {
+    return this.baseLogEmbed(user.id, [
+      `${user} ${verb} ${scheduledEventName(scheduledEvent)}.`,
+      "",
+      detailLine("Interested", String(scheduledEvent.userCount ?? "Unknown")),
+    ]).setAuthor(subjectAuthor(user));
   }
 
   /**
@@ -879,7 +727,8 @@ export default class LoggingFeature extends Feature {
   /**
    * Register one handler for `eventClass` behind the `logType` gate: when
    * the type is disabled, or the guild has no usable log channel, the
-   * callback never runs.
+   * callback never runs. The callback returns the card to post, or nothing
+   * to skip it.
    *
    * Never rejects. Handlers are dispatched from `void EventBus.post(...)`,
    * so a rejection here (a channel the bot cannot post to, for instance)
@@ -889,7 +738,7 @@ export default class LoggingFeature extends Feature {
   public handleEvent<T extends Event>(
     eventClass: new (...args: any[]) => T,
     logType: LogType,
-    callback: (event: T, channel: TextChannel) => Promise<void>
+    callback: (event: T) => Promise<EmbedBuilder | void>
   ): void {
     EventBus.register(
       this,
@@ -908,9 +757,11 @@ export default class LoggingFeature extends Feature {
           return;
         }
 
-
         try {
-          await callback(event, channel);
+          const embed = await callback(event);
+          if (embed) {
+            await channel.send({ embeds: [embed] });
+          }
         } catch (error) {
           console.error(`Failed to post the ${logType} log for guild ${event.guild?.id}:`, error);
         }

@@ -12,14 +12,9 @@ export default class RemoveCommand extends Command {
     return [roleOption(true, "role", "Role to stop granting on join")];
   }
 
-  protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const role = args.role("role");
-    if (!role) {
-      return ctx.reply(
-        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A role is required."))
-      );
-    }
+    const role = ctx.options.getRole("role", true);
 
     const removed = await autorolesService.remove(guild, role.id, ctx.user.id);
     if (!removed) {

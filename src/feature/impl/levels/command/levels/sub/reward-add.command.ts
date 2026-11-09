@@ -1,7 +1,9 @@
+import type { Role } from "discord.js";
 import Command, { type ExecuteContext } from "@/command/command";
 import { integerOption, roleOption, type CommandOptionBuilder } from "@/command/option";
 import { levelsService } from "@/feature/impl/levels/levels.service";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { unassignableReason } from "@/lib/roles";
 import { PermissionFlags } from "@/permission/permissions";
 
 /**
@@ -26,33 +28,13 @@ export default class RewardAddCommand extends Command {
     ];
   }
 
-  protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
     const level = ctx.options.getInteger("level", true);
-    const role = args.role("role");
-    if (!role) {
-      return ctx.reply(
-        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A role is required."))
-      );
-    }
-    if (role.id === guild.id) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription("`@everyone` cannot be a level reward.")
-        )
-      );
-    }
-    const me = guild.members.me;
-    if (me && role.position >= me.roles.highest.position) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription(
-            `${role.name} is above my highest role, so I cannot assign it. Move it below my highest role and try again.`
-          )
-        )
-      );
+    const role = ctx.options.getRole("role", true) as Role;
+    const reason = unassignableReason(role, "a level reward");
+    if (reason) {
+      return ctx.reply(ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription(reason)));
     }
 
     await levelsService.setRewardRole(guild, level, role.id, ctx.user.id);

@@ -86,16 +86,18 @@ export abstract class UserHistoryKind<E extends UserChangeEvent> {
   public abstract readonly eventClass: new (...args: any[]) => E;
 
   // The bridge posts one event per mutual guild for the same change, all
-  // sharing one `newUser`, so the repeats are the ones already seen.
+  // sharing one `oldUser`, so the repeats are the ones already seen. Keyed on
+  // `oldUser` because discord.js mutates and re-emits the same cached
+  // `newUser` object on every update.
   private readonly seen: WeakSet<object> = new WeakSet();
 
   protected abstract change(event: E): HistoryChange;
 
   public draft(event: E): UserHistoryDraft | null {
-    if (event.newUser.partial || this.seen.has(event.newUser)) {
+    if (event.newUser.partial || this.seen.has(event.oldUser)) {
       return null;
     }
-    this.seen.add(event.newUser);
+    this.seen.add(event.oldUser);
     return { user: event.newUser, ...this.change(event) };
   }
 

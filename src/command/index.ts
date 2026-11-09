@@ -6,6 +6,7 @@ import { EventListener } from "../event/event-listener";
 import SlashCommandReceivedEvent from "../event/events/slash-command-received.event";
 import GuildFeatures from "../feature/guild-features";
 import { fetchGuildMember } from "../lib/guild";
+import { replyFailure } from "../lib/interaction-error";
 import CommandCallService from "../metrics/command-calls.service";
 import Permissions, { hasFlags } from "../permission/permissions";
 import GlobalUsersManager from "../user/global-users-manager";
@@ -121,6 +122,7 @@ export class SlashCommandListener extends EventListener {
       });
     } catch (error) {
       console.error(`Error executing command "${commandName}":`, error);
+      await replyFailure(interaction);
     }
   }
 }

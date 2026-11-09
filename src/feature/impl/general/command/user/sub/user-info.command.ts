@@ -6,6 +6,7 @@ import { birthdayService } from "@/feature/impl/birthday/birthday.service";
 import { levelsService } from "@/feature/impl/levels/levels.service";
 import { daysUntil, monthName } from "@/lib/date";
 import { baseEmbed } from "@/lib/embed";
+import { formatCount } from "@/lib/format";
 import { fetchGuildMember } from "@/lib/guild";
 import type GlobalUser from "@/user/global-user";
 import GlobalUsersManager from "@/user/global-users-manager";
@@ -78,7 +79,7 @@ export default class UserInfoCommand extends Command {
           const bar = `\`${"█".repeat(filled)}${"░".repeat(barLength - filled)}\``;
           lines.push("");
           lines.push("**📊 Levels**");
-          lines.push(`**Level:** ${rank.level} (${rank.xp.toLocaleString("en-US")} XP)`);
+          lines.push(`**Level:** ${rank.level} (${formatCount(rank.xp)} XP)`);
           lines.push(`${bar} **${filled * (100 / barLength)}%** to level ${rank.level + 1}`);
           lines.push(
             `**Server Rank:** ${rank.guildRank === null ? "Not ranked yet" : `#${rank.guildRank} of ${rank.totalTracked}`}`

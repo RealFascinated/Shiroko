@@ -1,4 +1,5 @@
 import type { ComponentSchema } from "@/db/schemas/components";
+import { replyFailure } from "@/lib/interaction-error";
 import type { Interaction } from "discord.js";
 import Component, { parseComponentCustomId, type ComponentContext } from "./component";
 import Components from "./components";
@@ -46,6 +47,7 @@ export async function handleComponentInteraction(
     await component.handle(context);
   } catch (error) {
     console.error(`Error handling component "${interaction.customId}":`, error);
+    await replyFailure(interaction);
   }
   return true;
 }

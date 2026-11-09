@@ -1,4 +1,11 @@
-import { AuditLogEvent, type AnyThreadChannel, type GuildEmoji, type Role, type Sticker } from "discord.js";
+import {
+  AuditLogEvent,
+  type AnyThreadChannel,
+  type Guild,
+  type GuildEmoji,
+  type Role,
+  type Sticker,
+} from "discord.js";
 import type { NonThreadGuildBasedChannel } from "discord.js";
 import type Event from "../../event/event";
 import ChannelCreatedEvent from "../../event/events/channel-created.event";
@@ -23,6 +30,24 @@ import type { JsonValue } from "../../db/schemas/guild-settings";
 import { diffFields, GuildHistoryKind, type GuildHistoryDraft } from "../history-kind";
 
 type Fields = Record<string, JsonValue>;
+
+function created(guild: Guild | null, subjectId: string, fields: Fields): GuildHistoryDraft | null {
+  return guild && { guild, subjectId, oldValue: null, newValue: fields };
+}
+
+function deleted(guild: Guild | null, subjectId: string, fields: Fields): GuildHistoryDraft | null {
+  return guild && { guild, subjectId, oldValue: fields, newValue: null };
+}
+
+function updated(
+  guild: Guild | null,
+  subjectId: string,
+  before: Fields,
+  after: Fields
+): GuildHistoryDraft | null {
+  const change = diffFields(before, after);
+  return guild && change && { guild, subjectId, ...change };
+}
 
 function channelFields(channel: NonThreadGuildBasedChannel): Fields {
   return {
@@ -78,13 +103,8 @@ export class ChannelCreateKind extends ChannelKind<ChannelCreatedEvent> {
   public readonly eventClass: new (...args: any[]) => ChannelCreatedEvent = ChannelCreatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.ChannelCreate];
 
-  public draft(event: ChannelCreatedEvent): GuildHistoryDraft {
-    return {
-      guild: event.guildData,
-      subjectId: event.channelId,
-      oldValue: null,
-      newValue: channelFields(event.channel),
-    };
+  public draft(event: ChannelCreatedEvent): GuildHistoryDraft | null {
+    return created(event.guildData, event.channelId, channelFields(event.channel));
   }
 }
 
@@ -95,8 +115,12 @@ export class ChannelUpdateKind extends ChannelKind<ChannelUpdatedEvent> {
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.ChannelUpdate];
 
   public draft(event: ChannelUpdatedEvent): GuildHistoryDraft | null {
-    const change = diffFields(channelFields(event.oldChannel), channelFields(event.newChannel));
-    return change && { guild: event.guildData, subjectId: event.channelId, ...change };
+    return updated(
+      event.guildData,
+      event.channelId,
+      channelFields(event.oldChannel),
+      channelFields(event.newChannel)
+    );
   }
 }
 
@@ -106,13 +130,8 @@ export class ChannelDeleteKind extends ChannelKind<ChannelDeletedEvent> {
   public readonly eventClass: new (...args: any[]) => ChannelDeletedEvent = ChannelDeletedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.ChannelDelete];
 
-  public draft(event: ChannelDeletedEvent): GuildHistoryDraft {
-    return {
-      guild: event.guildData,
-      subjectId: event.channelId,
-      oldValue: channelFields(event.channel),
-      newValue: null,
-    };
+  public draft(event: ChannelDeletedEvent): GuildHistoryDraft | null {
+    return deleted(event.guildData, event.channelId, channelFields(event.channel));
   }
 
   protected override mention(subjectId: string): string {
@@ -134,13 +153,8 @@ export class RoleCreateKind extends RoleKind<RoleCreatedEvent> {
   public readonly eventClass: new (...args: any[]) => RoleCreatedEvent = RoleCreatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.RoleCreate];
 
-  public draft(event: RoleCreatedEvent): GuildHistoryDraft {
-    return {
-      guild: event.guildData,
-      subjectId: event.roleId,
-      oldValue: null,
-      newValue: roleFields(event.role),
-    };
+  public draft(event: RoleCreatedEvent): GuildHistoryDraft | null {
+    return created(event.guildData, event.roleId, roleFields(event.role));
   }
 }
 
@@ -151,8 +165,7 @@ export class RoleUpdateKind extends RoleKind<RoleUpdatedEvent> {
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.RoleUpdate];
 
   public draft(event: RoleUpdatedEvent): GuildHistoryDraft | null {
-    const change = diffFields(roleFields(event.oldRole), roleFields(event.newRole));
-    return change && { guild: event.guildData, subjectId: event.roleId, ...change };
+    return updated(event.guildData, event.roleId, roleFields(event.oldRole), roleFields(event.newRole));
   }
 }
 
@@ -162,13 +175,8 @@ export class RoleDeleteKind extends RoleKind<RoleDeletedEvent> {
   public readonly eventClass: new (...args: any[]) => RoleDeletedEvent = RoleDeletedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.RoleDelete];
 
-  public draft(event: RoleDeletedEvent): GuildHistoryDraft {
-    return {
-      guild: event.guildData,
-      subjectId: event.roleId,
-      oldValue: roleFields(event.role),
-      newValue: null,
-    };
+  public draft(event: RoleDeletedEvent): GuildHistoryDraft | null {
+    return deleted(event.guildData, event.roleId, roleFields(event.role));
   }
 
   protected override mention(subjectId: string): string {
@@ -188,13 +196,8 @@ export class EmojiCreateKind extends IdKind<EmojiCreatedEvent> {
   public readonly eventClass: new (...args: any[]) => EmojiCreatedEvent = EmojiCreatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.EmojiCreate];
 
-  public draft(event: EmojiCreatedEvent): GuildHistoryDraft {
-    return {
-      guild: event.guildData,
-      subjectId: event.emojiId,
-      oldValue: null,
-      newValue: emojiFields(event.emoji),
-    };
+  public draft(event: EmojiCreatedEvent): GuildHistoryDraft | null {
+    return created(event.guildData, event.emojiId, emojiFields(event.emoji));
   }
 }
 
@@ -205,8 +208,7 @@ export class EmojiUpdateKind extends IdKind<EmojiUpdatedEvent> {
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.EmojiUpdate];
 
   public draft(event: EmojiUpdatedEvent): GuildHistoryDraft | null {
-    const change = diffFields(emojiFields(event.oldEmoji), emojiFields(event.newEmoji));
-    return change && { guild: event.guildData, subjectId: event.emojiId, ...change };
+    return updated(event.guildData, event.emojiId, emojiFields(event.oldEmoji), emojiFields(event.newEmoji));
   }
 }
 
@@ -216,13 +218,8 @@ export class EmojiDeleteKind extends IdKind<EmojiDeletedEvent> {
   public readonly eventClass: new (...args: any[]) => EmojiDeletedEvent = EmojiDeletedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.EmojiDelete];
 
-  public draft(event: EmojiDeletedEvent): GuildHistoryDraft {
-    return {
-      guild: event.guildData,
-      subjectId: event.emojiId,
-      oldValue: emojiFields(event.emoji),
-      newValue: null,
-    };
+  public draft(event: EmojiDeletedEvent): GuildHistoryDraft | null {
+    return deleted(event.guildData, event.emojiId, emojiFields(event.emoji));
   }
 }
 
@@ -232,15 +229,8 @@ export class StickerCreateKind extends IdKind<StickerCreatedEvent> {
   public readonly eventClass: new (...args: any[]) => StickerCreatedEvent = StickerCreatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.StickerCreate];
 
-  public draft({ guildData, stickerId, sticker }: StickerCreatedEvent): GuildHistoryDraft | null {
-    return (
-      guildData && {
-        guild: guildData,
-        subjectId: stickerId,
-        oldValue: null,
-        newValue: stickerFields(sticker),
-      }
-    );
+  public draft(event: StickerCreatedEvent): GuildHistoryDraft | null {
+    return created(event.guildData, event.stickerId, stickerFields(event.sticker));
   }
 }
 
@@ -250,14 +240,13 @@ export class StickerUpdateKind extends IdKind<StickerUpdatedEvent> {
   public readonly eventClass: new (...args: any[]) => StickerUpdatedEvent = StickerUpdatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.StickerUpdate];
 
-  public draft({
-    guildData,
-    stickerId,
-    oldSticker,
-    newSticker,
-  }: StickerUpdatedEvent): GuildHistoryDraft | null {
-    const change = diffFields(stickerFields(oldSticker), stickerFields(newSticker));
-    return guildData && change && { guild: guildData, subjectId: stickerId, ...change };
+  public draft(event: StickerUpdatedEvent): GuildHistoryDraft | null {
+    return updated(
+      event.guildData,
+      event.stickerId,
+      stickerFields(event.oldSticker),
+      stickerFields(event.newSticker)
+    );
   }
 }
 
@@ -267,15 +256,8 @@ export class StickerDeleteKind extends IdKind<StickerDeletedEvent> {
   public readonly eventClass: new (...args: any[]) => StickerDeletedEvent = StickerDeletedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.StickerDelete];
 
-  public draft({ guildData, stickerId, sticker }: StickerDeletedEvent): GuildHistoryDraft | null {
-    return (
-      guildData && {
-        guild: guildData,
-        subjectId: stickerId,
-        oldValue: stickerFields(sticker),
-        newValue: null,
-      }
-    );
+  public draft(event: StickerDeletedEvent): GuildHistoryDraft | null {
+    return deleted(event.guildData, event.stickerId, stickerFields(event.sticker));
   }
 }
 
@@ -293,8 +275,8 @@ export class ThreadCreateKind extends ThreadKind<ThreadCreatedEvent> {
   public readonly eventClass: new (...args: any[]) => ThreadCreatedEvent = ThreadCreatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.ThreadCreate];
 
-  public draft({ thread }: ThreadCreatedEvent): GuildHistoryDraft {
-    return { guild: thread.guild, subjectId: thread.id, oldValue: null, newValue: threadFields(thread) };
+  public draft({ thread }: ThreadCreatedEvent): GuildHistoryDraft | null {
+    return created(thread.guild, thread.id, threadFields(thread));
   }
 }
 
@@ -305,8 +287,7 @@ export class ThreadUpdateKind extends ThreadKind<ThreadUpdatedEvent> {
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.ThreadUpdate];
 
   public draft({ oldThread, newThread }: ThreadUpdatedEvent): GuildHistoryDraft | null {
-    const change = diffFields(threadFields(oldThread), threadFields(newThread));
-    return change && { guild: newThread.guild, subjectId: newThread.id, ...change };
+    return updated(newThread.guild, newThread.id, threadFields(oldThread), threadFields(newThread));
   }
 }
 
@@ -316,8 +297,8 @@ export class ThreadDeleteKind extends ThreadKind<ThreadDeletedEvent> {
   public readonly eventClass: new (...args: any[]) => ThreadDeletedEvent = ThreadDeletedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.ThreadDelete];
 
-  public draft({ thread }: ThreadDeletedEvent): GuildHistoryDraft {
-    return { guild: thread.guild, subjectId: thread.id, oldValue: threadFields(thread), newValue: null };
+  public draft({ thread }: ThreadDeletedEvent): GuildHistoryDraft | null {
+    return deleted(thread.guild, thread.id, threadFields(thread));
   }
 
   protected override mention(subjectId: string): string {

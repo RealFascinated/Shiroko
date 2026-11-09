@@ -1,6 +1,6 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { roleOption, type CommandOptionBuilder } from "@/command/option";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { baseEmbed } from "@/lib/embed";
 import Permissions from "@/permission/permissions";
 
 export default class PermissionsClearCommand extends Command {
@@ -12,14 +12,9 @@ export default class PermissionsClearCommand extends Command {
     return [roleOption(true, "role", "Role to clear")];
   }
 
-  protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const role = args.role("role");
-    if (!role) {
-      return ctx.reply(
-        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A role is required."))
-      );
-    }
+    const role = ctx.options.getRole("role", true);
     await Permissions.clearRole(guild, role.id, { guild, userId: ctx.user.id });
     return ctx.reply({
       embeds: [

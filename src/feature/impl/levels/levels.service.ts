@@ -4,6 +4,8 @@ import { EventBus } from "@/event/event-bus";
 import LevelUpEvent from "@/event/events/level-up.event";
 import LeaderboardManager from "@/leaderboard/index";
 import { LeaderboardId } from "@/leaderboard/leaderboard";
+import { syncMembers, type MemberSyncProgress, type MemberSyncResult } from "@/lib/member-sync";
+import { isAssignableRole } from "@/lib/roles";
 import GuildUsersManager from "@/user/guild-users-manager";
 import type { Guild, Role } from "discord.js";
 import { and, eq, sql } from "drizzle-orm";
@@ -23,23 +25,6 @@ export interface RewardRow extends LevelReward {
   guildId: string;
   level: number;
 }
-
-/**
- * Counts from a guild-wide level-reward sync. `changed` counts members who
- * received at least one role; `granted` counts the roles handed out.
- */
-export interface LevelsRewardSyncResult {
-  scanned: number;
-  changed: number;
-  granted: number;
-  failed: number;
-}
-
-/**
- * Progress callback for {@link LevelsService.syncRewardsToGuild}: `scanned`
- * of `total` members have been examined so far.
- */
-export type LevelsRewardSyncProgress = (scanned: number, total: number) => Promise<void>;
 
 interface UserLevelSnapshot {
   readonly level: number;
@@ -196,16 +181,13 @@ export default class LevelsService {
    * grant failures are logged and counted, never fatal. `onProgress` is
    * awaited every 100 members and on the final member.
    */
-  public async syncRewardsToGuild(
-    guild: Guild,
-    onProgress?: LevelsRewardSyncProgress
-  ): Promise<LevelsRewardSyncResult> {
+  public async syncRewardsToGuild(guild: Guild, onProgress?: MemberSyncProgress): Promise<MemberSyncResult> {
     const roles = (await this.rewards(guild.id))
       .filter(reward => reward.type === "Role" && reward.roleId)
       .map(reward => ({ level: reward.level, role: guild.roles.cache.get(reward.roleId as string) }))
       .filter(
         (entry): entry is { level: number; role: Role } =>
-          entry.role !== undefined && this.isAssignable(entry.role)
+          entry.role !== undefined && isAssignableRole(entry.role)
       );
 
     // One query for every stored total, so the sweep costs O(1) reads per
@@ -217,32 +199,17 @@ export default class LevelsService {
       .where(eq(userLevelsSchema.guildId, guild.id));
     const xpByUser = new Map(xpRows.map(row => [row.userId, row.xp]));
 
-    const result: LevelsRewardSyncResult = { scanned: 0, changed: 0, granted: 0, failed: 0 };
-    const members = await guild.members.fetch();
-    const total = members.size;
-    for (const member of members.values()) {
-      result.scanned++;
-      if (!member.user.bot) {
+    return syncMembers(
+      guild,
+      "Level reward",
+      member => {
         const level = levelForXp(xpByUser.get(member.id) ?? 0);
-        const missing = roles
+        return roles
           .filter(entry => entry.level <= level && !member.roles.cache.has(entry.role.id))
           .map(entry => entry.role);
-        if (missing.length > 0) {
-          try {
-            await member.roles.add(missing, "Level reward");
-            result.changed++;
-            result.granted += missing.length;
-          } catch (error) {
-            result.failed++;
-            console.error(`Failed to grant level rewards to ${member.id} in ${guild.id}:`, error);
-          }
-        }
-      }
-      if (onProgress && (result.scanned % 100 === 0 || result.scanned === total)) {
-        await onProgress(result.scanned, total);
-      }
-    }
-    return result;
+      },
+      onProgress
+    );
   }
 
   /**
@@ -289,21 +256,6 @@ export default class LevelsService {
       await EventBus.post(new LevelUpEvent({ userId, guild, prevLevel: lvl - 1, newLevel: lvl, xp: row.xp }));
     }
     return persisted;
-  }
-
-  /**
-   * Whether a role can be assigned in its guild: it is not `@everyone` and
-   * is not above the bot's highest role position.
-   */
-  private isAssignable(role: Role): boolean {
-    if (role.id === role.guild.id) {
-      return false;
-    }
-    const me = role.guild.members.me;
-    if (me && role.position >= me.roles.highest.position) {
-      return false;
-    }
-    return true;
   }
 }
 

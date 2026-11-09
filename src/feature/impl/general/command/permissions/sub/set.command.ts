@@ -19,12 +19,7 @@ export default class PermissionsSetCommand extends Command {
 
   protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const role = args.role("role");
-    if (!role) {
-      return ctx.reply(
-        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A role is required."))
-      );
-    }
+    const role = ctx.options.getRole("role", true);
     const flagChoice = ctx.options.getString("flags", true);
     const flags = parseFlags([flagChoice]);
     const parent = args.role("parent");

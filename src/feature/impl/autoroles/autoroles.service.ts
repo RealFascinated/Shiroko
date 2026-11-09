@@ -1,22 +1,7 @@
+import { syncMembers, type MemberSyncProgress, type MemberSyncResult } from "@/lib/member-sync";
+import { isAssignableRole } from "@/lib/roles";
 import type { Guild, GuildMember, Role } from "discord.js";
 import { autorolesSettings } from "./autoroles-settings";
-
-/**
- * Counts from a guild-wide autorole sync. `changed` counts members who
- * received at least one role; `granted` counts the roles handed out.
- */
-export interface AutorolesSyncResult {
-  scanned: number;
-  changed: number;
-  granted: number;
-  failed: number;
-}
-
-/**
- * Progress callback for {@link AutorolesService.syncToGuild}: `scanned` of
- * `total` members have been examined so far.
- */
-export type AutorolesSyncProgress = (scanned: number, total: number) => Promise<void>;
 
 export default class AutorolesService {
   /**
@@ -63,35 +48,18 @@ export default class AutorolesService {
    * awaited every 100 members and on the final member. Grant failures are
    * logged, never fatal.
    */
-  public async syncToGuild(guild: Guild, onProgress?: AutorolesSyncProgress): Promise<AutorolesSyncResult> {
-    const roles = (await this.list(guild)).filter(role => this.isAssignable(role));
-    const result: AutorolesSyncResult = { scanned: 0, changed: 0, granted: 0, failed: 0 };
-    const members = await guild.members.fetch();
-    const total = members.size;
-    for (const member of members.values()) {
-      result.scanned++;
-      if (!member.user.bot) {
-        const missing = roles.filter(role => !member.roles.cache.has(role.id));
-        if (missing.length > 0) {
-          try {
-            await member.roles.add(missing, "Autorole");
-            result.changed++;
-            result.granted += missing.length;
-          } catch (error) {
-            result.failed++;
-            console.error(`Failed to grant autoroles to ${member.id} in ${guild.id}:`, error);
-          }
-        }
-      }
-      if (onProgress && (result.scanned % 100 === 0 || result.scanned === total)) {
-        await onProgress(result.scanned, total);
-      }
-    }
-    return result;
+  public async syncToGuild(guild: Guild, onProgress?: MemberSyncProgress): Promise<MemberSyncResult> {
+    const roles = (await this.list(guild)).filter(isAssignableRole);
+    return syncMembers(
+      guild,
+      "Autorole",
+      member => roles.filter(role => !member.roles.cache.has(role.id)),
+      onProgress
+    );
   }
 
   public async applyToMember(guild: Guild, member: GuildMember): Promise<void> {
-    const roles = (await this.list(guild)).filter(this.isAssignable);
+    const roles = (await this.list(guild)).filter(isAssignableRole);
     if (roles.length === 0) {
       return;
     }
@@ -100,21 +68,6 @@ export default class AutorolesService {
     } catch (error) {
       console.error(`Failed to grant autoroles to ${member.id} in ${guild.id}:`, error);
     }
-  }
-
-  /**
-   * Whether a role can be assigned in its guild: it is not @everyone and
-   * is not above the bot's highest role position.
-   */
-  private isAssignable(role: Role): boolean {
-    if (role.id === role.guild.id) {
-      return false;
-    }
-    const me = role.guild.members.me;
-    if (me && role.position >= me.roles.highest.position) {
-      return false;
-    }
-    return true;
   }
 }
 

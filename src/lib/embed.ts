@@ -22,7 +22,7 @@ export function baseEmbed(command: string | null = null, page?: Page<unknown>): 
  * The `Page 1/3 · 24 Items` counter a paged list wears in its footer.
  */
 export function pageSummary({ page, pageCount, total }: Page<unknown>): string {
-  return `Page ${page}/${pageCount} ·${total} ${total === 1 ? "Item" : "Items"}`;
+  return `Page ${page}/${pageCount} · ${total} ${total === 1 ? "Item" : "Items"}`;
 }
 
 /**

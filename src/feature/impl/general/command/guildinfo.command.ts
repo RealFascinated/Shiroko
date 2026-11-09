@@ -1,5 +1,6 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { baseEmbed } from "@/lib/embed";
+import { formatCount } from "@/lib/format";
 import { ChannelType } from "discord.js";
 
 export default class GuildInfoCommand extends Command {
@@ -34,11 +35,11 @@ export default class GuildInfoCommand extends Command {
       ],
       [
         "**👥 Members**",
-        `**Total:** ${guild.memberCount.toLocaleString("en-US")}`,
-        `**Online:** ${statusCounts.online.toLocaleString("en-US")}`,
-        `**Idle:** ${statusCounts.idle.toLocaleString("en-US")}`,
-        `**DND:** ${statusCounts.dnd.toLocaleString("en-US")}`,
-        `**Offline:** ${statusCounts.offline.toLocaleString("en-US")}`,
+        `**Total:** ${formatCount(guild.memberCount)}`,
+        `**Online:** ${formatCount(statusCounts.online)}`,
+        `**Idle:** ${formatCount(statusCounts.idle)}`,
+        `**DND:** ${formatCount(statusCounts.dnd)}`,
+        `**Offline:** ${formatCount(statusCounts.offline)}`,
       ],
       [
         "**🕰️ History**",

@@ -20,12 +20,7 @@ export default class PermissionsInheritCommand extends Command {
 
   protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const role = args.role("role");
-    if (!role) {
-      return ctx.reply(
-        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A role is required."))
-      );
-    }
+    const role = ctx.options.getRole("role", true);
     const parent = args.role("parent");
     try {
       const effective = await Permissions.setParent(guild, role.id, parent?.id ?? null, {

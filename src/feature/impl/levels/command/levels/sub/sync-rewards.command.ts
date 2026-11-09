@@ -1,9 +1,8 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { levelsService } from "@/feature/impl/levels/levels.service";
-import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
-import { pluralise } from "@/lib/format";
+import { ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { replyWithSync } from "@/lib/sync-reply";
 import { PermissionFlags } from "@/permission/permissions";
-import type { EmbedBuilder } from "discord.js";
 
 /**
  * Grant every unlocked reward role members are missing. Useful after
@@ -20,7 +19,8 @@ export default class SyncRewardsCommand extends Command {
     return PermissionFlags.LEVELS_COMMAND;
   }
 
-  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext): Promise<void> {
+  protected override async onExecuteSlash(context: ExecuteContext): Promise<void> {
+    const { ctx, commandName } = context;
     const guild = ctx.guild!;
     const rewards = await levelsService.rewards(guild.id);
     if (!rewards.some(reward => reward.type === "Role" && reward.roleId)) {
@@ -35,33 +35,8 @@ export default class SyncRewardsCommand extends Command {
       return;
     }
 
-    await ctx.deferReply();
-    const result = await levelsService.syncRewardsToGuild(guild, async (scanned, total) => {
-      await ctx.editReply({ embeds: [progressEmbed(commandName, scanned, total)] });
-    });
-
-    const lines = [
-      `Checked ${result.scanned.toLocaleString("en-US")} ${pluralise(result.scanned, "member")}.`,
-      `Granted ${result.granted.toLocaleString("en-US")} ${pluralise(result.granted, "role")} to ${result.changed.toLocaleString("en-US")} ${pluralise(result.changed, "member")}.`,
-    ];
-    if (result.failed > 0) {
-      lines.push(
-        `${result.failed.toLocaleString("en-US")} ${pluralise(result.failed, "member")} could not be updated.`
-      );
-    }
-    await ctx.editReply({
-      embeds: [baseEmbed(commandName).setTitle("Level rewards synced").setDescription(lines.join("\n"))],
-    });
-  }
-}
-
-/**
- * The in-progress card, redrawn every 100 members and once the sweep ends.
- */
-function progressEmbed(command: string, scanned: number, total: number): EmbedBuilder {
-  return baseEmbed(command)
-    .setTitle("Syncing level rewards")
-    .setDescription(
-      `Checking ${scanned.toLocaleString("en-US")}/${total.toLocaleString("en-US")} members...`
+    await replyWithSync(context, "level rewards", onProgress =>
+      levelsService.syncRewardsToGuild(guild, onProgress)
     );
+  }
 }

@@ -1,7 +1,9 @@
+import type { Role } from "discord.js";
 import Command, { type ExecuteContext } from "@/command/command";
 import { roleOption, type CommandOptionBuilder } from "@/command/option";
 import { autorolesService } from "@/feature/impl/autoroles/autoroles.service";
 import { baseEmbed, ephemeralErrorReply, errorEmbed } from "@/lib/embed";
+import { unassignableReason } from "@/lib/roles";
 
 export default class AddCommand extends Command {
   constructor() {
@@ -12,32 +14,12 @@ export default class AddCommand extends Command {
     return [roleOption(true, "role", "Role to grant on join")];
   }
 
-  protected override async onExecuteSlash({ ctx, args, commandName }: ExecuteContext) {
+  protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const role = args.role("role");
-    if (!role) {
-      return ctx.reply(
-        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription("A role is required."))
-      );
-    }
-    if (role.id === guild.id) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription(`\`@everyone\` cannot be an autorole.`)
-        )
-      );
-    }
-    const me = guild.members.me;
-    if (me && role.position >= me.roles.highest.position) {
-      return ctx.reply(
-        ephemeralErrorReply(
-          commandName,
-          errorEmbed(commandName).setDescription(
-            `${role.name} is above my highest role, so I cannot assign it. Move it below my highest role and try again.`
-          )
-        )
-      );
+    const role = ctx.options.getRole("role", true) as Role;
+    const reason = unassignableReason(role, "an autorole");
+    if (reason) {
+      return ctx.reply(ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription(reason)));
     }
 
     const wasNew = await autorolesService.add(guild, role.id, ctx.user.id);

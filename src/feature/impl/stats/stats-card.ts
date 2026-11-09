@@ -39,17 +39,7 @@ async function paintHeader(canvas: Canvas, data: StatsCardData): Promise<void> {
   const size = 96;
   const x = 48;
   const y = 36;
-  const centerX = x + size / 2;
-  const centerY = y + size / 2;
-  const avatar = data.avatarUrl ? await Canvas.loadImage(data.avatarUrl) : null;
-  if (avatar) {
-    canvas.circleImage(avatar, centerX, centerY, size / 2);
-  } else {
-    canvas
-      .roundedRect(x, y, size, size, size / 2, "#2a2340")
-      .centeredText(data.name.slice(0, 1).toUpperCase(), centerX, centerY + 16, 44, "#ffffff", 700);
-  }
-  canvas.circleOutline(centerX, centerY, size / 2 + 1, ACCENT, 3);
+  await canvas.avatar(data.avatarUrl, data.name, x, y, size, ACCENT);
   canvas.text(canvas.fitText(data.name, 560, 34, 700), x + size + 24, y + 42, 34, "#ffffff", 700);
   canvas.text(cardTitle(data.kind, data.scope), x + size + 24, y + 74, 20, ACCENT, 500);
 }
@@ -191,7 +181,6 @@ function tileValues(data: StatsCardData): Array<{ value: string; sub?: string }>
     },
   ];
 }
-
 
 /**
  * Format voice seconds compactly for tiles, e.g. `3h, 30m`.

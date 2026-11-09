@@ -3,6 +3,7 @@ import { EventBus } from "../event/event-bus";
 import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
 import BotReadyEvent from "../event/events/bot-ready.event";
+import { formatCount } from "./format";
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -35,7 +36,7 @@ export class PresenceListener extends EventListener {
  */
 function updatePresence(client: Client): void {
   client.user?.setActivity({
-    name: `${client.guilds.cache.size.toLocaleString("en-US")} servers`,
+    name: `${formatCount(client.guilds.cache.size)} servers`,
     type: ActivityType.Watching,
   });
 }

@@ -1,5 +1,5 @@
 import { PermissionFlagsBits, type Guild, type GuildMember } from "discord.js";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import AuditLog, { type AuditActor } from "../audit/audit-log";
 import { Cache } from "../cache/cache";
 import { Caches } from "../cache/index";
@@ -92,6 +92,10 @@ export interface PaginatedRoleConfig extends RoleConfig {
  * guild's entry, so the cache is authoritative. Guild leave purges it
  * through the cache registry.
  */
+function roleRow(guildId: string, roleId: string): SQL | undefined {
+  return and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId));
+}
+
 export default class Permissions {
   private static readonly CACHE: Cache<Map<string, RoleConfig>> = Caches.register(
     new Cache<Map<string, RoleConfig>>({ name: "permissions", mode: "authoritative", max: 5_000 })
@@ -118,27 +122,32 @@ export default class Permissions {
   ): Promise<bigint> {
     const guildId = guild.id;
     await Permissions.assertNoCycle(guildId, roleId, parentRoleId);
-    await AuditLog.write(actor, "permissions", roleId, async tx => {
-      const [existing] = await tx
-        .select()
-        .from(permissionRolesSchema)
-        .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId)))
-        .for("update");
-      const oldValue = existing ? { flags: existing.flags, parentRoleId: existing.parentRoleId } : null;
-      const newValue = { flags: String(ownFlags), parentRoleId };
-      if (Bun.deepEquals(oldValue, newValue)) {
-        return null;
-      }
-      await tx
-        .insert(permissionRolesSchema)
-        .values({ guildId, roleId, ...newValue })
-        .onConflictDoUpdate({
-          target: [permissionRolesSchema.guildId, permissionRolesSchema.roleId],
-          set: newValue,
-        });
-      return { oldValue, newValue };
-    });
-    Permissions.invalidateGuild(guildId);
+    await AuditLog.write(
+      actor,
+      "permissions",
+      roleId,
+      async tx => {
+        const [existing] = await tx
+          .select()
+          .from(permissionRolesSchema)
+          .where(roleRow(guildId, roleId))
+          .for("update");
+        const oldValue = existing ? { flags: existing.flags, parentRoleId: existing.parentRoleId } : null;
+        const newValue = { flags: String(ownFlags), parentRoleId };
+        if (Bun.deepEquals(oldValue, newValue)) {
+          return null;
+        }
+        await tx
+          .insert(permissionRolesSchema)
+          .values({ guildId, roleId, ...newValue })
+          .onConflictDoUpdate({
+            target: [permissionRolesSchema.guildId, permissionRolesSchema.roleId],
+            set: newValue,
+          });
+        return { oldValue, newValue };
+      },
+      () => Permissions.invalidateGuild(guildId)
+    );
     return Permissions.roleEffectiveFlags(guildId, roleId);
   }
 
@@ -164,21 +173,24 @@ export default class Permissions {
    */
   public static async clearRole(guild: Guild, roleId: string, actor: AuditActor): Promise<void> {
     const guildId = guild.id;
-    await AuditLog.write(actor, "permissions", roleId, async tx => {
-      const [existing] = await tx
-        .select()
-        .from(permissionRolesSchema)
-        .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId)))
-        .for("update");
-      if (!existing) {
-        return null;
-      }
-      await tx
-        .delete(permissionRolesSchema)
-        .where(and(eq(permissionRolesSchema.guildId, guildId), eq(permissionRolesSchema.roleId, roleId)));
-      return { oldValue: { flags: existing.flags, parentRoleId: existing.parentRoleId }, newValue: null };
-    });
-    Permissions.invalidateGuild(guildId);
+    await AuditLog.write(
+      actor,
+      "permissions",
+      roleId,
+      async tx => {
+        const [existing] = await tx
+          .select()
+          .from(permissionRolesSchema)
+          .where(roleRow(guildId, roleId))
+          .for("update");
+        if (!existing) {
+          return null;
+        }
+        await tx.delete(permissionRolesSchema).where(roleRow(guildId, roleId));
+        return { oldValue: { flags: existing.flags, parentRoleId: existing.parentRoleId }, newValue: null };
+      },
+      () => Permissions.invalidateGuild(guildId)
+    );
   }
 
   /**

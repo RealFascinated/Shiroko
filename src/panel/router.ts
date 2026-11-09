@@ -1,3 +1,4 @@
+import { replyFailure } from "@/lib/interaction-error";
 import GlobalUsersManager from "@/user/global-users-manager";
 import {
   ContainerBuilder,
@@ -64,6 +65,7 @@ export async function handlePanelInteraction(
     await dispatch(panel, context, decoded, interaction);
   } catch (error) {
     console.error(`Error handling panel interaction "${interaction.customId}":`, error);
+    await replyFailure(interaction);
   }
   return true;
 }

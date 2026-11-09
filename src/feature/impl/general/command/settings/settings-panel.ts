@@ -258,36 +258,36 @@ function controlFor(key: string, descriptor: RuntimeFieldDescriptor): PanelContr
 
 /** A number's bounds problem, or null when the input is empty or in range. */
 function numberProblem(descriptor: RuntimeFieldDescriptor, input: string): string | null {
-  if (input.trim() === "") {
-    return null;
-  }
-  const num = Number(input);
-  if (!Number.isFinite(num)) {
-    return `${descriptor.label} must be a number.`;
-  }
-  if (descriptor.min !== undefined && num < descriptor.min) {
-    return `${descriptor.label} must be at least ${descriptor.min}.`;
-  }
-  if (descriptor.max !== undefined && num > descriptor.max) {
-    return `${descriptor.label} must be at most ${descriptor.max}.`;
-  }
-  return null;
+  return input.trim() === "" ? null : numberBounds(descriptor, Number(input));
 }
 
 /** A duration's parse/bounds problem, or null when empty or in range. */
 function durationProblem(descriptor: RuntimeFieldDescriptor, input: string): string | null {
-  if (input.trim() === "") {
-    return null;
+  return input.trim() === "" ? null : durationBounds(descriptor, parseDuration(input));
+}
+
+function numberBounds(descriptor: RuntimeFieldDescriptor, num: number): string | null {
+  return Number.isFinite(num)
+    ? rangeProblem(descriptor, num, String)
+    : `${descriptor.label} must be a number.`;
+}
+
+function durationBounds(descriptor: RuntimeFieldDescriptor, ms: number | null): string | null {
+  return ms !== null && Number.isFinite(ms)
+    ? rangeProblem(descriptor, ms, formatDuration)
+    : `${descriptor.label} must be a duration like "90s" or "1h30m".`;
+}
+
+function rangeProblem(
+  descriptor: RuntimeFieldDescriptor,
+  value: number,
+  format: (bound: number) => string
+): string | null {
+  if (descriptor.min !== undefined && value < descriptor.min) {
+    return `${descriptor.label} must be at least ${format(descriptor.min)}.`;
   }
-  const ms = parseDuration(input);
-  if (ms === null) {
-    return `${descriptor.label} must be a duration like "90s" or "1h30m".`;
-  }
-  if (descriptor.min !== undefined && ms < descriptor.min) {
-    return `${descriptor.label} must be at least ${formatDuration(descriptor.min)}.`;
-  }
-  if (descriptor.max !== undefined && ms > descriptor.max) {
-    return `${descriptor.label} must be at most ${formatDuration(descriptor.max)}.`;
+  if (descriptor.max !== undefined && value > descriptor.max) {
+    return `${descriptor.label} must be at most ${format(descriptor.max)}.`;
   }
   return null;
 }
@@ -304,36 +304,18 @@ function roleListLimit(descriptor: RuntimeFieldDescriptor): number {
  * (a number, or null when the field was cleared).
  */
 function numberValueProblem(descriptor: RuntimeFieldDescriptor, value: unknown): string | null {
-  if (value !== null) {
-    const num = Number(value);
-    if (!Number.isFinite(num)) {
-      return `${descriptor.label} must be a number.`;
-    }
-    if (descriptor.min !== undefined && num < descriptor.min) {
-      return `${descriptor.label} must be at least ${descriptor.min}.`;
-    }
-    if (descriptor.max !== undefined && num > descriptor.max) {
-      return `${descriptor.label} must be at most ${descriptor.max}.`;
-    }
-  }
-  return descriptor.validate?.(value) ?? null;
+  return (
+    (value === null ? null : numberBounds(descriptor, Number(value))) ?? descriptor.validate?.(value) ?? null
+  );
 }
 
 /** As {@link numberValueProblem}, for a duration stored as milliseconds. */
 function durationValueProblem(descriptor: RuntimeFieldDescriptor, value: unknown): string | null {
-  if (value !== null) {
-    const ms = Number(value);
-    if (!Number.isFinite(ms)) {
-      return `${descriptor.label} must be a duration like "90s" or "1h30m".`;
-    }
-    if (descriptor.min !== undefined && ms < descriptor.min) {
-      return `${descriptor.label} must be at least ${formatDuration(descriptor.min)}.`;
-    }
-    if (descriptor.max !== undefined && ms > descriptor.max) {
-      return `${descriptor.label} must be at most ${formatDuration(descriptor.max)}.`;
-    }
-  }
-  return descriptor.validate?.(value) ?? null;
+  return (
+    (value === null ? null : durationBounds(descriptor, Number(value))) ??
+    descriptor.validate?.(value) ??
+    null
+  );
 }
 
 /** The one instance shared by the router and `/settings`. */

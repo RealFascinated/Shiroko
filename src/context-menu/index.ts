@@ -3,6 +3,7 @@ import { EventBus } from "../event/event-bus";
 import { EventHandler } from "../event/event-handler";
 import { EventListener } from "../event/event-listener";
 import ContextMenuReceivedEvent from "../event/events/context-menu-received.event";
+import { replyFailure } from "../lib/interaction-error";
 import GlobalUsersManager from "../user/global-users-manager";
 import type ContextMenuCommand from "./context-menu-command";
 import AvatarCommand from "./impl/avatar.command";
@@ -58,6 +59,7 @@ export class ContextMenuCommandListener extends EventListener {
       await command.execute({ user: globalUser, guild: interaction.guild, ctx: interaction });
     } catch (error) {
       console.error(`Error executing context menu command "${commandName}":`, error);
+      await replyFailure(interaction);
     }
   }
 }

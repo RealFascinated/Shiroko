@@ -3,6 +3,7 @@ import { Constants } from "@/constants";
 import { db } from "@/db/index";
 import { globalUsersSchema } from "@/db/schemas/global-users";
 import { baseEmbed } from "@/lib/embed";
+import { formatCount } from "@/lib/format";
 import { formatDuration } from "@/lib/time";
 import CommandCallService from "@/metrics/command-calls.service";
 import {
@@ -33,11 +34,11 @@ export default class BotStatsCommand extends Command {
     const sections: string[][] = [
       [
         `**🌐 Bot**`,
-        `**Servers:** ${ctx.client.guilds.cache.size.toLocaleString("en-US")}`,
-        `**Users:** ${ctx.client.users.cache.size.toLocaleString("en-US")}`,
-        `**Users Seen:** ${(userCount?.value ?? 0).toLocaleString("en-US")}`,
-        `**Commands:** ${ctx.client.application.commands.cache.size.toLocaleString("en-US")}`,
-        `**Commands Run:** ${commandCalls.toLocaleString("en-US")}`,
+        `**Servers:** ${formatCount(ctx.client.guilds.cache.size)}`,
+        `**Users:** ${formatCount(ctx.client.users.cache.size)}`,
+        `**Users Seen:** ${formatCount(userCount?.value ?? 0)}`,
+        `**Commands:** ${formatCount(ctx.client.application.commands.cache.size)}`,
+        `**Commands Run:** ${formatCount(commandCalls)}`,
       ],
       [
         `**⚡ Status**`,

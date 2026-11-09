@@ -65,7 +65,9 @@ async function grantLevelRewards(event: LevelUpEvent): Promise<void> {
   if (!member) {
     return;
   }
-  const rewards = await levelsService.rewardsBetween(guild.id, event.prevLevel + 1, event.newLevel);
+  // Level 1 is the starting level and is never crossed, so it is granted with the first level-up.
+  const fromLevel = event.prevLevel === 1 ? 1 : event.prevLevel + 1;
+  const rewards = await levelsService.rewardsBetween(guild.id, fromLevel, event.newLevel);
   const roleIds = rewards.filter(r => r.type === "Role" && r.roleId).map(r => r.roleId as string);
   if (roleIds.length === 0) {
     return;

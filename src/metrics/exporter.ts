@@ -66,7 +66,13 @@ function leLabel(bound: number, base: string): string {
 
 /** Append one `name="value"` label to an already-formatted label set. */
 function withLabel(base: string, name: string, value: string): string {
-  return base === "" ? `{${name}="${value}"}` : base.slice(0, -1) + `,${name}="${value}"}`;
+  return base === ""
+    ? `{${name}="${escapeLabel(value)}"}`
+    : base.slice(0, -1) + `,${name}="${escapeLabel(value)}"}`;
+}
+
+function escapeLabel(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("\n", "\\n");
 }
 
 function formatLabels(labels: Record<string, string>): string {
@@ -74,7 +80,7 @@ function formatLabels(labels: Record<string, string>): string {
   if (entries.length === 0) {
     return "";
   }
-  return `{${entries.map(([k, v]) => `${k}="${v}"`).join(",")}}`;
+  return `{${entries.map(([k, v]) => `${k}="${escapeLabel(v)}"`).join(",")}}`;
 }
 
 function formatValue(value: number): string {

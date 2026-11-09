@@ -128,6 +128,36 @@ export default class Canvas {
     return this;
   }
 
+  /**
+   * A circular avatar at (`x`, `y`) with the name's initial as the fallback
+   * when there is no image, ringed in `accent`.
+   */
+  public async avatar(
+    url: string | null,
+    name: string,
+    x: number,
+    y: number,
+    size: number,
+    accent: string
+  ): Promise<this> {
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const image = url ? await Canvas.loadImage(url) : null;
+    if (image) {
+      this.circleImage(image, centerX, centerY, size / 2);
+    } else {
+      this.roundedRect(x, y, size, size, size / 2, "#2a2340").centeredText(
+        name.slice(0, 1).toUpperCase(),
+        centerX,
+        centerY + 16,
+        44,
+        "#ffffff",
+        700
+      );
+    }
+    return this.circleOutline(centerX, centerY, size / 2 + 1, accent, 3);
+  }
+
   public async png(): Promise<Buffer> {
     return this.canvas.encode("png");
   }

@@ -49,6 +49,17 @@ describe("user kinds", () => {
     expect(kind.draft(event)).toBeNull();
   });
 
+  test("records a later change by the same cached user object", () => {
+    const kind = USER_KIND_BY_ID.username!;
+    const newUser = { id: "2", username: "second", partial: false };
+    kind.draft({ oldUser: { username: "first", partial: false }, newUser } as never);
+    newUser.username = "third";
+    expect(kind.draft({ oldUser: { username: "second", partial: false }, newUser } as never)).toMatchObject({
+      oldValue: "second",
+      newValue: "third",
+    });
+  });
+
   test("describes a row", async () => {
     const row = { oldValue: "a", newValue: "b", actorId: null, createdAt: at } as HistoryEntry;
     expect(await USER_KIND_BY_ID.username!.describe(row)).toBe(`**Username** · ${when}\n> \`a\` → \`b\``);

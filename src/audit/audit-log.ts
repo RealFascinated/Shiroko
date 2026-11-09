@@ -32,12 +32,15 @@ export default class AuditLog {
    * Run `change` in a transaction and record what it reports. `change`
    * performs the write and returns the before/after values, or `null` when
    * nothing actually changed, in which case no entry is recorded.
+   * `onCommitted` runs after the transaction and before the entry event posts,
+   * so its handlers read the state just written.
    */
   public static async write(
     actor: AuditActor,
     kind: string,
     key: string,
-    change: (tx: DbClient) => Promise<AuditChange | null>
+    change: (tx: DbClient) => Promise<AuditChange | null>,
+    onCommitted?: () => void
   ): Promise<void> {
     const entry = await db.transaction(async tx => {
       const changed = await change(tx as unknown as DbClient);
@@ -50,6 +53,7 @@ export default class AuditLog {
         .returning();
       return row ?? null;
     });
+    onCommitted?.();
     if (entry) {
       // Dynamic: the bus chain reaches `permissions.ts`, which imports this file.
       const { EventBus } = await import("../event/event-bus");
