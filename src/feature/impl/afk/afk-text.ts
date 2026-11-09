@@ -1,4 +1,4 @@
-import { formatDuration } from "@/lib/time";
+import { discordTimestamp, formatDuration } from "@/lib/time";
 import { escapeMarkdown } from "discord.js";
 import type { AfkState } from "./afk.service";
 
@@ -14,7 +14,7 @@ export function afkNotice(entries: { name: string; state: AfkState }[]): string 
     .slice(0, MAX_NOTICED)
     .map(({ name, state }) => {
       const reason = state.reason ? `: **${state.reason}**` : "";
-      return `💤 **${escapeMarkdown(name)}** is AFK${reason} · since <t:${Math.floor(state.since.getTime() / 1000)}:R>`;
+      return `💤 **${escapeMarkdown(name)}** is AFK${reason} · since ${discordTimestamp(state.since)}`;
     })
     .join("\n");
 }

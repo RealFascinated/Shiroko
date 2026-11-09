@@ -1,9 +1,6 @@
 /** Upper bound on any outbound request, so a hung server cannot stall its caller. */
 export const FETCH_TIMEOUT_MS = 10_000;
 
-/**
- * Options for {@link fetchJson}.
- */
 export interface FetchJsonOptions {
   headers?: Bun.HeadersInit;
   /** Base URL to prefix `path` with. */

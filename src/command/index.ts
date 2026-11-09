@@ -83,8 +83,6 @@ export class SlashCommandListener extends EventListener {
       return;
     }
 
-    // A subcommand's own `featureId` wins; otherwise it inherits the
-    // parent's, so a feature command gates its whole family.
     const featureId = resolved?.featureId ?? command.featureId;
     if (guild && featureId) {
       const enabled = await GuildFeatures.isFeatureEnabled(guild, featureId);

@@ -264,7 +264,6 @@ export default abstract class Command {
         (entry): entry is [string, string | number | boolean] => entry[1] !== undefined
       );
       if (entries.length > 0) {
-        // `choices` maps value -> label, so Discord must receive { name: label, value: key }.
         addChoices.call(builder, ...entries.map(([key, label]) => ({ name: String(label), value: key })));
       }
     }

@@ -58,9 +58,6 @@ export async function loadPage<T>({ page, pageSize, count, rows }: PageRequest<T
   return { page: clamped, pageSize: size, pageCount, total, rows: await rows(size, (clamped - 1) * size) };
 }
 
-/**
- * Pagination options for {@link createPager}.
- */
 export interface PagerOptions<T> {
   /**
    * Unique namespace for this pager's button custom ids so multiple

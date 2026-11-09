@@ -16,12 +16,6 @@ export interface ContextMenuExecuteContext {
   ctx: UserContextMenuCommandInteraction | MessageContextMenuCommandInteraction;
 }
 
-/**
- * Abstract base for context menu application commands (user/message).
- *
- * Mirrors {@link Command} but targets context menu commands instead
- * of chat-input slash commands.
- */
 export default abstract class ContextMenuCommand {
   public readonly id: string;
   public readonly displayName: string;

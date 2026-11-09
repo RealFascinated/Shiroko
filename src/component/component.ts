@@ -38,7 +38,6 @@ export const COMPONENT_PREFIX = "component";
 export default abstract class Component<D extends JsonValue = JsonValue> {
   /** Registry key, unique across every component. */
   public abstract readonly componentId: string;
-  /** The interaction kind this component accepts. */
   public abstract readonly type: ComponentType;
   /**
    * Whether a press consumes the row. A one-shot row is claimed atomically
@@ -49,7 +48,6 @@ export default abstract class Component<D extends JsonValue = JsonValue> {
   public abstract handle(context: ComponentContext<D>): Promise<void>;
 }
 
-/** The custom id for one stored component. */
 export function componentCustomId(componentId: string, rowId: string): string {
   return `${COMPONENT_PREFIX}:${componentId}:${rowId}`;
 }

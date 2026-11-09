@@ -1,7 +1,6 @@
 import type { JsonValue } from "../db/schemas/guild-settings";
 import type { AuditActor } from "./audit-writer";
 
-/** The gateway event class a kind listens for. */
 export type EventClass<E> = new (...args: any[]) => E;
 
 export interface AuditChange {

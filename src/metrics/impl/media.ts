@@ -44,9 +44,6 @@ abstract class MediaStateMetric extends Metric<Record<string, number>> {
     super(registration);
   }
 
-  /**
-   * The slice of {@link mediaStateTotals} this metric reports.
-   */
   protected abstract extract(totals: MediaStateTotals): Record<string, number>;
 
   public override async collect(): Promise<void> {

@@ -1,5 +1,5 @@
 import type { Cache, CacheStats } from "./cache";
-import { guildScope, userScope } from "./key";
+import { guildScope } from "./key";
 
 /**
  * Every cache in the process, so lifecycle events can purge by scope
@@ -27,10 +27,6 @@ export class Caches {
 
   public static purgeGuild(guildId: string): number {
     return Caches.purgeScope(guildScope(guildId));
-  }
-
-  public static purgeUser(userId: string): number {
-    return Caches.purgeScope(userScope(userId));
   }
 
   public static stats(): CacheStats[] {

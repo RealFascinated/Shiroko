@@ -3,6 +3,7 @@ import LevelUpEvent from "@/event/events/level-up.event";
 import MessageRecordedEvent from "@/event/events/message-recorded.event";
 import Feature from "@/feature/feature";
 import { FeatureIds } from "@/feature/feature-ids";
+import { fetchGuildMember } from "@/lib/guild";
 import SettingsManager from "@/settings/index";
 import GlobalUsersManager from "@/user/global-users-manager";
 import LevelsCommand from "./command/levels/levels.command";
@@ -46,7 +47,7 @@ export default class LevelsFeature extends Feature {
  */
 async function grantLevelRewards(event: LevelUpEvent): Promise<void> {
   const guild = event.guildData;
-  const member = await guild.members.fetch(event.userId).catch(() => null);
+  const member = await fetchGuildMember(guild, event.userId);
   if (!member) {
     return;
   }

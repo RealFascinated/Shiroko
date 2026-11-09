@@ -23,10 +23,6 @@ export default class InvitesFeature extends Feature {
     this.registerCommand(new InvitesCommand());
   }
 
-  /**
-   * Seed every guild's baseline on startup so joins diff against a fresh
-   * snapshot.
-   */
   @EventHandler(BotReadyEvent)
   public async onBotReady(event: BotReadyEvent): Promise<void> {
     await this.seedAllGuilds(event.client);

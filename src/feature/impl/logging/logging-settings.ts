@@ -21,7 +21,6 @@ export const loggingSettings = new SettingsModule<LoggingSettingsData>({
   id: "logging",
   displayName: "Logging",
   featureId: FeatureIds.Logging,
-  defaults: { channelId: null, enabled: LOG_DEFAULTS },
   descriptors: [
     { key: "channelId", label: "Log channel", type: "channel", default: null },
     {

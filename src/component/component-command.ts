@@ -24,7 +24,6 @@ export default abstract class ComponentCommand<D extends JsonValue = JsonValue>
 
   public readonly oneShot: boolean = false;
 
-  /** The registry key and custom-id segment: the command's own id. */
   public get componentId(): string {
     return this.id;
   }

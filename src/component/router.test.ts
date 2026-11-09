@@ -92,6 +92,12 @@ describe("component routing", () => {
     expect(component.handled).toHaveLength(0);
   });
 
+  test("a stranger's press leaves a one-shot row for its owner", async () => {
+    const component = new RecordingComponent();
+    expect(await route(component, stubInteraction({ user: { id: "8" } }))).toBe(false);
+    expect(stored).not.toBeNull();
+  });
+
   test("accepts any presser when the row names none", async () => {
     stored = storedRow({ userId: null });
     const component = new RecordingComponent();

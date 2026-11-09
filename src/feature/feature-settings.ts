@@ -27,7 +27,6 @@ export function featureSettings(): SettingsModule<FeatureSettingsData> {
     id: "features",
     displayName: "Features",
     featureId: null,
-    defaults: { enabled: defaults },
     descriptors: [
       {
         key: "enabled",

@@ -61,7 +61,6 @@ async function fetchEntries(
   }
 }
 
-/** The single entry in {@link fetchEntries} whose target is `targetId`. */
 async function fetchEntry(
   guild: Guild,
   actions: readonly AuditLogEvent[],

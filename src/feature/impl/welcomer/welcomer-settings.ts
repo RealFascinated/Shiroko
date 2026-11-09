@@ -1,5 +1,6 @@
 import { Constants } from "@/constants";
 import { FeatureIds } from "@/feature/feature-ids";
+import { formatColor } from "@/lib/color";
 import SettingsModule from "@/settings/settings-module";
 
 export type WelcomerMode = "embed" | "simple" | "card";
@@ -32,18 +33,6 @@ export const welcomerSettings = new SettingsModule<WelcomerSettingsData>({
   id: "welcomer",
   displayName: "Welcomer",
   featureId: FeatureIds.Welcomer,
-  defaults: {
-    channelId: null,
-    mode: "embed",
-    title: "Welcome!",
-    description: "Welcome to **{guild_name}**, {user_mention}! You are member **#{member_count}**.",
-    simpleDescription: "Welcome to **{guild_name}**, {user_mention}!",
-    cardLine1: "WELCOME",
-    cardLine2: "{user_name}",
-    cardLine3: "Member #{member_count} of {guild_name}",
-    color: Constants.mainColor,
-    ping: true,
-  },
   descriptors: [
     {
       key: "channelId",
@@ -85,7 +74,7 @@ export const welcomerSettings = new SettingsModule<WelcomerSettingsData>({
       label: "Color",
       type: "number",
       default: Constants.mainColor,
-      format: value => `#${value.toString(16).padStart(6, "0").toUpperCase()}`,
+      format: value => formatColor(value).toUpperCase(),
     },
     { key: "ping", label: "Ping member", type: "boolean", default: true },
   ],

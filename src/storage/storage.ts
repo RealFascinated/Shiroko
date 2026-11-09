@@ -67,22 +67,6 @@ export default class StorageService {
     }
   }
 
-  public static async getFile(bucket: StorageBucket, filename: string): Promise<Buffer | undefined> {
-    try {
-      return Buffer.from(await StorageService.clientFor(bucket).file(filename).arrayBuffer());
-    } catch {
-      return undefined;
-    }
-  }
-
-  public static async fileExists(bucket: StorageBucket, filename: string): Promise<boolean> {
-    try {
-      return await StorageService.clientFor(bucket).exists(filename);
-    } catch {
-      return false;
-    }
-  }
-
   public static async deleteFile(bucket: StorageBucket, filename: string): Promise<boolean> {
     try {
       await StorageService.measure("delete", () => StorageService.clientFor(bucket).delete(filename));

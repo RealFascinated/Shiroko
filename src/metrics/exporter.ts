@@ -76,7 +76,6 @@ function leLabel(bound: number, base: string): string {
   return withLabel(base, "le", Number.isFinite(bound) ? String(bound) : "+Inf");
 }
 
-/** Append one `name="value"` label to an already-formatted label set. */
 function withLabel(base: string, name: string, value: string): string {
   return base === ""
     ? `{${name}="${escapeLabel(value)}"}`

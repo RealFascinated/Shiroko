@@ -5,6 +5,7 @@ import GuildFeatures from "@/feature/guild-features";
 import { birthdayService } from "@/feature/impl/birthday/birthday.service";
 import { levelsService } from "@/feature/impl/levels/levels.service";
 import { daysUntil, monthName } from "@/lib/date";
+import { discordTimestamp } from "@/lib/time";
 import { baseEmbed } from "@/lib/embed";
 import { formatCount } from "@/lib/format";
 import { fetchGuildMember } from "@/lib/guild";
@@ -61,10 +62,10 @@ export default class UserInfoCommand extends Command {
       lines.push("**🎭 Server**");
       lines.push(`**Roles:** ${roles.length ? roles.join(" ") : "None"}`);
       if (member.joinedAt) {
-        lines.push(`**Joined Server:** <t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>`);
+        lines.push(`**Joined Server:** ${discordTimestamp(member.joinedAt)}`);
       }
       if (member.premiumSince) {
-        lines.push(`**Boosting Since:** <t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`);
+        lines.push(`**Boosting Since:** ${discordTimestamp(member.premiumSince)}`);
       }
 
       if (guild) {
@@ -103,8 +104,8 @@ export default class UserInfoCommand extends Command {
       lines.push("");
     }
     lines.push("**🗓️ Account**");
-    lines.push(`**Account Created:** <t:${Math.floor(target.createdAt.getTime() / 1000)}:R>`);
-    lines.push(`**First Seen:** <t:${Math.floor(targetGlobal.firstSeen.getTime() / 1000)}:R>`);
+    lines.push(`**Account Created:** ${discordTimestamp(target.createdAt)}`);
+    lines.push(`**First Seen:** ${discordTimestamp(targetGlobal.firstSeen)}`);
     lines.push(`**User ID:** \`${target.id}\``);
 
     const embed = baseEmbed(commandName)

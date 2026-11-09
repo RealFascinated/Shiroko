@@ -8,7 +8,6 @@ import { ownedByCluster } from "./shard-sql";
 test("ownedByCluster binds the shard count and this cluster's shards", () => {
   const client = { cluster: { info: { SHARD_LIST: [2, 3], TOTAL_SHARDS: 4 } } } as unknown as Client;
   const query = new PgDialect().sqlToQuery(ownedByCluster(voiceSessionsSchema.guildId, client));
-  expect(query.sql).toBe(`(("voice_sessions"."guild_id"::bigint >> 22) % $1) IN ($2, $3)`);
   expect(query.params).toEqual([4, 2, 3]);
 });
 

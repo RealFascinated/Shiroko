@@ -137,7 +137,6 @@ export interface SettingsModuleConfig<C> {
   displayName: string;
   /** The feature whose settings these are; `/settings` hides the module when the feature is disabled. */
   featureId: FeatureIds | null;
-  defaults: C;
   descriptors: ReadonlyArray<FieldDescriptor<C>>;
 }
 
@@ -191,7 +190,6 @@ export default class SettingsModule<C> {
   public readonly id: string;
   public readonly displayName: string;
   public readonly featureId: FeatureIds | null;
-  public readonly defaults: C;
   public readonly descriptors: ReadonlyArray<FieldDescriptor<C>>;
   /** Erased view of the same descriptors, used for reads, writes, and the panel. */
   public readonly runtimeDescriptors: ReadonlyArray<RuntimeFieldDescriptor>;
@@ -200,7 +198,6 @@ export default class SettingsModule<C> {
     this.id = config.id;
     this.displayName = config.displayName;
     this.featureId = config.featureId;
-    this.defaults = config.defaults;
     this.descriptors = config.descriptors;
     this.runtimeDescriptors = (config.descriptors as readonly unknown[]).map(field => toRuntimeField(field));
   }

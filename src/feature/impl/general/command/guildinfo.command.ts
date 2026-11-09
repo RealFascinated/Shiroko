@@ -1,6 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { baseEmbed } from "@/lib/embed";
 import { formatCount } from "@/lib/format";
+import { discordTimestamp } from "@/lib/time";
 import { ChannelType } from "discord.js";
 
 export default class GuildInfoCommand extends Command {
@@ -43,8 +44,8 @@ export default class GuildInfoCommand extends Command {
       ],
       [
         "**🕰️ History**",
-        `**Created:** <t:${Math.floor(guild.createdTimestamp / 1000)}:R>`,
-        `**Bot Joined:** <t:${Math.floor(guild.joinedTimestamp / 1000)}:R>`,
+        `**Created:** ${discordTimestamp(new Date(guild.createdTimestamp))}`,
+        `**Bot Joined:** ${discordTimestamp(new Date(guild.joinedTimestamp))}`,
         `**Owner:** <@${guild.ownerId}>`,
       ],
     ];

@@ -50,10 +50,6 @@ interface StatsWindows {
   seriesStart: Date;
 }
 
-/**
- * Derive the window bounds for `now`: UTC day start, the rolling 7-day
- * and 30-day starts, and the chart start.
- */
 function statsWindows(now: Date, days = 7): StatsWindows {
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const dayMs = 24 * 60 * 60 * 1000;
@@ -80,9 +76,6 @@ function toDaySeries(start: Date, days: number, byDay: Map<string, number>): Day
   return { values, dayLabels };
 }
 
-/**
- * Running duration of an in-memory open voice session.
- */
 interface LiveSession {
   joinedAt: Date;
   seconds: number;

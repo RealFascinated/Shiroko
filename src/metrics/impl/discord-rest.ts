@@ -61,9 +61,6 @@ abstract class RouteMapMetric extends Metric<Record<string, number>> {
   }
 }
 
-/**
- * A {@link RouteMapMetric} that accumulates: each `increment` bumps one series.
- */
 abstract class RouteCounterMetric extends RouteMapMetric {
   public increment(route: string): void {
     this.set(route, this.current(route) + 1);

@@ -34,7 +34,6 @@ export abstract class Metric<T = unknown> {
   /** The label `counter_map` keys are exported under. See {@link MetricRegistration}. */
   public readonly label: string;
 
-  /** Whether {@link collect} has run at least once. */
   private collected: boolean = false;
 
   protected constructor(registration: MetricRegistration) {

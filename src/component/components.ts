@@ -78,7 +78,6 @@ export default class Components {
     return db.delete(componentsSchema).where(eq(componentsSchema.messageId, messageId)).returning();
   }
 
-  /** Delete every expired row and return what was deleted. */
   public static async deleteExpired(): Promise<ComponentSchema[]> {
     return db
       .delete(componentsSchema)

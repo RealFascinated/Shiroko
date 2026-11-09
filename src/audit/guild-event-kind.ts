@@ -3,7 +3,6 @@ import type Event from "@/event/event";
 import type { EventClass } from "./audit-kind";
 import GuildAuditKind, { type GuildAuditDraft } from "./guild-audit-kind";
 
-/** A guild kind recorded from the gateway event that reports the change. */
 export default abstract class GuildEventKind<E extends Event> extends GuildAuditKind {
   public abstract readonly eventClass: EventClass<E>;
 

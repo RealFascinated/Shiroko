@@ -17,11 +17,11 @@ export interface CacheKey {
 }
 
 export function guildKey(guildId: string, ...parts: readonly (string | number)[]): CacheKey {
-  return { key: `guild:${guildId}|${parts.join("|")}`, scopes: [`guild:${guildId}`] };
+  return { key: `${guildScope(guildId)}|${parts.join("|")}`, scopes: [guildScope(guildId)] };
 }
 
 export function userKey(userId: string, ...parts: readonly (string | number)[]): CacheKey {
-  return { key: `user:${userId}|${parts.join("|")}`, scopes: [`user:${userId}`] };
+  return { key: `${userScope(userId)}|${parts.join("|")}`, scopes: [userScope(userId)] };
 }
 
 export function guildScope(guildId: string): ScopeTag {

@@ -69,6 +69,11 @@ class AfkService {
 
   /** `true` when this notice may be sent now, and records it so the next one waits. */
   public claimNotice(guildId: string, userId: string, channelId: string, now: number = Date.now()): boolean {
+    for (const [staleKey, at] of this.lastNotice) {
+      if (now - at >= NOTICE_COOLDOWN_MS) {
+        this.lastNotice.delete(staleKey);
+      }
+    }
     const key = `${this.key(guildId, userId)}:${channelId}`;
     if (now - (this.lastNotice.get(key) ?? 0) < NOTICE_COOLDOWN_MS) {
       return false;

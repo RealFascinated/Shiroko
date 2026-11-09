@@ -20,7 +20,14 @@ export default class PlaceholderExecutor<C extends PlaceholderContext = Placehol
   private readonly byKey: ReadonlyMap<string, Placeholder<C>>;
 
   public constructor(placeholders: ReadonlyArray<Placeholder<C>>) {
-    this.byKey = new Map(placeholders.map(placeholder => [placeholder.key, placeholder]));
+    const byKey = new Map<string, Placeholder<C>>();
+    for (const placeholder of placeholders) {
+      if (byKey.has(placeholder.key)) {
+        throw new Error(`Duplicate placeholder key: ${placeholder.key}`);
+      }
+      byKey.set(placeholder.key, placeholder);
+    }
+    this.byKey = byKey;
   }
 
   /**

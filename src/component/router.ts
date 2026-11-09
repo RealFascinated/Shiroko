@@ -34,12 +34,13 @@ export async function handleComponentInteraction(
   if (!component) {
     return false;
   }
-  // A one-shot is claimed by the delete, so a double press runs its handler
-  // once; a reusable row is read and left in place for the next press.
-  const row = component.oneShot
-    ? await Components.consume(decoded.rowId)
-    : await Components.find(decoded.rowId);
+  const row = await Components.find(decoded.rowId);
   if (!row || !matches(component, row, interaction)) {
+    return false;
+  }
+  // Only a press the row admits may claim it, so a stranger's press leaves a
+  // one-shot for its owner; the delete then lets a double press run it once.
+  if (component.oneShot && !(await Components.consume(row.id))) {
     return false;
   }
   try {

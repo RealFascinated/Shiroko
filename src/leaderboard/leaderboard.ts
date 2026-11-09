@@ -33,7 +33,6 @@ export interface LeaderboardPosition<T extends LeaderboardRow> {
 
 /** Default page size; matches the existing leaderboard renders. */
 export const DEFAULT_PAGE_SIZE = 20;
-/** Hard ceiling for requested page sizes. */
 export const MAX_PAGE_SIZE = 50;
 
 /**
@@ -53,10 +52,5 @@ export default abstract class Leaderboard<T extends LeaderboardRow> {
    */
   public abstract getPage(scope: string, page: number, pageSize?: number): Promise<Page<T>>;
 
-  /**
-   * One entity's standing in `scope`: its 1-based position (ties share a
-   * position), the total ranked entities, and the entity's own row.
-   * `position` and `row` are null when the entity has no score.
-   */
   public abstract getPosition(scope: string, id: string): Promise<LeaderboardPosition<T>>;
 }

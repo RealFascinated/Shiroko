@@ -31,9 +31,6 @@ export abstract class UserLeaderboard<T extends LeaderboardRow> extends Leaderbo
    */
   protected abstract countAhead(scope: string, value: number): Promise<number>;
 
-  /**
-   * The total number of ranked entities in `scope`.
-   */
   protected abstract total(scope: string): Promise<number>;
 
   public async getPage(scope: string, page: number, pageSize: number = DEFAULT_PAGE_SIZE): Promise<Page<T>> {

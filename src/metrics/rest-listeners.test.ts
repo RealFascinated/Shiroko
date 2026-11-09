@@ -154,7 +154,7 @@ describe("RestListeners", () => {
     expect(listeners.invalidRequests.value()).toBe(500);
   });
 
-  test("times the transport through the makeRequest hook", async () => {
+  test("records one duration sample per request", async () => {
     const { rest, listeners } = harness();
     await rest.options.makeRequest("https://discord.com/api/v10/gateway/bot", {});
 

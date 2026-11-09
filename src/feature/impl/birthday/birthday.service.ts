@@ -3,6 +3,7 @@ import { birthdayAnnouncementsSchema } from "@/db/schemas/birthday-announcements
 import { birthdayWishesSchema } from "@/db/schemas/birthday-wishes";
 import { guildBirthdaysSchema } from "@/db/schemas/guild-birthdays";
 import { ageInYears } from "@/lib/date";
+import { fetchGuildMember } from "@/lib/guild";
 import { loadPage, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
 import { and, eq, lt, sql, type SQL } from "drizzle-orm";
@@ -266,7 +267,7 @@ export default class BirthdayService {
     if (!roleId) {
       return;
     }
-    const member = guild.members.cache.get(userId) ?? (await guild.members.fetch(userId).catch(() => null));
+    const member = await fetchGuildMember(guild, userId);
     if (!member || !member.roles.cache.has(roleId)) {
       return;
     }

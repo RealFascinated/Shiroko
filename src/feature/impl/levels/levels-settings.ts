@@ -27,15 +27,6 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
   id: "levels",
   displayName: "Levelling",
   featureId: FeatureIds.Levels,
-  defaults: {
-    messageXpMin: 15,
-    messageXpMax: 25,
-    messageCooldownMs: 60_000,
-    ignoredChannelIds: [],
-    announceChannelId: null,
-    levelUpMessage: "**{user_mention}** reached **level {level}**!",
-    rewards: {},
-  },
   descriptors: [
     {
       key: "messageXpMin",

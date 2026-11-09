@@ -49,10 +49,6 @@ export const FLAG_DISPLAY_NAMES: ReadonlyArray<{ flag: PermissionFlag; label: st
 
 export type PermissionFlag = (typeof PermissionFlags)[keyof typeof PermissionFlags];
 
-export function isPermissionFlag(value: unknown): value is PermissionFlag {
-  return Object.values(PermissionFlags).includes(value as PermissionFlag);
-}
-
 export function flagLabels(flags: bigint): string[] {
   return FLAG_DISPLAY_NAMES.filter(({ flag }) => (flags & flag) === flag).map(({ label }) => label);
 }
@@ -100,13 +96,6 @@ export default class Permissions {
   private static readonly CACHE: Cache<Map<string, RoleConfig>> = Caches.register(
     new Cache<Map<string, RoleConfig>>({ name: "permissions", mode: "authoritative", max: 5_000 })
   );
-
-  /**
-   * Sanity check: a `bigint` beyond the loaded window is meaningless.
-   */
-  public static isKnownFlag(flag: bigint): boolean {
-    return FLAG_DISPLAY_NAMES.some(({ flag: known }) => known === flag);
-  }
 
   /**
    * Set a role's own flags and (optionally) its parent, rejecting cycles

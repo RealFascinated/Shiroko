@@ -14,7 +14,6 @@ export const birthdaySettings = new SettingsModule<BirthdaySettingsData>({
   id: "birthday",
   displayName: "Birthdays",
   featureId: FeatureIds.Birthday,
-  defaults: { roleId: null, announceChannelId: null },
   descriptors: [
     { key: "roleId", label: "Birthday role", type: "role", default: null },
     { key: "announceChannelId", label: "Announce channel", type: "channel", default: null },

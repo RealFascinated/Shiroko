@@ -14,7 +14,6 @@ export const autorolesSettings = new SettingsModule<AutorolesSettingsData>({
   id: "autoroles",
   displayName: "Autoroles",
   featureId: FeatureIds.Autoroles,
-  defaults: { roleIds: [] },
   descriptors: [
     {
       key: "roleIds",
