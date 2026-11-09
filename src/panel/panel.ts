@@ -113,9 +113,8 @@ export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogContro
  *
  * A `text` section becomes a container on the panel message, and an
  * `image` section (a PNG) a media gallery over an attachment sent with
- * it. An `embed` section cannot: the panel message always carries the V2
- * flag, which makes `embeds` inert, so an embed section is reconciled into
- * its own message below the panel.
+ * it. An `embed` section is drawn as a container too, since the panel
+ * message's V2 flag makes real `embeds` inert.
  */
 export interface PanelSection<C> {
   id: string;
@@ -274,25 +273,5 @@ export default abstract class Panel<C extends object> {
   public viewFor(config: C, viewSegment: string): PanelView<C> {
     const views = this.views(config);
     return views.find(view => view.segment === viewSegment) ?? views[0]!;
-  }
-
-  /**
-   * The message below the panel that carries its embed sections, or null
-   * when none is out. An embed cannot ride on the panel message itself
-   * (its V2 flag makes `embeds` inert), so the engine keeps it as a
-   * companion.
-   */
-  private readonly embedMessages: Map<string, string> = new Map<string, string>();
-
-  public embedMessageId(guild: Guild): string | null {
-    return this.embedMessages.get(guild.id) ?? null;
-  }
-
-  public rememberEmbedMessage(guild: Guild, messageId: string | null): void {
-    if (messageId === null) {
-      this.embedMessages.delete(guild.id);
-      return;
-    }
-    this.embedMessages.set(guild.id, messageId);
   }
 }

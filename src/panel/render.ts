@@ -18,6 +18,7 @@ import {
   TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
+  ThumbnailBuilder,
   type AttachmentPayload,
   type Guild,
   type ModalSubmitInteraction,
@@ -76,6 +77,9 @@ export interface RenderedPanel {
   files: AttachmentPayload[];
   attachments: [];
   flags: MessageFlags.IsComponentsV2;
+  // Previews render against a real user and can carry mention syntax; a
+  // panel is for display, so it must never ping.
+  allowedMentions: { parse: [] };
 }
 
 /** How every panel shows a value that is not set, so no panel invents its own. */
@@ -382,12 +386,11 @@ export async function renderPanel<C extends object>(
   const sections: ContainerBuilder[] = [];
   const files: AttachmentPayload[] = [];
   for (const section of view.sections?.(config, context) ?? []) {
-    if (section.kind === "embed") {
-      continue;
-    }
     const body = await section.render(config, context);
     let block: ContainerBuilder;
-    if (body instanceof Buffer) {
+    if (body instanceof EmbedBuilder) {
+      block = embedContainer(body);
+    } else if (body instanceof Buffer) {
       const name = `${section.id}.png`;
       files.push({ attachment: body, name });
       block = new ContainerBuilder().addMediaGalleryComponents(
@@ -398,7 +401,7 @@ export async function renderPanel<C extends object>(
     } else {
       continue;
     }
-    if (accent !== undefined) {
+    if (accent !== undefined && block.data.accent_color === undefined) {
       block.setAccentColor(accent);
     }
     sections.push(block);
@@ -409,32 +412,42 @@ export async function renderPanel<C extends object>(
     files,
     attachments: [],
     flags: MessageFlags.IsComponentsV2,
+    allowedMentions: { parse: [] },
   };
 }
 
 /**
- * The embeds a panel wants shown below it, one per embed section that
- * rendered. A V2 message cannot carry embeds, so the caller sends these as
- * a separate message and keeps it reconciled with the panel.
+ * An embed drawn as a V2 container, so an embed section shows inside the
+ * panel message (whose V2 flag makes real `embeds` inert). The author icon
+ * has no V2 equivalent and is dropped; the thumbnail becomes the section's
+ * accessory.
  */
-export async function renderPanelEmbeds<C extends object>(
-  panel: Panel<C>,
-  context: PanelContext,
-  viewSegment: string
-): Promise<EmbedBuilder[]> {
-  const config = await panel.getConfig(context.guild);
-  const view = panel.viewFor(config, viewSegment);
-  const embeds: EmbedBuilder[] = [];
-  for (const section of view.sections?.(config, context) ?? []) {
-    if (section.kind !== "embed") {
-      continue;
-    }
-    const body = await section.render(config, context);
-    if (body instanceof EmbedBuilder) {
-      embeds.push(body);
-    }
+function embedContainer(embed: EmbedBuilder): ContainerBuilder {
+  const { author, title, description, thumbnail, timestamp, color } = embed.data;
+  const text = new TextDisplayBuilder().setContent(
+    [author ? `**${author.name}**` : null, title ? `### ${title}` : null, description ?? null]
+      .filter(line => line !== null)
+      .join("\n")
+  );
+  const container = new ContainerBuilder();
+  if (color !== undefined) {
+    container.setAccentColor(color);
   }
-  return embeds;
+  if (thumbnail) {
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(text)
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(thumbnail.url))
+    );
+  } else {
+    container.addTextDisplayComponents(text);
+  }
+  if (timestamp) {
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`-# <t:${Math.floor(Date.parse(timestamp) / 1000)}:f>`)
+    );
+  }
+  return container;
 }
 
 /**

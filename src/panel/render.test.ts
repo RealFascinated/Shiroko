@@ -2,7 +2,7 @@ import type GlobalUser from "@/user/global-user";
 import { describe, expect, test } from "bun:test";
 import { EmbedBuilder, type Guild } from "discord.js";
 import Panel, { type PanelContext, type PanelView } from "./panel";
-import { displayValue, renderPanel, renderPanelEmbeds, UNSET_VALUE } from "./render";
+import { displayValue, renderPanel, UNSET_VALUE } from "./render";
 
 /** A two-view panel over a nested config, exercising every control kind. */
 interface DemoConfig {
@@ -238,10 +238,10 @@ describe("renderPanel", () => {
     expect(rendered.components).toHaveLength(2);
   });
 
-  test("keeps embed sections off the panel message", async () => {
+  test("draws embed sections as a container on the panel message", async () => {
     const rendered = await renderPanel(new EmbedPanel(), context, "m");
-    // Just the settings block: the embed section must not become a container.
-    expect(rendered.components).toHaveLength(1);
+    expect(rendered.components).toHaveLength(2);
+    expect(JSON.stringify(rendered.components[1]!.toJSON())).toContain("### Preview title");
   });
 
   test("attaches image sections and shows them in a media gallery", async () => {
@@ -249,16 +249,6 @@ describe("renderPanel", () => {
     expect(rendered.files.map(file => file.name)).toEqual(["card.png"]);
     expect(rendered.attachments).toEqual([]);
     expect(JSON.stringify(rendered.components[1]!.toJSON())).toContain("attachment://card.png");
-  });
-
-  test("keeps image sections out of the companion embeds", async () => {
-    expect(await renderPanelEmbeds(new ImagePanel(), context, "m")).toHaveLength(0);
-  });
-
-  test("returns embed sections as embeds for a companion message", async () => {
-    const embeds = await renderPanelEmbeds(new EmbedPanel(), context, "m");
-    expect(embeds).toHaveLength(1);
-    expect(embeds[0]!.toJSON().title).toBe("Preview title");
   });
 
   test("includes the heading, fields, and control labels", async () => {

@@ -16,7 +16,7 @@ import {
   type PanelView,
 } from "./panel";
 import { getPath } from "./path";
-import { panelDialog, readDialogValue, renderPanel, renderPanelEmbeds, renderPlaceholders } from "./render";
+import { panelDialog, readDialogValue, renderPanel, renderPlaceholders } from "./render";
 
 type PanelInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
 
@@ -180,7 +180,6 @@ async function submitDialog(
   }
   await interaction.deferUpdate();
   await interaction.message.edit(await renderPanel(panel, context, view.segment));
-  await syncEmbeds(panel, context, view.segment, interaction.channelId);
 }
 
 async function repaint(
@@ -194,42 +193,6 @@ async function repaint(
     return;
   }
   await interaction.update(await renderPanel(panel, context, viewSegment, focus));
-  await syncEmbeds(panel, context, viewSegment, interaction.channelId);
-}
-
-/**
- * Keep a panel's embed previews current. They cannot live on the panel
- * message (the V2 flag makes `embeds` inert), so they are a companion
- * message below it: created on first render, edited thereafter, and
- * deleted when a view no longer wants any.
- */
-async function syncEmbeds(
-  panel: Panel<any>,
-  context: PanelContext,
-  viewSegment: string,
-  channelId: string | null
-): Promise<void> {
-  const embeds = await renderPanelEmbeds(panel, context, viewSegment);
-  const channel = channelId ? context.guild.channels.cache.get(channelId) : null;
-  if (!channel?.isSendable() || !channel.isTextBased()) {
-    return;
-  }
-  const existingId = panel.embedMessageId(context.guild);
-  const existing = existingId ? await channel.messages.fetch(existingId).catch(() => null) : null;
-  // Previews render against a real user and can carry mention syntax; the
-  // preview is for display, so it must never ping.
-  const payload = { embeds, allowedMentions: { parse: [] as [] } };
-  if (embeds.length === 0) {
-    await existing?.delete().catch(() => undefined);
-    panel.rememberEmbedMessage(context.guild, null);
-    return;
-  }
-  if (existing) {
-    await existing.edit(payload).catch(() => undefined);
-    return;
-  }
-  const sent = await channel.send(payload).catch(() => null);
-  panel.rememberEmbedMessage(context.guild, sent?.id ?? null);
 }
 
 async function deny(interaction: PanelInteraction, message: string): Promise<void> {

@@ -126,11 +126,6 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
   }
 }
 
-/**
- * The one panel instance shared by the router and `/welcomer`. The panel
- * holds per-guild state (preview message ids), so two instances would let
- * the router and the command disagree about which preview message is out.
- */
 export const welcomerPanel = new WelcomerPanel();
 
 /**

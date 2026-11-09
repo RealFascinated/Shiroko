@@ -1,12 +1,11 @@
 import Command, { type ExecuteContext } from "@/command/command";
-import { renderPanel, renderPanelEmbeds } from "@/panel/render";
+import { renderPanel } from "@/panel/render";
 import { PermissionFlags } from "@/permission/permissions";
 import { welcomerPanel } from "./welcomer-panel";
 
 /**
  * Open the welcomer panel: the welcome message, its controls, and a live
- * preview. The preview of an embed message is a real embed, so it is sent
- * as its own message below the panel.
+ * preview.
  */
 export default class WelcomerCommand extends Command {
   constructor() {
@@ -22,16 +21,6 @@ export default class WelcomerCommand extends Command {
   }
 
   protected override async onExecuteSlash({ ctx, user }: ExecuteContext) {
-    const guild = ctx.guild!;
-    const context = { guild, user };
-    const reply = await ctx.reply(await renderPanel(welcomerPanel, context, "welcome"));
-    const embeds = await renderPanelEmbeds(welcomerPanel, context, "welcome");
-    if (embeds.length === 0) {
-      return reply;
-    }
-    // The preview carries a resolved {user_mention}, so it must not ping.
-    const preview = await ctx.followUp({ embeds, allowedMentions: { parse: [] } });
-    welcomerPanel.rememberEmbedMessage(guild, preview.id);
-    return reply;
+    return ctx.reply(await renderPanel(welcomerPanel, { guild: ctx.guild!, user }, "welcome"));
   }
 }
