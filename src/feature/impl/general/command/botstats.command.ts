@@ -46,7 +46,6 @@ export default class BotStatsCommand extends Command {
       [
         `**⚡ Status**`,
         `**Cluster:** ${formatClusterId(cluster.id)} of ${cluster.count}`,
-        // DMs arrive on shard 0.
         `**Shard:** ${formatShardId(ctx.guild?.shardId ?? 0)} of ${cluster.info.TOTAL_SHARDS}`,
         `**Latency:** ${ctx.client.ws.ping}ms`,
         `**RAM:** ${Math.round(process.memoryUsage().rss / 1024 ** 2)}/${Math.round(heapMax / 1024 ** 2)} MB`,
