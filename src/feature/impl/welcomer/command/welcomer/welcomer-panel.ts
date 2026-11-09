@@ -85,6 +85,21 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
                     this.previewText(current, context),
                 },
               ]),
+          ...(config.mode === "card"
+            ? [
+                {
+                  id: "card",
+                  kind: "image" as const,
+                  render: async (current: WelcomerSettingsData, context: PanelContext): Promise<Buffer> =>
+                    welcomerService.renderCard(
+                      context.guild,
+                      current,
+                      context.user,
+                      await fetchGuildMember(context.guild, context.user.id)
+                    ),
+                },
+              ]
+            : []),
           {
             id: "placeholders",
             kind: "text" as const,
@@ -106,7 +121,7 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
     const body = await welcomerService.previewText(context.guild, message, context.user);
     const note =
       message.mode === "card"
-        ? "-# Card format: this text is sent above the member's welcome card, generated on join."
+        ? "-# Card format: this text is sent above the member's welcome card."
         : "-# Simple format, rendered with this server's values.";
     return ["## Preview", note, "", body].join("\n");
   }

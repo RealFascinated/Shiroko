@@ -6,6 +6,7 @@ import {
   ContainerBuilder,
   EmbedBuilder,
   LabelBuilder,
+  MediaGalleryBuilder,
   MessageFlags,
   ModalBuilder,
   RoleSelectMenuBuilder,
@@ -16,6 +17,7 @@ import {
   TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
+  type AttachmentPayload,
   type Guild,
   type ModalSubmitInteraction,
 } from "discord.js";
@@ -43,10 +45,14 @@ const BUTTONS_PER_ROW = 5;
 
 /**
  * A rendered panel: a Components V2 payload. `content` and `embeds` are
- * inert under the V2 flag, so everything is a component.
+ * inert under the V2 flag, so everything is a component. `files` carries
+ * the images that image sections reference; the empty `attachments` makes
+ * an edit replace the message's previous files instead of keeping them.
  */
 export interface RenderedPanel {
   components: ContainerBuilder[];
+  files: AttachmentPayload[];
+  attachments: [];
   flags: MessageFlags.IsComponentsV2;
 }
 
@@ -284,6 +290,7 @@ export async function renderPanel<C extends object>(
       .map(control => control.key)
   );
   const sections: ContainerBuilder[] = [];
+  const files: AttachmentPayload[] = [];
   for (const section of view.sections?.(config, context) ?? []) {
     if (hiddenSections.has(section.id)) {
       continue;
@@ -292,17 +299,30 @@ export async function renderPanel<C extends object>(
       continue;
     }
     const body = await section.render(config, context);
-    if (body === null || body.length === 0 || typeof body !== "string") {
+    let block: ContainerBuilder;
+    if (body instanceof Buffer) {
+      const name = `${section.id}.png`;
+      files.push({ attachment: body, name });
+      block = new ContainerBuilder().addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(item => item.setURL(`attachment://${name}`))
+      );
+    } else if (typeof body === "string" && body.length > 0) {
+      block = new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(body));
+    } else {
       continue;
     }
-    const block = new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(body));
     if (accent !== undefined) {
       block.setAccentColor(accent);
     }
     sections.push(block);
   }
 
-  return { components: [container, ...sections], flags: MessageFlags.IsComponentsV2 };
+  return {
+    components: [container, ...sections],
+    files,
+    attachments: [],
+    flags: MessageFlags.IsComponentsV2,
+  };
 }
 
 /**
@@ -323,7 +343,7 @@ export async function renderPanelEmbeds<C extends object>(
       continue;
     }
     const body = await section.render(config, context);
-    if (body !== null && typeof body !== "string") {
+    if (body instanceof EmbedBuilder) {
       embeds.push(body);
     }
   }

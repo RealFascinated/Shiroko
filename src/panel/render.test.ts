@@ -119,6 +119,29 @@ class EmbedPanel extends Panel<{ title: string }> {
   }
 }
 
+/**
+ * A panel whose single view previews with a generated image.
+ */
+class ImagePanel extends Panel<object> {
+  public readonly segment: string = "image-demo";
+  public readonly title: string = "Image";
+  public async getConfig(): Promise<object> {
+    return {};
+  }
+  public async updateConfig(): Promise<void> {}
+  public views(): readonly PanelView<object>[] {
+    return [
+      {
+        id: "m",
+        label: "M",
+        segment: "m",
+        controls: () => [],
+        sections: () => [{ id: "card", kind: "image" as const, render: async () => Buffer.from("png") }],
+      },
+    ];
+  }
+}
+
 describe("displayValue", () => {
   test("formats a dialog's raw string", async () => {
     const control = { kind: "dialog" as const, key: "first.name", input: "text" as const, label: "Name" };
@@ -176,6 +199,17 @@ describe("renderPanel", () => {
     const rendered = await renderPanel(new EmbedPanel(), context, "m");
     // Just the settings block: the embed section must not become a container.
     expect(rendered.components).toHaveLength(1);
+  });
+
+  test("attaches image sections and shows them in a media gallery", async () => {
+    const rendered = await renderPanel(new ImagePanel(), context, "m");
+    expect(rendered.files.map(file => file.name)).toEqual(["card.png"]);
+    expect(rendered.attachments).toEqual([]);
+    expect(JSON.stringify(rendered.components[1]!.toJSON())).toContain("attachment://card.png");
+  });
+
+  test("keeps image sections out of the companion embeds", async () => {
+    expect(await renderPanelEmbeds(new ImagePanel(), context, "m")).toHaveLength(0);
   });
 
   test("returns embed sections as embeds for a companion message", async () => {

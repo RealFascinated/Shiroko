@@ -112,18 +112,19 @@ export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogContro
 /**
  * A read-only block rendered below a view's controls.
  *
- * A `text` section becomes a container on the panel message. An `embed`
- * section cannot: the panel message always carries the V2 flag, which
- * makes `embeds` inert, so an embed section is reconciled into its own
- * message below the panel.
+ * A `text` section becomes a container on the panel message, and an
+ * `image` section (a PNG) a media gallery over an attachment sent with
+ * it. An `embed` section cannot: the panel message always carries the V2
+ * flag, which makes `embeds` inert, so an embed section is reconciled into
+ * its own message below the panel.
  */
 export interface PanelSection<C> {
   id: string;
-  kind: "text" | "embed";
+  kind: "text" | "embed" | "image";
   render(config: C, context: PanelContext): Promise<PanelSectionContent | null>;
 }
 
-export type PanelSectionContent = string | EmbedBuilder;
+export type PanelSectionContent = string | EmbedBuilder | Buffer;
 
 /**
  * A named set of controls. A view owns which controls are on offer and

@@ -82,16 +82,9 @@ export default class WelcomerService {
       return { content: await this.resolveSimple(guild, message, globalUser), allowedMentions };
     }
     if (message.mode === "card") {
-      const user = globalUser.discordUser;
       const [content, card] = await Promise.all([
         this.resolveSimple(guild, message, globalUser),
-        renderWelcomeCard({
-          name: member?.displayName ?? user.displayName,
-          avatarUrl: (member ?? user).displayAvatarURL({ size: 256, extension: "png" }),
-          guildName: guild.name,
-          memberCount: guild.memberCount,
-          accent: formatColor(message.color),
-        }),
+        this.renderCard(guild, message, globalUser, member),
       ]);
       return { content, files: [{ attachment: card, name: "welcome.png" }], allowedMentions };
     }
@@ -106,6 +99,26 @@ export default class WelcomerService {
     }
     embed.setTimestamp(new Date());
     return { embeds: [embed], allowedMentions };
+  }
+
+  /**
+   * The welcome card for one user, preferring their server nickname and
+   * avatar when the member is known.
+   */
+  public async renderCard(
+    guild: Guild,
+    message: WelcomerSettingsData,
+    globalUser: GlobalUser,
+    member: GuildMember | null
+  ): Promise<Buffer> {
+    const user = globalUser.discordUser;
+    return renderWelcomeCard({
+      name: member?.displayName ?? user.displayName,
+      avatarUrl: (member ?? user).displayAvatarURL({ size: 256, extension: "png" }),
+      guildName: guild.name,
+      memberCount: guild.memberCount,
+      accent: formatColor(message.color),
+    });
   }
 
   /**
