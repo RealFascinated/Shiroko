@@ -262,15 +262,20 @@ describe("panel router dispatch", () => {
     expect(seen).toBe("v");
   });
 
-  test("a checklist pick writes only the toggles whose state it changes", async () => {
+  test("a grouped toggle's button flips it", async () => {
+    const panel = new RecordingPanel();
+    await route(panel, button(panel, "nested.extra"));
+    expect(panel.writes).toEqual([["nested.extra", true, "7"]]);
+  });
+
+  test("a page button repaints and writes nothing", async () => {
     const panel = new RecordingPanel();
     const interaction = stubInteraction({
-      customId: panelCustomId(panel.segment, "v", "enable", "nested.extra"),
-      isStringSelectMenu: () => true,
-      values: ["nested.extra"],
+      customId: panelCustomId(panel.segment, "v", "page", "nested.extra"),
+      isButton: () => true,
     });
     expect(await route(panel, interaction)).toBe(true);
-    expect(panel.writes).toEqual([["nested.extra", true, "7"]]);
+    expect(panel.writes).toHaveLength(0);
   });
 
   test("a choice select writes the selected value", async () => {

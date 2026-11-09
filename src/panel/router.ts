@@ -14,7 +14,6 @@ import {
   type PanelContext,
   type PanelCustomId,
   type PanelView,
-  toggleChecklists,
 } from "./panel";
 import { getPath } from "./path";
 import { panelDialog, readDialogValue, renderPanel, renderPanelEmbeds, renderPlaceholders } from "./render";
@@ -87,30 +86,8 @@ async function dispatch(
 
   const view = panel.viewFor(config, decoded.viewSegment);
 
-  // A checklist picker names the toggles to turn on (or off); a pick of
-  // one already in that state, from a stale message, writes nothing.
-  if (decoded.kind === "enable" || decoded.kind === "disable") {
-    const checklist = toggleChecklists(view.controls(config, context)).find(
-      candidate => candidate.id === decoded.path
-    );
-    if (!checklist || !interaction.isStringSelectMenu()) {
-      return;
-    }
-    const next = decoded.kind === "enable";
-    const changes = checklist.toggles.filter(
-      toggle => interaction.values.includes(toggle.key) && (getPath(config, toggle.key) === true) !== next
-    );
-    for (const toggle of changes) {
-      const problem = toggle.validateValue?.(next, config, context);
-      if (problem) {
-        await deny(interaction, problem);
-        return;
-      }
-    }
-    for (const toggle of changes) {
-      await panel.updateConfig(context.guild, view, toggle.key, next, context.user.id);
-    }
-    await repaint(panel, context, view.segment, interaction);
+  if (decoded.kind === "page") {
+    await repaint(panel, context, view.segment, interaction, decoded.path);
     return;
   }
   if (decoded.kind === "placeholders") {
@@ -161,7 +138,7 @@ async function dispatch(
     return;
   }
   await panel.updateConfig(context.guild, view, control.key, next, context.user.id);
-  await repaint(panel, context, view.segment, interaction);
+  await repaint(panel, context, view.segment, interaction, control.key);
 }
 
 async function submitDialog(
@@ -210,12 +187,13 @@ async function repaint(
   panel: Panel<any>,
   context: PanelContext,
   viewSegment: string,
-  interaction: PanelInteraction
+  interaction: PanelInteraction,
+  focus?: string
 ): Promise<void> {
   if (interaction.isModalSubmit()) {
     return;
   }
-  await interaction.update(await renderPanel(panel, context, viewSegment));
+  await interaction.update(await renderPanel(panel, context, viewSegment, focus));
   await syncEmbeds(panel, context, viewSegment, interaction.channelId);
 }
 

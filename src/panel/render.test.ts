@@ -144,25 +144,29 @@ class ImagePanel extends Panel<object> {
 }
 
 /**
- * A panel whose two toggles share a group.
+ * A panel whose ten toggles share a group, enough for two pages.
  */
-class ChecklistPanel extends Panel<{ a: boolean; b: boolean }> {
+class ChecklistPanel extends Panel<Record<string, boolean>> {
   public readonly segment: string = "checklist";
   public readonly title: string = "Checklist";
-  public async getConfig(): Promise<{ a: boolean; b: boolean }> {
-    return { a: true, b: false };
+  public async getConfig(): Promise<Record<string, boolean>> {
+    return { t0: true };
   }
   public async updateConfig(): Promise<void> {}
-  public views(): readonly PanelView<{ a: boolean; b: boolean }>[] {
+  public views(): readonly PanelView<Record<string, boolean>>[] {
     return [
       {
         id: "m",
         label: "M",
         segment: "m",
-        controls: () => [
-          { kind: "toggle", key: "a", label: "A", group: "Types", state: v => (v ? "On" : "Off") },
-          { kind: "toggle", key: "b", label: "B", group: "Types", state: v => (v ? "On" : "Off") },
-        ],
+        controls: () =>
+          Array.from({ length: 10 }, (_, index) => ({
+            kind: "toggle" as const,
+            key: `t${index}`,
+            label: `T${index}`,
+            group: "Types",
+            state: (v: boolean): string => (v ? "On" : "Off"),
+          })),
       },
     ];
   }
@@ -269,13 +273,22 @@ describe("renderPanel", () => {
     expect(json).toContain("panel:demo:first:choice:first.count");
   });
 
-  test("renders grouped toggles as a summary and on/off pickers instead of a button each", async () => {
+  test("pages a toggle group, a toggle button per row", async () => {
     const rendered = await renderPanel(new ChecklistPanel(), context, "m");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
-    expect(json).toContain("panel:checklist:m:enable:a");
-    expect(json).toContain("panel:checklist:m:disable:a");
-    expect(json).not.toContain("panel:checklist:m:toggle:");
-    expect(json).toContain("1 of 2 on · Off: B");
+    expect(json).toContain("1 of 10 on · Page 1 of 2");
+    expect(json).toContain("panel:checklist:m:toggle:t7");
+    expect(json).not.toContain("panel:checklist:m:toggle:t8");
+    expect(json).toContain("panel:checklist:m:page:t0");
+    expect(json).toContain("panel:checklist:m:page:t8");
+  });
+
+  test("shows the page holding the focused toggle", async () => {
+    const rendered = await renderPanel(new ChecklistPanel(), context, "m", "t9");
+    const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
+    expect(json).toContain("Page 2 of 2");
+    expect(json).toContain("panel:checklist:m:toggle:t9");
+    expect(json).not.toContain("panel:checklist:m:toggle:t0");
   });
 
   test("renders the view switcher when there is more than one view", async () => {

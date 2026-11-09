@@ -30,9 +30,7 @@ import {
   type PanelContext,
   type PanelControl,
   type PanelView,
-  type ToggleChecklist,
   type ToggleControl,
-  toggleChecklists,
 } from "./panel";
 import { getPath } from "./path";
 
@@ -44,6 +42,28 @@ export const DIALOG_VALUE = "value";
 
 /** Buttons per action row, Discord's cap. */
 const BUTTONS_PER_ROW = 5;
+
+/**
+ * Switches per page of a toggle group. Each costs three components
+ * (section, text, button), so eight keeps a page with a few other
+ * controls under Discord's 40-component cap on a message.
+ */
+const TOGGLES_PER_PAGE = 8;
+
+interface ToggleGroup<C> {
+  label: string;
+  toggles: ToggleControl<C>[];
+}
+
+function toggleGroups<C>(controls: readonly PanelControl<C>[]): ToggleGroup<C>[] {
+  const groups = new Map<string, ToggleControl<C>[]>();
+  for (const control of controls) {
+    if (control.kind === "toggle" && control.group !== undefined) {
+      groups.set(control.group, [...(groups.get(control.group) ?? []), control]);
+    }
+  }
+  return [...groups].map(([label, toggles]) => ({ label, toggles }));
+}
 
 /**
  * A rendered panel: a Components V2 payload. `content` and `embeds` are
@@ -118,7 +138,7 @@ function viewSelectRow<C extends object>(
  * The controls that edit a view, added to the container in declaration
  * order. A dialog or a lone toggle is a section whose button sits beside
  * its label and value; a choice is its label over a select; grouped
- * toggles are one checklist, placed where the group's first toggle is
+ * toggles are one paged list, placed where the group's first toggle is
  * declared. Placeholder buttons open reference content rather than
  * editing anything, so they share a row at the end: one per distinct
  * token set, named after its field only when the view has several.
@@ -128,10 +148,11 @@ function addControls<C extends object>(
   panel: Panel<C>,
   view: PanelView<C>,
   config: C,
-  context: PanelContext
+  context: PanelContext,
+  focus: string | undefined
 ): void {
   const controls = view.controls(config, context);
-  const checklists = toggleChecklists(controls);
+  const groups = toggleGroups(controls);
   const catalogs = new Map<DialogControl<C>["placeholders"], DialogControl<C>>();
 
   for (const control of controls) {
@@ -146,11 +167,9 @@ function addControls<C extends object>(
       continue;
     }
     if (control.kind === "toggle" && control.group !== undefined) {
-      for (const checklist of checklists.filter(candidate => candidate.toggles[0] === control)) {
-        container.addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(checklistText(checklist, config))
-        );
-        container.addActionRowComponents(...checklistRows(panel, view, checklist, config));
+      const group = groups.find(candidate => candidate.toggles[0] === control);
+      if (group) {
+        addToggleGroup(container, panel, view, group, config, context, focus);
       }
       continue;
     }
@@ -195,66 +214,57 @@ function controlText(label: string, value: string | null, description: string | 
 }
 
 /**
- * A checklist's heading and a one-line summary naming only the minority
- * state, so a group of two dozen switches reads in one line rather than
- * one line each.
+ * One page of a toggle group: its heading, a row per switch on the page,
+ * and Previous/Next buttons when there is more than one page. The page
+ * shown is the one holding `focus`, so a press on a switch or a page
+ * button repaints the page it came from without the message storing any
+ * state. Each page button names its target page by that page's first key.
  */
-function checklistText<C>(checklist: ToggleChecklist<C>, config: C): string {
-  const on = checklist.toggles.filter(toggle => getPath(config, toggle.key) === true);
-  const off = checklist.toggles.filter(toggle => getPath(config, toggle.key) !== true);
-  const total = checklist.toggles.length;
-  const names = (toggles: ToggleControl<C>[]): string => toggles.map(toggle => toggle.label).join(", ");
-  let summary: string;
-  if (off.length === 0) {
-    summary = `All ${total} on`;
-  } else if (on.length === 0) {
-    summary = `All ${total} off`;
-  } else if (off.length <= on.length) {
-    summary = `${on.length} of ${total} on · Off: ${names(off)}`;
-  } else {
-    summary = `${on.length} of ${total} on · On: ${names(on)}`;
-  }
-  return [`**${checklist.label}**`, `-# ${summary}`].join("\n");
-}
-
-/**
- * The checklist's two pickers: one offering only the toggles that are
- * off, one only those that are on. Neither preselects anything, so each
- * stays a one-line dropdown no matter how many switches are on, and a pick
- * names exactly the switches to flip.
- */
-function checklistRows<C extends object>(
+function addToggleGroup<C extends object>(
+  container: ContainerBuilder,
   panel: Panel<C>,
   view: PanelView<C>,
-  checklist: ToggleChecklist<C>,
-  config: C
-): Array<ActionRowBuilder<StringSelectMenuBuilder>> {
-  const pickers: Array<[kind: "enable" | "disable", placeholder: string, toggles: ToggleControl<C>[]]> = [
-    ["enable", "Turn on…", checklist.toggles.filter(toggle => getPath(config, toggle.key) !== true)],
-    ["disable", "Turn off…", checklist.toggles.filter(toggle => getPath(config, toggle.key) === true)],
-  ];
-  return pickers
-    .filter(([, , toggles]) => toggles.length > 0)
-    .map(([kind, placeholder, toggles]) =>
-      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId(panelCustomId(panel.segment, view.segment, kind, checklist.id))
-          .setPlaceholder(placeholder)
-          .setMinValues(1)
-          .setMaxValues(toggles.length)
-          .addOptions(
-            toggles.map(toggle => {
-              const option = new StringSelectMenuOptionBuilder()
-                .setLabel(toggle.label.slice(0, 100))
-                .setValue(toggle.key);
-              if (toggle.description !== undefined) {
-                option.setDescription(toggle.description.slice(0, 100));
-              }
-              return option;
-            })
-          )
-      )
+  group: ToggleGroup<C>,
+  config: C,
+  context: PanelContext,
+  focus: string | undefined
+): void {
+  const pages = Math.ceil(group.toggles.length / TOGGLES_PER_PAGE);
+  const focused = group.toggles.findIndex(toggle => toggle.key === focus);
+  const page = focused < 0 ? 0 : Math.floor(focused / TOGGLES_PER_PAGE);
+  const on = group.toggles.filter(toggle => getPath(config, toggle.key) === true).length;
+  const position = pages > 1 ? ` · Page ${page + 1} of ${pages}` : "";
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `**${group.label}**\n-# ${on} of ${group.toggles.length} on${position}`
+    )
+  );
+  for (const toggle of group.toggles.slice(page * TOGGLES_PER_PAGE, (page + 1) * TOGGLES_PER_PAGE)) {
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(controlText(toggle.label, null, toggle.description))
+        )
+        .setButtonAccessory(toggleButton(panel, view, toggle, config, context))
     );
+  }
+  if (pages < 2) {
+    return;
+  }
+  const pageButton = (target: number, label: string): ButtonBuilder =>
+    new ButtonBuilder()
+      .setCustomId(
+        panelCustomId(panel.segment, view.segment, "page", group.toggles[target * TOGGLES_PER_PAGE]!.key)
+      )
+      .setLabel(label)
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(target === page);
+  container.addActionRowComponents(
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      pageButton(Math.max(page - 1, 0), "◀ Previous"),
+      pageButton(Math.min(page + 1, pages - 1), "Next ▶")
+    )
+  );
 }
 
 function dialogButton<C extends object>(
@@ -326,10 +336,15 @@ function headerLines<C extends object>(panel: Panel<C>, config: C, context: Pane
   return lines;
 }
 
+/**
+ * Render a panel's view. `focus` is the key of a grouped toggle whose page
+ * should be shown; every other group shows its first page.
+ */
 export async function renderPanel<C extends object>(
   panel: Panel<C>,
   context: PanelContext,
-  viewSegment: string
+  viewSegment: string,
+  focus?: string
 ): Promise<RenderedPanel> {
   const config = await panel.getConfig(context.guild);
   const view = panel.viewFor(config, viewSegment);
@@ -358,7 +373,7 @@ export async function renderPanel<C extends object>(
   if (summary.length > 0) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(summary.join("\n")));
   }
-  addControls(container, panel, view, config, context);
+  addControls(container, panel, view, config, context, focus);
   const footer = panel.footer?.(config, context);
   if (footer) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${footer}`));
