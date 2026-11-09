@@ -330,6 +330,13 @@
       "when": 1794226069781,
       "tag": "0046_guild_afk",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794259157329,
+      "tag": "0047_media_superseded_and_afk_user_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { index, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 import { globalUsersSchema } from "./global-users";
 
 /**
@@ -15,7 +15,10 @@ export const guildAfkSchema = pgTable(
     reason: text("reason"),
     since: timestamp("since", { withTimezone: true }).notNull().defaultNow(),
   },
-  table => [primaryKey({ columns: [table.guildId, table.userId] })]
+  table => [
+    primaryKey({ columns: [table.guildId, table.userId] }),
+    index("guild_afk_user_id_idx").on(table.userId),
+  ]
 );
 
 export type GuildAfkSchema = typeof guildAfkSchema.$inferSelect;

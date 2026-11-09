@@ -35,6 +35,7 @@ export const mediaSchema = pgTable(
   },
   table => [
     primaryKey({ columns: [table.userId, table.kind, table.hash] }),
+    index("media_superseded_idx").on(table.supersededAt),
     index("media_expires_idx").on(table.expiresAt),
   ]
 );
