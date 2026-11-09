@@ -1,6 +1,6 @@
 import type { ComponentSchema } from "@/db/schemas/components";
 import type { JsonValue } from "@/db/schemas/guild-settings";
-import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "../db/index";
 import { componentsSchema } from "../db/schemas/components";
 
@@ -62,6 +62,14 @@ export default class Components {
   /** Drop every component of a message, e.g. once a one-shot press lands. */
   public static async deleteByMessage(messageId: string): Promise<void> {
     await db.delete(componentsSchema).where(eq(componentsSchema.messageId, messageId));
+  }
+
+  /** Delete every expired row and return what was deleted. */
+  public static async deleteExpired(): Promise<ComponentSchema[]> {
+    return db
+      .delete(componentsSchema)
+      .where(and(isNotNull(componentsSchema.expiresAt), lte(componentsSchema.expiresAt, sql`now()`)))
+      .returning();
   }
 
   private static live(): ReturnType<typeof or> {

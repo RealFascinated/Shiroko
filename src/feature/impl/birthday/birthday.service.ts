@@ -1,9 +1,11 @@
 import { db } from "@/db/index";
+import { birthdayAnnouncementsSchema } from "@/db/schemas/birthday-announcements";
+import { birthdayWishesSchema } from "@/db/schemas/birthday-wishes";
 import { guildBirthdaysSchema } from "@/db/schemas/guild-birthdays";
 import { ageInYears } from "@/lib/date";
 import { loadPage, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
-import { and, eq, sql, type SQL } from "drizzle-orm";
+import { and, eq, lt, sql, type SQL } from "drizzle-orm";
 import { birthdaySettings } from "./birthday-settings";
 
 export interface BirthdayRow {
@@ -203,6 +205,55 @@ export default class BirthdayService {
       }
     }
     return byGuild;
+  }
+
+  /**
+   * Atomically claim a celebrant's announcement for a year: true only for
+   * the writer whose insert landed, so overlapping sweeps announce once.
+   */
+  public async claimAnnouncement(guildId: string, userId: string, year: number): Promise<boolean> {
+    const rows = await db
+      .insert(birthdayAnnouncementsSchema)
+      .values({ guildId, userId, year })
+      .onConflictDoNothing()
+      .returning({ userId: birthdayAnnouncementsSchema.userId });
+    return rows.length > 0;
+  }
+
+  public async releaseAnnouncement(guildId: string, userId: string, year: number): Promise<void> {
+    await db
+      .delete(birthdayAnnouncementsSchema)
+      .where(
+        and(
+          eq(birthdayAnnouncementsSchema.guildId, guildId),
+          eq(birthdayAnnouncementsSchema.userId, userId),
+          eq(birthdayAnnouncementsSchema.year, year)
+        )
+      );
+  }
+
+  public async pruneAnnouncements(year: number): Promise<void> {
+    await db.delete(birthdayAnnouncementsSchema).where(lt(birthdayAnnouncementsSchema.year, year));
+  }
+
+  /**
+   * Record a wish on an announcement and return the new total, or null when
+   * this member already wished (the insert conflicted).
+   */
+  public async wish(componentId: string, wisherId: string): Promise<number | null> {
+    const rows = await db
+      .insert(birthdayWishesSchema)
+      .values({ componentId, wisherId })
+      .onConflictDoNothing()
+      .returning({ wisherId: birthdayWishesSchema.wisherId });
+    if (rows.length === 0) {
+      return null;
+    }
+    const [row] = await db
+      .select({ total: sql<number>`count(*)`.mapWith(Number) })
+      .from(birthdayWishesSchema)
+      .where(eq(birthdayWishesSchema.componentId, componentId));
+    return row?.total ?? 1;
   }
 
   /**

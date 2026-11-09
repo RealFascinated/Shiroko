@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { birthdayAnnouncementsSchema } from "./schemas/birthday-announcements";
+import { birthdayWishesSchema } from "./schemas/birthday-wishes";
 import { commandCallsSchema } from "./schemas/command-calls";
 import { componentsSchema } from "./schemas/components";
 import { globalUsersSchema } from "./schemas/global-users";
@@ -22,6 +24,8 @@ const pool = new Pool({
 });
 
 export const schema = {
+  birthdayAnnouncements: birthdayAnnouncementsSchema,
+  birthdayWishes: birthdayWishesSchema,
   commandCalls: commandCallsSchema,
   components: componentsSchema,
   globalUsers: globalUsersSchema,

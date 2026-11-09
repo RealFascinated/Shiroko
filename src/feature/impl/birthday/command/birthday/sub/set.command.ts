@@ -57,7 +57,7 @@ export default class SetCommand extends Command {
       .setTitle("🎂 Birthday Saved")
       .setDescription(
         `Your birthday is set to **${monthName(month)} ${ordinal(day)}** (you are **${age}**).` +
-          (isToday ? "\n\nSince that is today, it will be announced from next year." : "")
+          (isToday ? "\n\nSince that is today, it will be announced within the hour." : "")
       );
     return ctx.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }

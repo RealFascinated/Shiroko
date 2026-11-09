@@ -1,10 +1,14 @@
+import BotReadyEvent from "@/event/events/bot-ready.event";
 import ComponentReceivedEvent from "@/event/events/component-received.event";
 import { EventBus } from "@/event/event-bus";
 import { EventHandler } from "@/event/event-handler";
 import { EventListener } from "@/event/event-listener";
 import type { Interaction } from "discord.js";
 import type Component from "./component";
+import { runComponentSweep } from "./component-sweep";
 import { handleComponentInteraction } from "./router";
+
+const SWEEP_CRON = "7 * * * *"; // hourly
 
 type AnyComponent = Component<any>;
 
@@ -19,6 +23,8 @@ type AnyComponent = Component<any>;
  */
 export default class ComponentManager extends EventListener {
   private static COMPONENTS: Map<string, AnyComponent> = new Map<string, AnyComponent>();
+
+  private job: Bun.CronJob | undefined;
 
   constructor() {
     super();
@@ -47,6 +53,17 @@ export default class ComponentManager extends EventListener {
    */
   public static async route(interaction: Interaction): Promise<boolean> {
     return handleComponentInteraction(interaction, componentId => ComponentManager.get(componentId));
+  }
+
+  /**
+   * Armed on ready, not at construction, so the sweep takes its `Client`
+   * from the event; the previous job is stopped first so a second ready
+   * cannot register a duplicate.
+   */
+  @EventHandler(BotReadyEvent)
+  public async onBotReady(event: BotReadyEvent): Promise<void> {
+    this.job?.stop();
+    this.job = Bun.cron(SWEEP_CRON, () => runComponentSweep(event.client), { tz: "UTC" });
   }
 
   @EventHandler(ComponentReceivedEvent)

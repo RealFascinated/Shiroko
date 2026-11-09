@@ -267,6 +267,13 @@
       "when": 1794201977745,
       "tag": "0037_clumsy_the_captain",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794202748572,
+      "tag": "0038_dashing_talisman",
+      "breakpoints": true
     }
   ]
 }
