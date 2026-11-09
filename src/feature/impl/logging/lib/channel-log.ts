@@ -289,9 +289,14 @@ export function describeChannelChanges(
       )
     );
   }
-  if ("topic" in oldChannel && "topic" in newChannel && oldChannel.topic !== newChannel.topic) {
+  // Discord reports an unset topic as null in one payload and "" in another.
+  if (
+    "topic" in oldChannel &&
+    "topic" in newChannel &&
+    (oldChannel.topic || null) !== (newChannel.topic || null)
+  ) {
     fields.push(
-      fieldChange("Topic changed", "Topic", oldChannel.topic ?? "None", newChannel.topic ?? "None")
+      fieldChange("Topic changed", "Topic", oldChannel.topic || "None", newChannel.topic || "None")
     );
   }
   if ("rateLimitPerUser" in oldChannel && "rateLimitPerUser" in newChannel) {

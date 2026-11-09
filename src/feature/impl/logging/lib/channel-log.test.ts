@@ -111,6 +111,12 @@ describe("channelUpdateLines", () => {
     ]);
   });
 
+  test("treats an empty topic as no topic", () => {
+    const before = channel([]);
+    const after = { ...channel([]), topic: "" } as NonThreadGuildBasedChannel;
+    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([]);
+  });
+
   test("names the permissions a single overwrite change touched", () => {
     const before = channel([[ROLE_ID, overwrite(["ViewChannel"], [])]]);
     const after = channel([[ROLE_ID, overwrite([], [])]]);
