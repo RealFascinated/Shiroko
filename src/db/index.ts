@@ -7,6 +7,7 @@ import { commandCallsSchema } from "./schemas/command-calls";
 import { componentsSchema } from "./schemas/components";
 import { globalUsersSchema } from "./schemas/global-users";
 import { guildBirthdaysSchema } from "./schemas/guild-birthdays";
+import { guildAfkSchema } from "./schemas/guild-afk";
 import { guildAuditSchema } from "./schemas/guild-audit";
 import { guildInvitesSchema } from "./schemas/guild-invites";
 import { permissionRolesSchema } from "./schemas/permission-roles";
@@ -32,6 +33,7 @@ export const schema = {
   commandCalls: commandCallsSchema,
   components: componentsSchema,
   globalUsers: globalUsersSchema,
+  guildAfk: guildAfkSchema,
   guildBirthdays: guildBirthdaysSchema,
   guildAudit: guildAuditSchema,
   guildUsers: guildUsersSchema,

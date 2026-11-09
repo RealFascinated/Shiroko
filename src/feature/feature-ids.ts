@@ -5,6 +5,7 @@
  */
 export enum FeatureIds {
   General = "general",
+  Afk = "afk",
   Autoroles = "autoroles",
   Birthday = "birthday",
   Fun = "fun",

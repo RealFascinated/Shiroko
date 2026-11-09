@@ -1,3 +1,4 @@
+import AfkFeature from "./impl/afk/index";
 import AutorolesFeature from "./impl/autoroles/index";
 import BirthdayFeature from "./impl/birthday/index";
 import FunFeature from "./impl/fun/index";
@@ -27,4 +28,5 @@ export default function registerFeatures(): void {
   new WelcomerFeature();
   new FunFeature();
   new LoggingFeature();
+  new AfkFeature();
 }
