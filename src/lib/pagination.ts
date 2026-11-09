@@ -5,6 +5,7 @@ import {
   MessageFlags,
   type BaseMessageOptions,
   type ButtonInteraction,
+  type ChatInputCommandInteraction,
   type InteractionResponse,
   type MessageActionRowComponentBuilder,
 } from "discord.js";
@@ -105,7 +106,7 @@ export interface Pager<T> {
  * (which leaves no "edited" marker). Only `options.userId` may page. The
  * nav bar disables at the ends. No-op when the list has a single page.
  */
-export function createPager<T>(options: PagerOptions<T>): Pager<T> {
+function createPager<T>(options: PagerOptions<T>): Pager<T> {
   const { namespace, userId, page: initialPage, fetchPage, render } = options;
   const pageCount = initialPage.pageCount;
   const ids = {
@@ -195,4 +196,32 @@ export function createPager<T>(options: PagerOptions<T>): Pager<T> {
     });
   };
   return { payload, attach };
+}
+
+export interface PagedReplyOptions<T> {
+  /** Unique namespace for the nav bar's button custom ids. */
+  namespace: string;
+  fetchPage(page: number): Promise<Page<T>>;
+  render(page: Page<T>): PagePayload | Promise<PagePayload>;
+  /** Sent instead of the list when it has no rows; omit for lists that are never empty. */
+  empty?: PagePayload;
+}
+
+/**
+ * The one way a command replies with a paged list, so every list shares the
+ * same empty state, nav bar, and footer: fetch page 1, send `empty` when it
+ * has no rows, otherwise reply with the page and attach the pager.
+ */
+export async function replyPaged<T>(
+  ctx: ChatInputCommandInteraction,
+  options: PagedReplyOptions<T>
+): Promise<InteractionResponse> {
+  const page = await options.fetchPage(1);
+  if (options.empty && page.rows.length === 0) {
+    return ctx.reply(options.empty);
+  }
+  const pager = createPager({ ...options, userId: ctx.user.id, page });
+  const response = await ctx.reply(await pager.payload(page));
+  pager.attach(response);
+  return response;
 }

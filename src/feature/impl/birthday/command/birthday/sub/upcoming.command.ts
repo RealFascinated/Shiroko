@@ -7,7 +7,7 @@ import {
 import { monthName } from "@/lib/date";
 import { baseEmbed } from "@/lib/embed";
 import { ordinal } from "@/lib/format";
-import { createPager, type Page } from "@/lib/pagination";
+import { replyPaged, type Page } from "@/lib/pagination";
 
 export default class UpcomingCommand extends Command {
   constructor() {
@@ -18,36 +18,25 @@ export default class UpcomingCommand extends Command {
     const guild = ctx.guild!;
     const memberIds = new Set(guild.members.cache.keys());
     const title = `🎂 Upcoming Birthdays: ${guild.name}`;
-    const fetchPage = (page: number): Promise<Page<UpcomingBirthday>> =>
-      birthdayService.upcoming(guild.id, memberIds, page, UPCOMING_PAGE_SIZE);
-    const firstPage = await fetchPage(1);
-
-    if (firstPage.rows.length === 0) {
-      return ctx.reply({
-        embeds: [
-          baseEmbed(commandName)
-            .setTitle(title)
-            .setDescription("No birthdays saved yet. Use `/birthday set` to add yours."),
-        ],
-      });
-    }
-
     const render = (page: Page<UpcomingBirthday>) => {
       const lines = page.rows.map(entry => {
         const when =
           entry.inDays === 0 ? "**Today!**" : `in ${entry.inDays} day${entry.inDays === 1 ? "" : "s"}`;
         return `<@${entry.userId}> - ${monthName(entry.month)} ${ordinal(entry.day)} (${when}), turning **${entry.age}**`;
       });
-      return { embeds: [baseEmbed(commandName, page).setTitle(title).setDescription(lines.join("\n"))] };
+      return { embeds: [baseEmbed(commandName).setTitle(title).setDescription(lines.join("\n"))] };
     };
-    const pager = createPager({
+    return replyPaged(ctx, {
       namespace: "birthday-upcoming",
-      userId: ctx.user.id,
-      page: firstPage,
-      fetchPage,
+      fetchPage: page => birthdayService.upcoming(guild.id, memberIds, page, UPCOMING_PAGE_SIZE),
       render,
+      empty: {
+        embeds: [
+          baseEmbed(commandName)
+            .setTitle(title)
+            .setDescription("No birthdays saved yet. Use `/birthday set` to add yours."),
+        ],
+      },
     });
-    const response = await ctx.reply(await pager.payload(firstPage));
-    pager.attach(response);
   }
 }

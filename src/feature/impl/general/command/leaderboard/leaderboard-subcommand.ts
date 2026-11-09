@@ -2,10 +2,12 @@ import Command, { type ExecuteContext } from "@/command/command";
 import LeaderboardManager from "@/leaderboard/index";
 import type Leaderboard from "@/leaderboard/leaderboard";
 import type { LeaderboardId, LeaderboardPosition, LeaderboardRow } from "@/leaderboard/leaderboard";
-import { baseEmbed, ephemeralErrorReply, errorEmbed, pageSummary } from "@/lib/embed";
-import { ordinal } from "@/lib/format";
-import { createPager, type Page } from "@/lib/pagination";
+import { baseEmbed } from "@/lib/embed";
+import { formatCount, ordinal } from "@/lib/format";
+import { replyPaged, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
+
+const MEDALS = ["🥇", "🥈", "🥉"];
 
 /** What one leaderboard subcommand adds to the shared page-and-position flow. */
 export interface LeaderboardDefinition {
@@ -17,23 +19,22 @@ export interface LeaderboardDefinition {
   readonly emptyMessage: string;
   /** Format one row's score, without its position or mention. */
   readonly renderValue: (row: LeaderboardRow) => string;
-  /** Optional embed footer, e.g. a tracking caveat. */
-  readonly footer?: (guild: Guild) => Promise<string | null>;
+  /** Optional caveat shown as subtext under the board, e.g. a tracking warning. */
+  readonly note?: (guild: Guild) => Promise<string | null>;
 }
 
 /**
  * A leaderboard subcommand: shows the given board from page 1 and closes it
- * with the caller's own position, with the button pager (`createPager`) in
- * the reply when the board spans more than one page. Fetching, empty state,
- * rendering, and paging are shared; the definition supplies the board, its
- * title, the empty-state message, and the score format.
+ * with the caller's own rank, paged through `replyPaged`. Fetching, empty
+ * state, rendering, and paging are shared; the definition supplies the board,
+ * its title, the empty-state message, and the score format.
  */
 export default class LeaderboardSubCommand extends Command {
   private readonly board: Leaderboard<LeaderboardRow>;
   private readonly title: string;
   private readonly emptyMessage: string;
   private readonly renderValue: (row: LeaderboardRow) => string;
-  private readonly footer: ((guild: Guild) => Promise<string | null>) | undefined;
+  private readonly note: ((guild: Guild) => Promise<string | null>) | undefined;
 
   constructor(definition: LeaderboardDefinition) {
     super({ id: definition.id, displayName: definition.displayName });
@@ -41,67 +42,44 @@ export default class LeaderboardSubCommand extends Command {
     this.title = definition.title;
     this.emptyMessage = definition.emptyMessage;
     this.renderValue = definition.renderValue;
-    this.footer = definition.footer;
+    this.note = definition.note;
   }
 
   /**
    * Format one row of the page. `position` is the 1-based position in the
-   * full ranking, so a 20-per-page board's second page starts at 21. The
-   * row is mentioned via `<@id>`.
+   * full ranking, so a 10-per-page board's second page starts at 11. The top
+   * three wear medals, and the caller's own row is marked.
    */
-  protected renderRow(row: LeaderboardRow, position: number): string {
-    return `**${ordinal(position)}.** <@${row.id}>: ${this.renderValue(row)}`;
+  protected renderRow(row: LeaderboardRow, position: number, callerId: string): string {
+    const badge = MEDALS[position - 1] ?? `\`#${position}\``;
+    const you = row.id === callerId ? " ← **you**" : "";
+    return `${badge} <@${row.id}> · ${this.renderValue(row)}${you}`;
   }
 
-  /**
-   * The caller's own position, closing the embed under the ranked rows.
-   * Unranked callers get a plain "not ranked yet" instead of a score.
-   */
   private renderPosition(standing: LeaderboardPosition<LeaderboardRow>): string {
     if (standing.position === null || standing.row === null) {
-      return "**Your position:** not ranked yet";
+      return "**Your rank:** not ranked yet";
     }
-    return `**Your position:** **${standing.position}**/**${standing.total}** · ${this.renderValue(standing.row)}`;
+    return `**Your rank:** ${ordinal(standing.position)} of ${formatCount(standing.total)} · ${this.renderValue(standing.row)}`;
   }
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const guildId = guild.id;
-    const [firstPage, standing] = await Promise.all([
-      this.board.getPage(guildId, 1),
-      this.board.getPosition(guildId, ctx.user.id),
-    ]);
-    const render = async (page: Page<LeaderboardRow>) => {
-      const lines = [
-        ...page.rows.map((row, index) => {
-          const rank = (page.page - 1) * page.pageSize + index + 1;
-          return this.renderRow(row, rank);
-        }),
-        "",
-        this.renderPosition(standing),
-      ];
-      const embed = baseEmbed(commandName, page).setTitle(this.title).setDescription(lines.join("\n"));
-      const footer = (await this.footer?.(guild)) ?? null;
-      if (footer) {
-        embed.setFooter({ text: `${footer} · ${pageSummary(page)}` });
-      }
-      return {
-        embeds: [embed],
-      };
-    };
-    if (firstPage.rows.length === 0) {
-      return ctx.reply(
-        ephemeralErrorReply(commandName, errorEmbed(commandName).setDescription(this.emptyMessage))
-      );
-    }
-    const pager = createPager({
+    const callerId = ctx.user.id;
+    // Started alongside page 1 rather than awaited first, so both queries run at once.
+    const extras = Promise.all([this.board.getPosition(guild.id, callerId), this.note?.(guild) ?? null]);
+    return replyPaged(ctx, {
       namespace: this.id,
-      userId: ctx.user.id,
-      page: firstPage,
-      fetchPage: page => this.board.getPage(guildId, page),
-      render,
+      fetchPage: page => this.board.getPage(guild.id, page),
+      render: async (page: Page<LeaderboardRow>) => {
+        const [standing, note] = await extras;
+        const rows = page.rows.map((row, index) =>
+          this.renderRow(row, (page.page - 1) * page.pageSize + index + 1, callerId)
+        );
+        const lines = [...rows, "", this.renderPosition(standing), ...(note ? [`-# ⚠️ ${note}`] : [])];
+        return { embeds: [baseEmbed(commandName).setTitle(this.title).setDescription(lines.join("\n"))] };
+      },
+      empty: { embeds: [baseEmbed(commandName).setTitle(this.title).setDescription(this.emptyMessage)] },
     });
-    const response = await ctx.reply(await pager.payload(firstPage));
-    pager.attach(response);
   }
 }

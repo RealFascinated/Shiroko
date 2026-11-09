@@ -5,7 +5,7 @@ import {
   type Reminder,
 } from "@/feature/impl/reminders/reminder.service";
 import { baseEmbed } from "@/lib/embed";
-import { createPager, type Page } from "@/lib/pagination";
+import { replyPaged, type Page } from "@/lib/pagination";
 import { timestampLabel } from "@/lib/time";
 
 export default class ListCommand extends Command {
@@ -14,19 +14,6 @@ export default class ListCommand extends Command {
   }
 
   protected override async onExecuteSlash({ user, ctx, commandName }: ExecuteContext) {
-    const fetchPage = (page: number): Promise<Page<Reminder>> => reminderService.list(user.id, page);
-    const firstPage = await fetchPage(1);
-
-    if (firstPage.rows.length === 0) {
-      return ctx.reply({
-        embeds: [
-          baseEmbed(commandName)
-            .setTitle("⏰ Your Reminders")
-            .setDescription("You have no reminders. Use `/reminder set` to add one."),
-        ],
-      });
-    }
-
     const render = (page: Page<Reminder>) => {
       const lines = page.rows.map(
         reminder =>
@@ -35,19 +22,20 @@ export default class ListCommand extends Command {
           }\n${reminder.about}`
       );
       return {
-        embeds: [
-          baseEmbed(commandName, page).setTitle("⏰ Your Reminders").setDescription(lines.join("\n\n")),
-        ],
+        embeds: [baseEmbed(commandName).setTitle("⏰ Your Reminders").setDescription(lines.join("\n\n"))],
       };
     };
-    const pager = createPager({
+    return replyPaged(ctx, {
       namespace: "reminder-list",
-      userId: ctx.user.id,
-      page: firstPage,
-      fetchPage,
+      fetchPage: page => reminderService.list(user.id, page),
       render,
+      empty: {
+        embeds: [
+          baseEmbed(commandName)
+            .setTitle("⏰ Your Reminders")
+            .setDescription("You have no reminders. Use `/reminder set` to add one."),
+        ],
+      },
     });
-    const response = await ctx.reply(await pager.payload(firstPage));
-    pager.attach(response);
   }
 }

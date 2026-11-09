@@ -1,7 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { roleOption, type CommandOptionBuilder } from "@/command/option";
 import { baseEmbed } from "@/lib/embed";
-import { createPager, loadPage, type Page } from "@/lib/pagination";
+import { loadPage, replyPaged, type Page } from "@/lib/pagination";
 import Permissions, {
   FLAG_DISPLAY_NAMES,
   flagLabels,
@@ -40,15 +40,7 @@ export default class PermissionsViewCommand extends Command {
         guild
       );
     }
-    const firstPage = await Permissions.pageConfigs(guild.id, 1, PERMISSIONS_PER_PAGE);
-    if (firstPage.rows.length === 0) {
-      return ctx.reply({
-        embeds: [
-          baseEmbed(commandName).setDescription("No permissions configured; defaults to no permissions."),
-        ],
-      });
-    }
-    return this.showGuild(ctx, commandName, guild, firstPage);
+    return this.showGuild(ctx, commandName, guild);
   }
 
   /**
@@ -84,7 +76,7 @@ export default class PermissionsViewCommand extends Command {
       const lines = page.rows.map(({ label, state }) => `${state ? "✅" : "❌"} **${label}**`);
       return {
         embeds: [
-          baseEmbed(commandName, page)
+          baseEmbed(commandName)
             .setTitle(`🔒 ${title}`)
             .setDescription(
               `**Effective permissions:** ${flagLabels(effective).join(", ") || "None"}\n**Own permissions:** ${
@@ -98,24 +90,13 @@ export default class PermissionsViewCommand extends Command {
         ],
       };
     };
-    const firstPage = await fetchPage(1);
-    const pager = createPager({
-      namespace: "perm-view",
-      userId: ctx.user.id,
-      page: firstPage,
-      fetchPage,
-      render,
-    });
-    const response = await ctx.reply(await pager.payload(firstPage));
-    pager.attach(response);
-    return response;
+    return replyPaged(ctx, { namespace: "perm-view", fetchPage, render });
   }
 
   private async showGuild(
     ctx: ChatInputCommandInteraction,
     commandName: string,
-    guild: NonNullable<ExecuteContext["guild"]>,
-    firstPage: Page<PaginatedRoleConfig>
+    guild: NonNullable<ExecuteContext["guild"]>
   ): Promise<InteractionResponse<boolean> | void> {
     const render = (page: Page<PaginatedRoleConfig>) => {
       const lines = page.rows.map(({ roleId, parent, effective }) => {
@@ -124,21 +105,21 @@ export default class PermissionsViewCommand extends Command {
         return `**${this.roleName(guild, roleId)}**: ${flags}${inherited}`;
       });
       return {
-        embeds: [
-          baseEmbed(commandName, page).setTitle("🔒 Role Permissions").setDescription(lines.join("\n")),
-        ],
+        embeds: [baseEmbed(commandName).setTitle("🔒 Role Permissions").setDescription(lines.join("\n"))],
       };
     };
-    const pager = createPager({
+    return replyPaged(ctx, {
       namespace: "perm-view",
-      userId: ctx.user.id,
-      page: firstPage,
       fetchPage: page => Permissions.pageConfigs(guild.id, page, PERMISSIONS_PER_PAGE),
       render,
+      empty: {
+        embeds: [
+          baseEmbed(commandName)
+            .setTitle("🔒 Role Permissions")
+            .setDescription("No permissions configured; defaults to no permissions."),
+        ],
+      },
     });
-    const response = await ctx.reply(await pager.payload(firstPage));
-    pager.attach(response);
-    return response;
   }
 
   private roleName(guild: NonNullable<ExecuteContext["guild"]>, roleId: string): string {

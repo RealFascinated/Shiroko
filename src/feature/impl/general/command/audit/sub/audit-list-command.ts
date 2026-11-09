@@ -3,7 +3,7 @@ import { stringOption, type CommandOptionBuilder } from "@/command/option";
 import type { AuditEntry } from "@/audit/audit-kind";
 import { GUILD_KIND_BY_ID, USER_KIND_BY_ID, type AuditGroup } from "@/audit/kinds";
 import { baseEmbed } from "@/lib/embed";
-import { createPager, type Page } from "@/lib/pagination";
+import { replyPaged, type Page } from "@/lib/pagination";
 
 const ENTRIES_PER_PAGE = 8;
 
@@ -39,8 +39,7 @@ export default abstract class AuditListCommand extends Command {
     const { ctx, args, commandName } = context;
     const type = args.string("type");
     const kinds = this.groups.find(group => group.id === type)?.kindIds;
-    const { title, fetchPage: fetch } = this.source(context);
-    const fetchPage = (page: number) => fetch(page, ENTRIES_PER_PAGE, kinds);
+    const { title, fetchPage } = this.source(context);
     const render = async (page: Page<AuditEntry>) => {
       const entries = await Promise.all(
         page.rows.map(
@@ -50,23 +49,14 @@ export default abstract class AuditListCommand extends Command {
         )
       );
       return {
-        embeds: [
-          baseEmbed(commandName, page)
-            .setTitle(title)
-            .setDescription(entries.join("\n\n") || "Nothing recorded yet."),
-        ],
+        embeds: [baseEmbed(commandName).setTitle(title).setDescription(entries.join("\n\n"))],
       };
     };
-    const firstPage = await fetchPage(1);
-    const pager = createPager({
+    return replyPaged(ctx, {
       namespace: `audit-${commandName}`,
-      userId: ctx.user.id,
-      page: firstPage,
-      fetchPage,
+      fetchPage: page => fetchPage(page, ENTRIES_PER_PAGE, kinds),
       render,
+      empty: { embeds: [baseEmbed(commandName).setTitle(title).setDescription("Nothing recorded yet.")] },
     });
-    const response = await ctx.reply(await pager.payload(firstPage));
-    pager.attach(response);
-    return response;
   }
 }

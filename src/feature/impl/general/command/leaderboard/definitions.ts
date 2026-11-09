@@ -14,7 +14,7 @@ export const LEADERBOARDS: readonly LeaderboardDefinition[] = [
     board: LeaderboardId.Level,
     title: "📊 Levelling Leaderboard",
     emptyMessage: "No tracked levels in this server yet.",
-    renderValue: row => `**${levelForXp(row.value)}** (${formatCount(row.value)} XP)`,
+    renderValue: row => `Level **${levelForXp(row.value)}** · ${formatCount(row.value)} XP`,
   },
   {
     id: "messages",
@@ -32,10 +32,12 @@ export const LEADERBOARDS: readonly LeaderboardDefinition[] = [
     emptyMessage: "No invites tracked in this server yet.",
     renderValue: row => {
       const invites = row as InviteLeaderboardRow;
-      return `**${invites.value}** ${pluralise(invites.value, "invite")} · **${invites.leaves}** ${pluralise(invites.leaves, "leave")}`;
+      return `**${formatCount(invites.value)}** ${pluralise(invites.value, "invite")} · ${formatCount(invites.leaves)} left`;
     },
-    footer: async guild =>
-      (await invitesService.canTrack(guild)) ? null : "Missing Manage Guild permission; some joins may be untracked.",
+    note: async guild =>
+      (await invitesService.canTrack(guild))
+        ? null
+        : "Missing Manage Guild permission; some joins may be untracked.",
   },
   {
     id: "voice",
@@ -43,6 +45,6 @@ export const LEADERBOARDS: readonly LeaderboardDefinition[] = [
     board: LeaderboardId.Voice,
     title: "🎧 Voice Time Leaderboard",
     emptyMessage: "No voice time tracked in this server yet.",
-    renderValue: row => `**${formatDuration(row.value * 1000)}** voice time`,
+    renderValue: row => `**${formatDuration(row.value * 1000)}**`,
   },
 ];
