@@ -1,4 +1,3 @@
-import { Constants } from "@/constants";
 import { yesNo } from "@/lib/format";
 import {
   ChannelType,
@@ -38,7 +37,7 @@ export interface ChannelChange {
   summary: string;
   /** The change on its own, e.g. "`a` → `b`". */
   detail: string;
-  /** The change as a labelled line, e.g. "**➜** Name: `a` → `b`". */
+  /** The change as a labelled line, e.g. "**Name:** `a` → `b`". */
   line: string;
 }
 
@@ -58,7 +57,7 @@ export interface ChannelChanges {
 }
 
 /** Introduces the overwrite lines when the log also reports other fields. */
-const PERMISSION_CHANGES_LINE = `${Constants.bullet} Permission Changes:`;
+const PERMISSION_CHANGES_LINE = "**Permission Changes:**";
 
 /** How each overwrite action reads in a focused title. */
 const PERMISSION_SUMMARIES: Record<"Added" | "Removed" | "Updated", string> = {
@@ -136,11 +135,11 @@ export function channelDetails(channel: NonThreadGuildBasedChannel): string[] {
 }
 
 /**
- * An overwrite as one ready-to-print line: the target followed by its
- * allowed (`✓`) and denied (`✘`) permissions. Whichever group is empty is
- * omitted, so an overwrite never pads the log with blank sections. Reports
- * "None" when the channel has no overwrites, and a target that is no longer
- * cached falls back to its id.
+ * The channel's overwrites under a header, one list item each: the target
+ * followed by its allowed (`✓`) and denied (`✘`) permissions. Whichever
+ * group is empty is omitted, so an overwrite never pads the log with blank
+ * sections. Reports "None" when the channel has no overwrites, and a target
+ * that is no longer cached falls back to its id.
  */
 export function channelOverwriteLines(channel: NonThreadGuildBasedChannel): string[] {
   const entries = [...channel.permissionOverwrites.cache.entries()];
@@ -149,13 +148,16 @@ export function channelOverwriteLines(channel: NonThreadGuildBasedChannel): stri
   if (entries.length === 0) {
     return [detailLine("Permission Overwrites", "None")];
   }
-  return entries.map(([id, overwrite]) =>
-    permissionLine(
-      formatOverwriteTarget(channel.guild, id),
-      overwrite.allow.toArray(),
-      overwrite.deny.toArray()
-    )
-  );
+  return [
+    "**Permission Overwrites:**",
+    ...entries.map(([id, overwrite]) =>
+      permissionLine(
+        formatOverwriteTarget(channel.guild, id),
+        overwrite.allow.toArray(),
+        overwrite.deny.toArray()
+      )
+    ),
+  ];
 }
 
 /**
@@ -313,27 +315,31 @@ export function describeChannelChanges(
 }
 
 /**
- * The description lines for a channel-update log. A single change is named
- * directly (`<channel>'s name was updated`) with its before/after beneath.
- * Several changes share the generic header, with the overwrites trailing
- * under a `Permission Changes:` line. An unchanged channel yields no lines.
+ * The headline and details for a channel-update log. A single change is
+ * named directly (`Name changed for <channel>.`) with its before/after
+ * beneath. Several changes share the generic headline, with the overwrites
+ * trailing under a `Permission Changes:` header. An unchanged channel yields
+ * `null`.
  */
-export function channelUpdateLines(channel: NonThreadGuildBasedChannel, changes: ChannelChanges): string[] {
+export function channelUpdateCard(
+  channel: NonThreadGuildBasedChannel,
+  changes: ChannelChanges
+): { headline: string; details: string[] } | null {
   const all = [...changes.fields, ...changes.permissions];
   if (all.length === 0) {
-    return [];
+    return null;
   }
   const label = channelLabel(channel);
   if (all.length === 1) {
     const change = all[0]!;
-    return [`${change.summary} for ${label}.`, "", change.detail];
+    return { headline: `${change.summary} for ${label}.`, details: [change.detail] };
   }
-  const lines = [`${label} was updated.`, "", ...changes.fields.map(change => change.line)];
+  const details = changes.fields.map(change => change.line);
   if (changes.permissions.length > 0) {
     if (changes.fields.length > 0) {
-      lines.push(PERMISSION_CHANGES_LINE);
+      details.push(PERMISSION_CHANGES_LINE);
     }
-    lines.push(...changes.permissions.map(change => change.line));
+    details.push(...changes.permissions.map(change => change.line));
   }
-  return lines;
+  return { headline: `${label} was updated.`, details };
 }

@@ -6,7 +6,7 @@ import {
   GuildVerificationLevel,
   type Guild,
 } from "discord.js";
-import { changeLine, channelMention, enumLabel, formatSystemChannelFlags, userMention } from "./text";
+import { changeLine, channelMention, code, enumLabel, formatSystemChannelFlags, userMention } from "./text";
 
 const VERIFICATION_LEVEL_NAMES: Record<number, string> = {
   [GuildVerificationLevel.None]: "None",
@@ -68,7 +68,7 @@ function assetUrl(url: string | null): string {
 export function describeGuildChanges(oldGuild: Guild, newGuild: Guild): string[] {
   const lines: string[] = [];
   if (oldGuild.name !== newGuild.name) {
-    lines.push(changeLine("Name", oldGuild.name, newGuild.name));
+    lines.push(changeLine("Name", code(oldGuild.name), code(newGuild.name)));
   }
   if (oldGuild.icon !== newGuild.icon) {
     lines.push(

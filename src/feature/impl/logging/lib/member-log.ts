@@ -1,5 +1,6 @@
 import { AuditLogEvent, type GuildMember } from "discord.js";
 import type { JoinSource } from "@/lib/join-source";
+import { LogTone, type LogCard } from "./log-card";
 import { channelMention, code, detailLine, userMention } from "./text";
 
 /**
@@ -29,23 +30,32 @@ export function joinSourceLines(source: JoinSource | null): string[] {
 }
 
 /**
- * One line for a voice transition: a join, a leave, or a move between
- * channels. Returns `null` for a change that stayed in the same channel
- * (mute, deafen, streaming), which is not worth logging.
+ * The tone and headline for a voice transition: a join, a leave, or a move
+ * between channels. Returns `null` for a change that stayed in the same
+ * channel (mute, deafen, streaming), which is not worth logging.
  */
 export function describeVoiceChange(
   member: GuildMember,
   oldChannelId: string | null,
   newChannelId: string | null
-): string | null {
+): Pick<LogCard, "tone" | "headline"> | null {
   if (!oldChannelId && newChannelId) {
-    return `${member} joined voice channel ${channelMention(newChannelId)}.`;
+    return {
+      tone: LogTone.Positive,
+      headline: `${member} joined voice channel ${channelMention(newChannelId)}.`,
+    };
   }
   if (oldChannelId && !newChannelId) {
-    return `${member} left voice channel ${channelMention(oldChannelId)}.`;
+    return {
+      tone: LogTone.Negative,
+      headline: `${member} left voice channel ${channelMention(oldChannelId)}.`,
+    };
   }
   if (oldChannelId && newChannelId && oldChannelId !== newChannelId) {
-    return `${member} moved voice channel ${channelMention(oldChannelId)} → ${channelMention(newChannelId)}.`;
+    return {
+      tone: LogTone.Change,
+      headline: `${member} moved voice channel ${channelMention(oldChannelId)} → ${channelMention(newChannelId)}.`,
+    };
   }
   return null;
 }

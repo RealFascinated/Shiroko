@@ -1,4 +1,5 @@
 import type { EmbedAuthorOptions, GuildMember, PartialGuildMember, PartialUser, User } from "discord.js";
+import { LogTone, idFooter, type LogCard } from "./log-card";
 import { code, detailLine } from "./text";
 
 export function userLabel(user: User | PartialUser | null): string {
@@ -21,23 +22,25 @@ export function assetLink(url: string | null, type: "before" | "after"): string 
 }
 
 /**
- * The headline and asset line for a user changing or removing an avatar or
- * banner. `noun` is the asset's name in lower case.
+ * The card for a user changing or removing an avatar or banner. `noun` is
+ * the asset's name in lower case; the caller attaches the new image.
  */
-export function assetChangeLines(
+export function assetChangeCard(
   user: User | PartialUser,
   noun: "avatar" | "banner",
   hadAsset: boolean,
   removed: boolean,
   beforeUrl: string | null,
   afterUrl: string | null
-): string[] {
-  return [
-    `${user} ${removed ? "removed" : "changed"} their ${noun}.`,
-    "",
-    detailLine(
-      noun === "avatar" ? "Avatar" : "Banner",
-      `${hadAsset ? assetLink(beforeUrl, "before") : "None"} → ${removed ? "Removed" : assetLink(afterUrl, "after")}`
-    ),
-  ];
+): LogCard {
+  return {
+    tone: removed ? LogTone.Negative : LogTone.Change,
+    headline: `${user} ${removed ? "removed" : "changed"} their ${noun}.`,
+    details: [
+      detailLine("Before", hadAsset ? assetLink(beforeUrl, "before") : "None"),
+      detailLine("After", removed ? "None" : assetLink(afterUrl, "after")),
+    ],
+    subject: user,
+    footer: idFooter("User", user.id),
+  };
 }

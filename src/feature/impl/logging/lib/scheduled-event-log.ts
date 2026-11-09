@@ -6,7 +6,7 @@ import {
   type GuildScheduledEvent,
   type PartialGuildScheduledEvent,
 } from "discord.js";
-import { boldNameOrId, changeLine, channelMention, code, detailLine, enumLabel, timestamp } from "./text";
+import { changeLine, channelMention, code, codeNameOrId, detailLine, enumLabel, timestamp } from "./text";
 
 /**
  * A scheduled event as Discord sends it: fully cached for create, but a
@@ -32,7 +32,7 @@ const PRIVACY_NAMES: Record<number, string> = {
 };
 
 export function scheduledEventName(scheduledEvent: ScheduledEvent): string {
-  return boldNameOrId(scheduledEvent.name, scheduledEvent.id);
+  return codeNameOrId(scheduledEvent.name, scheduledEvent.id);
 }
 
 /** Where an event happens: a channel for stage/voice, the raw value for external. */
@@ -40,12 +40,12 @@ function location(scheduledEvent: ScheduledEvent): string {
   if (scheduledEvent.channelId) {
     return channelMention(scheduledEvent.channelId);
   }
-  return scheduledEvent.entityMetadata?.location ? code(scheduledEvent.entityMetadata.location) : "None";
+  return scheduledEvent.entityMetadata?.location ?? "None";
 }
 
 export function scheduledEventDetailLines(scheduledEvent: ScheduledEvent): string[] {
   const lines = [
-    detailLine("Type", code(nullableEnumLabel(ENTITY_NAMES, scheduledEvent.entityType))),
+    detailLine("Type", nullableEnumLabel(ENTITY_NAMES, scheduledEvent.entityType)),
     detailLine("Location", location(scheduledEvent)),
     detailLine("Starts", timestamp(scheduledEvent.scheduledStartTimestamp)),
   ];

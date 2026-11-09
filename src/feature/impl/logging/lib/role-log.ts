@@ -1,14 +1,14 @@
 import { yesNo } from "@/lib/format";
 import type { Role } from "discord.js";
-import { changeLine, permissionLine } from "./text";
+import { changeLine, code, permissionLine } from "./text";
 
 export function describeRoleChanges(oldRole: Role, newRole: Role): string[] {
   const lines: string[] = [];
   if (oldRole.name !== newRole.name) {
-    lines.push(changeLine("Name", oldRole.name, newRole.name));
+    lines.push(changeLine("Name", code(oldRole.name), code(newRole.name)));
   }
   if (oldRole.hexColor !== newRole.hexColor) {
-    lines.push(changeLine("Color", oldRole.hexColor, newRole.hexColor));
+    lines.push(changeLine("Color", code(oldRole.hexColor), code(newRole.hexColor)));
   }
   if (oldRole.hoist !== newRole.hoist) {
     lines.push(changeLine("Hoisted", yesNo(oldRole.hoist), yesNo(newRole.hoist)));

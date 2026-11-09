@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { ChannelType, type NonThreadGuildBasedChannel, type PermissionOverwrites } from "discord.js";
-import { channelUpdateLines, describeChannelChanges } from "./channel-log";
+import { channelUpdateCard, describeChannelChanges } from "./channel-log";
 
 const CHANNEL_ID = "200000000000000001";
 const ROLE_ID = "100000000000000001";
@@ -52,7 +52,7 @@ describe("describeChannelChanges", () => {
         {
           summary: "Name changed",
           detail: "`ticket-2230` → `ticket-2231`",
-          line: "**➜** Name: `ticket-2230` → `ticket-2231`",
+          line: "**Name:** `ticket-2230` → `ticket-2231`",
         },
       ],
       permissions: [],
@@ -68,7 +68,7 @@ describe("describeChannelChanges", () => {
         {
           summary: "Permissions changed",
           detail: `${ROLE_MENTION} ⬤ View Channel`,
-          line: `**➜** ${ROLE_MENTION} ⬤ View Channel`,
+          line: `- ${ROLE_MENTION} ⬤ View Channel`,
         },
       ],
     });
@@ -83,59 +83,54 @@ describe("describeChannelChanges", () => {
         {
           summary: "Permissions changed",
           detail: `${ROLE_MENTION} ✓ Send Messages ⬤ View Channel`,
-          line: `**➜** ${ROLE_MENTION} ✓ Send Messages ⬤ View Channel`,
+          line: `- ${ROLE_MENTION} ✓ Send Messages ⬤ View Channel`,
         },
       ],
     });
   });
 });
 
-describe("channelUpdateLines", () => {
+describe("channelUpdateCard", () => {
   test("focuses a single change on the field that changed", () => {
     const before = channel([]);
     const after = { ...channel([]), name: "ticket-2231" } as NonThreadGuildBasedChannel;
-    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
-      `Name changed for <#${CHANNEL_ID}>.`,
-      "",
-      "`ticket-2230` → `ticket-2231`",
-    ]);
+    expect(channelUpdateCard(after, describeChannelChanges(before, after))).toEqual({
+      headline: `Name changed for <#${CHANNEL_ID}>.`,
+      details: ["`ticket-2230` → `ticket-2231`"],
+    });
   });
 
   test("names the field a single non-name change touched", () => {
     const before = channel([]);
     const after = { ...channel([]), topic: "Help" } as NonThreadGuildBasedChannel;
-    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
-      `Topic changed for <#${CHANNEL_ID}>.`,
-      "",
-      "None → Help",
-    ]);
+    expect(channelUpdateCard(after, describeChannelChanges(before, after))).toEqual({
+      headline: `Topic changed for <#${CHANNEL_ID}>.`,
+      details: ["None → Help"],
+    });
   });
 
   test("treats an empty topic as no topic", () => {
     const before = channel([]);
     const after = { ...channel([]), topic: "" } as NonThreadGuildBasedChannel;
-    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([]);
+    expect(channelUpdateCard(after, describeChannelChanges(before, after))).toBeNull();
   });
 
   test("names the permissions a single overwrite change touched", () => {
     const before = channel([[ROLE_ID, overwrite(["ViewChannel"], [])]]);
     const after = channel([[ROLE_ID, overwrite([], [])]]);
-    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
-      `Permissions changed for <#${CHANNEL_ID}>.`,
-      "",
-      `${ROLE_MENTION} ⬤ View Channel`,
-    ]);
+    expect(channelUpdateCard(after, describeChannelChanges(before, after))).toEqual({
+      headline: `Permissions changed for <#${CHANNEL_ID}>.`,
+      details: [`${ROLE_MENTION} ⬤ View Channel`],
+    });
   });
 
   test("lists every field change when only fields changed", () => {
     const before = channel([]);
     const after = { ...channel([]), name: "ticket-2231", topic: "Help" } as NonThreadGuildBasedChannel;
-    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
-      `<#${CHANNEL_ID}> was updated.`,
-      "",
-      "**➜** Name: `ticket-2230` → `ticket-2231`",
-      "**➜** Topic: None → Help",
-    ]);
+    expect(channelUpdateCard(after, describeChannelChanges(before, after))).toEqual({
+      headline: `<#${CHANNEL_ID}> was updated.`,
+      details: ["**Name:** `ticket-2230` → `ticket-2231`", "**Topic:** None → Help"],
+    });
   });
 
   test("trails permission changes under a header when fields also changed", () => {
@@ -144,13 +139,14 @@ describe("channelUpdateLines", () => {
       ...channel([[ROLE_ID, overwrite([], [])]]),
       name: "ticket-2231",
     } as NonThreadGuildBasedChannel;
-    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
-      `<#${CHANNEL_ID}> was updated.`,
-      "",
-      "**➜** Name: `ticket-2230` → `ticket-2231`",
-      "**➜** Permission Changes:",
-      `**➜** ${ROLE_MENTION} ⬤ View Channel`,
-    ]);
+    expect(channelUpdateCard(after, describeChannelChanges(before, after))).toEqual({
+      headline: `<#${CHANNEL_ID}> was updated.`,
+      details: [
+        "**Name:** `ticket-2230` → `ticket-2231`",
+        "**Permission Changes:**",
+        `- ${ROLE_MENTION} ⬤ View Channel`,
+      ],
+    });
   });
 
   test("omits the header when only permissions changed", () => {
@@ -162,16 +158,14 @@ describe("channelUpdateLines", () => {
       [ROLE_ID, overwrite([], [])],
       [OTHER_ROLE_ID, overwrite([], [])],
     ]);
-    expect(channelUpdateLines(after, describeChannelChanges(before, after))).toEqual([
-      `<#${CHANNEL_ID}> was updated.`,
-      "",
-      `**➜** ${ROLE_MENTION} ⬤ View Channel`,
-      `**➜** ${OTHER_ROLE_MENTION} ⬤ View Channel`,
-    ]);
+    expect(channelUpdateCard(after, describeChannelChanges(before, after))).toEqual({
+      headline: `<#${CHANNEL_ID}> was updated.`,
+      details: [`- ${ROLE_MENTION} ⬤ View Channel`, `- ${OTHER_ROLE_MENTION} ⬤ View Channel`],
+    });
   });
 
   test("yields nothing for an unchanged channel", () => {
     const before = channel([]);
-    expect(channelUpdateLines(before, describeChannelChanges(before, channel([])))).toEqual([]);
+    expect(channelUpdateCard(before, describeChannelChanges(before, channel([])))).toBeNull();
   });
 });

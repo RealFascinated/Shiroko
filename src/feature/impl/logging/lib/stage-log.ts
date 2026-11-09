@@ -1,5 +1,5 @@
 import { StageInstancePrivacyLevel, type StageInstance } from "discord.js";
-import { changeLine, channelMention, code, detailLine, enumLabel } from "./text";
+import { changeLine, channelMention, detailLine, enumLabel } from "./text";
 
 const PRIVACY_NAMES: Record<number, string> = {
   [StageInstancePrivacyLevel.Public]: "Public",
@@ -8,16 +8,16 @@ const PRIVACY_NAMES: Record<number, string> = {
 
 export function stageDetailLines(instance: StageInstance): string[] {
   return [
-    detailLine("Topic", code(instance.topic)),
+    detailLine("Topic", instance.topic),
     detailLine("Channel", channelMention(instance.channelId)),
-    detailLine("Privacy", code(enumLabel(PRIVACY_NAMES, instance.privacyLevel))),
+    detailLine("Privacy", enumLabel(PRIVACY_NAMES, instance.privacyLevel)),
   ];
 }
 
 export function describeStageChanges(oldInstance: StageInstance, newInstance: StageInstance): string[] {
   const lines: string[] = [];
   if (oldInstance.topic !== newInstance.topic) {
-    lines.push(changeLine("Topic", code(oldInstance.topic), code(newInstance.topic)));
+    lines.push(changeLine("Topic", oldInstance.topic, newInstance.topic));
   }
   if (oldInstance.privacyLevel !== newInstance.privacyLevel) {
     lines.push(

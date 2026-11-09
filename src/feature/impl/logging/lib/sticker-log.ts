@@ -1,5 +1,5 @@
 import { StickerFormatType, type Sticker } from "discord.js";
-import { changeLine, enumLabel } from "./text";
+import { changeLine, code, enumLabel } from "./text";
 
 const STICKER_FORMAT_NAMES: Record<number, string> = {
   [StickerFormatType.PNG]: "PNG",
@@ -15,7 +15,7 @@ export function stickerFormatLabel(format: number): string {
 export function describeStickerChanges(oldSticker: Sticker, newSticker: Sticker): string[] {
   const lines: string[] = [];
   if (oldSticker.name !== newSticker.name) {
-    lines.push(changeLine("Name", oldSticker.name, newSticker.name));
+    lines.push(changeLine("Name", code(oldSticker.name), code(newSticker.name)));
   }
   // Discord reports unset text as null in one payload and "" in another.
   if ((oldSticker.description || null) !== (newSticker.description || null)) {

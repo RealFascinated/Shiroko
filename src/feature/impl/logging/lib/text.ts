@@ -1,13 +1,11 @@
 import type { SystemChannelFlagsBitField } from "discord.js";
-import { Constants } from "@/constants";
 
 export function code(value: string): string {
   return `\`${value}\``;
 }
 
-/** A labelled value line, e.g. `**➜** Type: \`Voice\``. */
 export function detailLine(label: string, value: string): string {
-  return `${Constants.bullet} ${label}: ${value}`;
+  return `**${label}:** ${value}`;
 }
 
 export function changeDetail(before: string, after: string): string {
@@ -18,9 +16,12 @@ export function changeLine(label: string, before: string, after: string): string
   return detailLine(label, changeDetail(before, after));
 }
 
-/** The headline plus a before/after pair, each value in code. */
-export function beforeAfterLines(headline: string, before: string, after: string): string[] {
-  return [headline, "", detailLine("Before", code(before)), detailLine("After", code(after))];
+export function codeOr(value: string | null | undefined, fallback = "None"): string {
+  return value ? code(value) : fallback;
+}
+
+export function beforeAfterLines(before: string | null, after: string | null): string[] {
+  return [detailLine("Before", codeOr(before)), detailLine("After", codeOr(after))];
 }
 
 export function codeList(values: readonly string[]): string {
@@ -39,8 +40,8 @@ export function userMention(userId: string | null | undefined, fallback = "Unkno
   return userId ? `<@${userId}>` : fallback;
 }
 
-export function boldNameOrId(name: string | null | undefined, id: string): string {
-  return name ? `**${name}**` : code(id);
+export function codeNameOrId(name: string | null | undefined, id: string): string {
+  return code(name ?? id);
 }
 
 export function enumLabel(names: Record<number, string>, value: number, fallback?: string): string {
@@ -53,6 +54,10 @@ export function timestamp(value: Date | number | null | undefined): string {
   }
   const seconds = value instanceof Date ? value.getTime() / 1000 : value / 1000;
   return `<t:${Math.floor(seconds)}:f>`;
+}
+
+export function timestampWithAge(value: Date): string {
+  return `${timestamp(value)} (<t:${Math.floor(value.getTime() / 1000)}:R>)`;
 }
 
 export function permissionLabel(name: string): string {
@@ -88,14 +93,14 @@ export function permissionContent(
   return content;
 }
 
-/** A permission target as a bulleted line, e.g. `**➜** @everyone ✘ View Channel`. */
+/** A permission target as a list item, e.g. `- @everyone ✘ View Channel`. */
 export function permissionLine(
   target: string,
   allow: string[],
   deny: string[],
   neutral: string[] = []
 ): string {
-  return `${Constants.bullet} ${permissionContent(target, allow, deny, neutral)}`;
+  return `- ${permissionContent(target, allow, deny, neutral)}`;
 }
 
 /**

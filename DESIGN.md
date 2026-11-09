@@ -99,8 +99,12 @@ The bot name is Discord's default look, so it stays; the command name is the
 useful part. Never repurpose the footer for other data; put that in fields
 (e.g. avatar's user ID) or in layer 3 (e.g. the anime title).
 
-Log cards are the exception: they identify their subject in the footer as
-**`ID: <id>`**, so the id costs a body line nowhere.
+Log cards are the exception: they identify their subject in the footer with
+a labelled id, e.g. **`User ID: <id>`** or **`Channel ID: <id>`**, so the id
+costs a body line nowhere. Every log card is built by `buildLogCard`
+(`src/feature/impl/logging/lib/log-card.ts`): an author row, a colored tone
+(green added, yellow changed, red removed), the headline, then
+`**Label:** value` details and the moderator and reason last.
 
 ## Errors and cooldowns
 

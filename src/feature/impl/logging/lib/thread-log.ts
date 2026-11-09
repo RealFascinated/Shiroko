@@ -18,7 +18,7 @@ function formatArchiveDuration(minutes: number | null): string {
 export function threadDetailLines(thread: AnyThreadChannel): string[] {
   return [
     detailLine("Name", code(thread.name)),
-    detailLine("Type", code(enumLabel(THREAD_TYPE_NAMES, thread.type))),
+    detailLine("Type", enumLabel(THREAD_TYPE_NAMES, thread.type)),
     detailLine("Parent", channelMention(thread.parentId)),
     detailLine("Owner", userMention(thread.ownerId)),
   ];

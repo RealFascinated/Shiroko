@@ -8,7 +8,7 @@ import {
   type AutoModerationActionExecution,
   type AutoModerationRule,
 } from "discord.js";
-import { boldNameOrId, changeLine, code, codeList, detailLine, enumLabel, mentionList } from "./text";
+import { changeLine, code, codeList, codeNameOrId, detailLine, enumLabel, mentionList } from "./text";
 
 const TRIGGER_NAMES: Record<number, string> = {
   [AutoModerationRuleTriggerType.Keyword]: "Keyword",
@@ -82,10 +82,10 @@ function exemptionLines(rule: AutoModerationRule): string[] {
 
 export function automodRuleDetailLines(rule: AutoModerationRule): string[] {
   return [
-    detailLine("Trigger", code(enumLabel(TRIGGER_NAMES, rule.triggerType))),
-    detailLine("Event", code(enumLabel(EVENT_NAMES, rule.eventType))),
+    detailLine("Trigger", enumLabel(TRIGGER_NAMES, rule.triggerType)),
+    detailLine("Event", enumLabel(EVENT_NAMES, rule.eventType)),
     detailLine("Actions", actionList(rule.actions)),
-    detailLine("Enabled", code(yesNo(rule.enabled))),
+    detailLine("Enabled", yesNo(rule.enabled)),
     ...triggerLines(rule),
     ...exemptionLines(rule),
   ];
@@ -138,7 +138,7 @@ function changedBlocks(oldLines: string[], newLines: string[]): string[] {
 }
 
 export function automodRuleLabel(rule: AutoModerationRule | null, ruleId: string): string {
-  return boldNameOrId(rule?.name, ruleId);
+  return codeNameOrId(rule?.name, ruleId);
 }
 
 /**
@@ -148,7 +148,7 @@ export function automodRuleLabel(rule: AutoModerationRule | null, ruleId: string
  */
 export function automodExecutionLines(execution: AutoModerationActionExecution): string[] {
   const lines = [
-    detailLine("Action", code(enumLabel(ACTION_NAMES, execution.action.type))),
+    detailLine("Action", enumLabel(ACTION_NAMES, execution.action.type)),
     detailLine("User", mentionList([execution.userId], "@")),
   ];
   if (execution.channel) {

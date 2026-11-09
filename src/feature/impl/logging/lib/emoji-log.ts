@@ -1,11 +1,11 @@
 import { yesNo } from "@/lib/format";
 import type { GuildEmoji } from "discord.js";
-import { changeLine, mentionList } from "./text";
+import { changeLine, codeOr, mentionList } from "./text";
 
 export function describeEmojiChanges(oldEmoji: GuildEmoji, newEmoji: GuildEmoji): string[] {
   const lines: string[] = [];
   if (oldEmoji.name !== newEmoji.name) {
-    lines.push(changeLine("Name", oldEmoji.name ?? "None", newEmoji.name ?? "None"));
+    lines.push(changeLine("Name", codeOr(oldEmoji.name), codeOr(newEmoji.name)));
   }
   if (oldEmoji.animated !== newEmoji.animated) {
     lines.push(changeLine("Animated", yesNo(oldEmoji.animated), yesNo(newEmoji.animated)));
