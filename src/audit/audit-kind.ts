@@ -1,27 +1,12 @@
 import type { JsonValue } from "../db/schemas/guild-settings";
 import type { AuditActor } from "./audit-writer";
 
-const MAX_VALUE_LENGTH = 100;
+/** The gateway event class a kind listens for. */
+export type EventClass<E> = new (...args: any[]) => E;
 
 export interface AuditChange {
   oldValue: JsonValue | null;
   newValue: JsonValue | null;
-}
-
-export function formatValue(value: JsonValue | null): string {
-  if (value === null) {
-    return "*none*";
-  }
-  if (Array.isArray(value)) {
-    return value.map(formatValue).join(", ") || "*none*";
-  }
-  if (typeof value === "object") {
-    return Object.entries(value)
-      .map(([key, entry]) => `${key}: ${formatValue(entry)}`)
-      .join(", ");
-  }
-  const text = String(value).replaceAll("`", "'");
-  return `\`${text.length > MAX_VALUE_LENGTH ? `${text.slice(0, MAX_VALUE_LENGTH - 3)}...` : text}\``;
 }
 
 /**

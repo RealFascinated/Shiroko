@@ -1,7 +1,7 @@
 import type { PartialUser, User } from "discord.js";
 import type Event from "@/event/event";
 import { changeLine } from "./fields";
-import AuditKind, { type AuditChange, type AuditEntry } from "./audit-kind";
+import AuditKind, { type AuditChange, type AuditEntry, type EventClass } from "./audit-kind";
 
 export interface UserChangeEvent extends Event {
   oldUser: User | PartialUser;
@@ -17,7 +17,7 @@ export interface UserAuditDraft extends AuditChange {
  * per user in `user_audit` from the gateway event that reports it.
  */
 export default abstract class UserAuditKind<E extends UserChangeEvent> extends AuditKind {
-  public abstract readonly eventClass: new (...args: any[]) => E;
+  public abstract readonly eventClass: EventClass<E>;
 
   // The bridge posts one event per mutual guild for the same change, all
   // sharing one `oldUser`, so the repeats are the ones already seen. Keyed on

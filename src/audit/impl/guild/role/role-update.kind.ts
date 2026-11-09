@@ -1,3 +1,4 @@
+import type { EventClass } from "@/audit/audit-kind";
 import { AuditLogEvent, type Role } from "discord.js";
 import RoleUpdatedEvent from "@/event/events/role-updated.event";
 import type { GuildAuditDraft } from "@/audit/guild-audit-kind";
@@ -8,7 +9,7 @@ import RoleKind from "./role-kind";
 export default class RoleUpdateKind extends RoleKind<RoleUpdatedEvent> {
   public readonly id: string = "role_update";
   public readonly label: string = "Role updated";
-  public readonly eventClass: new (...args: any[]) => RoleUpdatedEvent = RoleUpdatedEvent;
+  public readonly eventClass: EventClass<RoleUpdatedEvent> = RoleUpdatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.RoleUpdate];
 
   public draft(event: RoleUpdatedEvent): GuildAuditDraft | null {

@@ -1,13 +1,13 @@
 import { AuditLogEvent } from "discord.js";
 import MemberTimeoutUpdatedEvent from "@/event/events/member-timeout-updated.event";
-import type { AuditEntry } from "@/audit/audit-kind";
+import type { AuditEntry, EventClass } from "@/audit/audit-kind";
 import GuildEventKind from "@/audit/guild-event-kind";
 import type { GuildAuditDraft } from "@/audit/guild-audit-kind";
 
 export default class MemberTimeoutKind extends GuildEventKind<MemberTimeoutUpdatedEvent> {
   public readonly id: string = "timeout";
   public readonly label: string = "Timeout";
-  public readonly eventClass: new (...args: any[]) => MemberTimeoutUpdatedEvent = MemberTimeoutUpdatedEvent;
+  public readonly eventClass: EventClass<MemberTimeoutUpdatedEvent> = MemberTimeoutUpdatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.MemberUpdate];
 
   public draft({ oldMember, newMember, timeoutUntil }: MemberTimeoutUpdatedEvent): GuildAuditDraft {

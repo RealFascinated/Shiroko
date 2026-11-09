@@ -1,6 +1,6 @@
 import { AuditLogEvent } from "discord.js";
 import GuildUpdatedEvent from "@/event/events/guild-updated.event";
-import { diffFields } from "@/audit/audit-kind";
+import { diffFields, type EventClass } from "@/audit/audit-kind";
 import GuildEventKind from "@/audit/guild-event-kind";
 import type { GuildAuditDraft } from "@/audit/guild-audit-kind";
 import { type Fields, updated } from "../drafts";
@@ -8,7 +8,7 @@ import { type Fields, updated } from "../drafts";
 export default class GuildUpdateKind extends GuildEventKind<GuildUpdatedEvent> {
   public readonly id: string = "guild_update";
   public readonly label: string = "Server updated";
-  public readonly eventClass: new (...args: any[]) => GuildUpdatedEvent = GuildUpdatedEvent;
+  public readonly eventClass: EventClass<GuildUpdatedEvent> = GuildUpdatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.GuildUpdate];
 
   public draft({ oldGuild, guildData }: GuildUpdatedEvent): GuildAuditDraft | null {

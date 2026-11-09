@@ -309,6 +309,13 @@
       "when": 1794209598887,
       "tag": "0043_chilly_human_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1794209756318,
+      "tag": "0044_audit_asset_hash_only",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import type { EventClass } from "@/audit/audit-kind";
 import { AuditLogEvent } from "discord.js";
 import MemberBannedEvent from "@/event/events/member-banned.event";
 import GuildEventKind from "@/audit/guild-event-kind";
@@ -6,7 +7,7 @@ import type { GuildAuditDraft } from "@/audit/guild-audit-kind";
 export default class MemberBanKind extends GuildEventKind<MemberBannedEvent> {
   public readonly id: string = "member_ban";
   public readonly label: string = "Banned";
-  public readonly eventClass: new (...args: any[]) => MemberBannedEvent = MemberBannedEvent;
+  public readonly eventClass: EventClass<MemberBannedEvent> = MemberBannedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.MemberBanAdd];
 
   public draft({ ban }: MemberBannedEvent): GuildAuditDraft {

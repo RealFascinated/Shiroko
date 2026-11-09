@@ -1,6 +1,6 @@
 import { AuditLogEvent } from "discord.js";
 import MemberGuildLeaveEvent from "@/event/events/member-guild-leave.event";
-import type { AuditEntry } from "@/audit/audit-kind";
+import type { AuditEntry, EventClass } from "@/audit/audit-kind";
 import GuildEventKind from "@/audit/guild-event-kind";
 import type { GuildAuditDraft } from "@/audit/guild-audit-kind";
 
@@ -11,7 +11,7 @@ import type { GuildAuditDraft } from "@/audit/guild-audit-kind";
 export default class MemberLeaveKind extends GuildEventKind<MemberGuildLeaveEvent> {
   public readonly id: string = "member_leave";
   public readonly label: string = "Left";
-  public readonly eventClass: new (...args: any[]) => MemberGuildLeaveEvent = MemberGuildLeaveEvent;
+  public readonly eventClass: EventClass<MemberGuildLeaveEvent> = MemberGuildLeaveEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.MemberKick];
 
   public draft({ member }: MemberGuildLeaveEvent): GuildAuditDraft {

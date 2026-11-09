@@ -1,3 +1,4 @@
+import type { EventClass } from "@/audit/audit-kind";
 import { AuditLogEvent, type Sticker } from "discord.js";
 import StickerUpdatedEvent from "@/event/events/sticker-updated.event";
 import type { GuildAuditDraft } from "@/audit/guild-audit-kind";
@@ -8,7 +9,7 @@ import { stickerFields } from "./sticker-fields";
 export default class StickerUpdateKind extends IdKind<StickerUpdatedEvent> {
   public readonly id: string = "sticker_update";
   public readonly label: string = "Sticker updated";
-  public readonly eventClass: new (...args: any[]) => StickerUpdatedEvent = StickerUpdatedEvent;
+  public readonly eventClass: EventClass<StickerUpdatedEvent> = StickerUpdatedEvent;
   public override readonly auditActions: readonly AuditLogEvent[] = [AuditLogEvent.StickerUpdate];
 
   public draft(event: StickerUpdatedEvent): GuildAuditDraft | null {
