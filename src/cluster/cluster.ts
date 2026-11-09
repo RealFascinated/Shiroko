@@ -6,6 +6,18 @@ export function isPrimary(client: Client): boolean {
 }
 
 /**
+ * Cluster and shard ids are 0-based; users see them 1-based so the last one
+ * matches the total ("4 of 4").
+ */
+export function formatClusterId(clusterId: number): string {
+  return `${clusterId + 1}`;
+}
+
+export function formatShardId(shardId: number): string {
+  return `${shardId + 1}`;
+}
+
+/**
  * Sums `count` over every cluster. Null while any cluster can't answer
  * (not spawned yet, respawning, or timed out), so a partial total never gets
  * published as the bot's real size.

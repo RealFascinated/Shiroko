@@ -1,5 +1,5 @@
 import { ActivityType, type Client } from "discord.js";
-import { guildCount } from "@/cluster/cluster";
+import { formatShardId, guildCount } from "@/cluster/cluster";
 import { formatCount } from "@/lib/format";
 import Job from "../job";
 import { IntervalSchedule } from "../schedule";
@@ -22,9 +22,13 @@ export default class PresenceJob extends Job {
     if (servers === null) {
       return;
     }
-    client.user?.setActivity({
-      name: `${formatCount(servers)} servers`,
-      type: ActivityType.Watching,
-    });
+    // Set per shard so each one names itself.
+    for (const shardId of client.cluster.info.SHARD_LIST) {
+      client.user?.setActivity({
+        name: `${formatCount(servers)} servers | Shard ${formatShardId(shardId)}`,
+        type: ActivityType.Watching,
+        shardId,
+      });
+    }
   }
 }
