@@ -17,11 +17,12 @@ export function describeStickerChanges(oldSticker: Sticker, newSticker: Sticker)
   if (oldSticker.name !== newSticker.name) {
     lines.push(changeLine("Name", oldSticker.name, newSticker.name));
   }
-  if (oldSticker.description !== newSticker.description) {
-    lines.push(changeLine("Description", oldSticker.description ?? "None", newSticker.description ?? "None"));
+  // Discord reports unset text as null in one payload and "" in another.
+  if ((oldSticker.description || null) !== (newSticker.description || null)) {
+    lines.push(changeLine("Description", oldSticker.description || "None", newSticker.description || "None"));
   }
-  if (oldSticker.tags !== newSticker.tags) {
-    lines.push(changeLine("Tags", oldSticker.tags ?? "None", newSticker.tags ?? "None"));
+  if ((oldSticker.tags || null) !== (newSticker.tags || null)) {
+    lines.push(changeLine("Tags", oldSticker.tags || "None", newSticker.tags || "None"));
   }
   return lines;
 }

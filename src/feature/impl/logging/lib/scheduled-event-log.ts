@@ -77,8 +77,9 @@ export function describeScheduledEventChanges(
   if (oldEvent.name !== newEvent.name) {
     lines.push(changeLine("Name", code(oldEvent.name ?? "Unknown"), code(newEvent.name ?? "Unknown")));
   }
-  if (oldEvent.description !== newEvent.description) {
-    lines.push(changeLine("Description", oldEvent.description ?? "None", newEvent.description ?? "None"));
+  // Discord reports an unset description as null in one payload and "" in another.
+  if ((oldEvent.description || null) !== (newEvent.description || null)) {
+    lines.push(changeLine("Description", oldEvent.description || "None", newEvent.description || "None"));
   }
   if (oldEvent.scheduledStartTimestamp !== newEvent.scheduledStartTimestamp) {
     lines.push(
