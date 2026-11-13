@@ -172,6 +172,27 @@ class ChecklistPanel extends Panel<Record<string, boolean>> {
   }
 }
 
+/** Two views sharing a category (tabs), plus a lone view in its own. */
+class TabsPanel extends Panel<DemoConfig> {
+  public readonly segment: string = "tabs";
+  public readonly title: string = "Tabs";
+
+  public async getConfig(): Promise<DemoConfig> {
+    return { first: { name: "", count: "", on: false, channel: null }, second: { name: "" } };
+  }
+
+  public async updateConfig(): Promise<void> {}
+
+  public views(): readonly PanelView<DemoConfig>[] {
+    const category = { id: "pair", label: "Pair" };
+    return [
+      { id: "a", label: "Tab A", segment: "a", category, controls: () => [] },
+      { id: "b", label: "Tab B", segment: "b", category, controls: () => [] },
+      { id: "solo", label: "Solo", segment: "solo", controls: () => [] },
+    ];
+  }
+}
+
 describe("displayValue", () => {
   test("shows a dialog's raw string as code", async () => {
     const control = { kind: "dialog" as const, key: "first.name", input: "text" as const, label: "Name" };
@@ -311,6 +332,22 @@ describe("renderPanel", () => {
     const rendered = await renderPanel(new ModePanel(false), context, "m");
     const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
     expect(json).not.toContain('"custom_id":"panel:mode:m"');
+  });
+
+  test("shows tab buttons for a category with several views, and one switcher option", async () => {
+    const rendered = await renderPanel(new TabsPanel(), context, "a");
+    const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
+    expect(json).toContain("panel:tabs:a:tab:b");
+    expect(json).toContain("panel:tabs:a:tab:a");
+    expect(json).toContain('"label":"Pair"');
+    expect(json).not.toContain('"label":"Tab A","value"');
+  });
+
+  test("shows no tab buttons for a category with a single view", async () => {
+    const rendered = await renderPanel(new TabsPanel(), context, "solo");
+    const json = JSON.stringify(rendered.components.map(component => component.toJSON()));
+    expect(json).not.toContain(":tab:");
+    expect(json).toContain("panel:tabs:solo");
   });
 
   test("adds a placeholders button for a template field", async () => {

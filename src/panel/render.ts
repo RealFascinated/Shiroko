@@ -128,8 +128,15 @@ function viewSelectRow<C extends object>(
   config: C,
   context: PanelContext
 ): ActionRowBuilder<StringSelectMenuBuilder> | null {
-  const views = panel.views(config);
-  if (views.length < 2) {
+  // One option per category, opening the category's first view.
+  const categories = new Map<string, { label: string; segment: string }>();
+  for (const candidate of panel.views(config)) {
+    const { id, label } = categoryOf(candidate);
+    if (!categories.has(id)) {
+      categories.set(id, { label, segment: candidate.segment });
+    }
+  }
+  if (categories.size < 2) {
     return null;
   }
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
@@ -139,14 +146,46 @@ function viewSelectRow<C extends object>(
       .setMinValues(1)
       .setMaxValues(1)
       .addOptions(
-        views.map(candidate =>
+        [...categories].map(([id, category]) =>
           new StringSelectMenuOptionBuilder()
-            .setLabel(candidate.label)
-            .setValue(candidate.segment)
-            .setDefault(candidate.segment === view.segment)
+            .setLabel(category.label)
+            .setValue(category.segment)
+            .setDefault(id === categoryOf(view).id)
         )
       )
   );
+}
+
+function categoryOf<C>(view: PanelView<C>): { id: string; label: string } {
+  return view.category ?? { id: view.id, label: view.label };
+}
+
+/**
+ * The tab buttons for the current view's category, in rows of five, or none
+ * when the category has a single view. The current tab is highlighted.
+ */
+function tabRows<C extends object>(
+  panel: Panel<C>,
+  view: PanelView<C>,
+  config: C
+): ActionRowBuilder<ButtonBuilder>[] {
+  const tabs = panel.views(config).filter(candidate => categoryOf(candidate).id === categoryOf(view).id);
+  if (tabs.length < 2) {
+    return [];
+  }
+  const buttons = tabs.map(tab =>
+    new ButtonBuilder()
+      .setCustomId(panelCustomId(panel.segment, view.segment, "tab", tab.segment))
+      .setLabel(tab.label.slice(0, 80))
+      .setStyle(tab.segment === view.segment ? ButtonStyle.Primary : ButtonStyle.Secondary)
+  );
+  const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+  for (let index = 0; index < buttons.length; index += BUTTONS_PER_ROW) {
+    rows.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(buttons.slice(index, index + BUTTONS_PER_ROW))
+    );
+  }
+  return rows;
 }
 
 /**
@@ -432,6 +471,7 @@ export async function renderPanel<C extends object>(
   if (switcher) {
     container.addActionRowComponents(switcher);
   }
+  container.addActionRowComponents(...tabRows(panel, view, config));
   // The view's own content sits below the switcher, so switching views
   // changes everything under it and nothing above.
   const summary = view.summary?.(config, context) ?? [];

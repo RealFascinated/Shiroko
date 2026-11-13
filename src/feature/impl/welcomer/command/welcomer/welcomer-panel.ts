@@ -8,6 +8,9 @@ import { placeholders } from "@/placeholder";
 import { type WritablePaths } from "@/settings/settings-module";
 import type { EmbedBuilder, Guild } from "discord.js";
 
+// The controls on the Delivery tab; every other control belongs to Message.
+const DELIVERY_KEYS: ReadonlySet<string> = new Set(["channelId", "ping"]);
+
 /**
  * The welcomer's panel, declared as controls over the guild's welcome
  * message. There is no bespoke rendering or routing; the engine composes
@@ -67,12 +70,14 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
   }
 
   public views(): readonly PanelView<WelcomerSettingsData>[] {
+    const category = { id: "welcome", label: "Welcomer" };
     return [
       {
         id: "welcome",
-        label: "Welcome",
+        label: "Message",
         segment: "welcome",
-        controls: config => controlsFor(config),
+        category,
+        controls: config => controlsFor(config).filter(control => !DELIVERY_KEYS.has(control.key)),
         sections: config => [
           ...(config.mode === "embed"
             ? [
@@ -110,6 +115,13 @@ export default class WelcomerPanel extends Panel<WelcomerSettingsData> {
               ]
             : []),
         ],
+      },
+      {
+        id: "delivery",
+        label: "Delivery",
+        segment: "delivery",
+        category,
+        controls: config => controlsFor(config).filter(control => DELIVERY_KEYS.has(control.key)),
       },
     ];
   }

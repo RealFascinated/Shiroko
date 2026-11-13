@@ -156,6 +156,13 @@ export interface PanelView<C> {
   label: string;
   /** Custom-id segment for this view, unique within the panel. */
   segment: string;
+  /**
+   * Views sharing a category are the tabs of one page: the view switcher
+   * lists the category once, and a row of tab buttons (shown only when the
+   * category has several views) moves between them. A view without one is
+   * its own category, labelled by the view.
+   */
+  category?: { id: string; label: string };
   controls(config: C, context: PanelContext): readonly PanelControl<C>[];
   sections?(config: C, context: PanelContext): readonly PanelSection<C>[];
   /**
@@ -184,7 +191,7 @@ export const PANEL_PREFIX = "panel";
 export interface PanelCustomId {
   segment: string;
   viewSegment: string;
-  kind: "root" | "toggle" | "choice" | "dialog" | "map" | "map-remove" | "placeholders" | "page";
+  kind: "root" | "tab" | "toggle" | "choice" | "dialog" | "map" | "map-remove" | "placeholders" | "page";
   /** The dotted config path the component edits; the view switcher carries none. */
   path: string | null;
 }
@@ -220,7 +227,8 @@ export function parsePanelCustomId(customId: string): PanelCustomId | null {
   if (
     extra.length > 0 ||
     !path ||
-    (kind !== "toggle" &&
+    (kind !== "tab" &&
+      kind !== "toggle" &&
       kind !== "choice" &&
       kind !== "dialog" &&
       kind !== "map" &&

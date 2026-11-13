@@ -25,6 +25,7 @@ export const loggingSettings = new SettingsModule<LoggingSettingsData>({
     { key: "channelId", label: "Log channel", type: "channel", default: null },
     {
       key: "enabled",
+      tab: "Log types",
       label: "Log types",
       type: "group",
       default: LOG_DEFAULTS,

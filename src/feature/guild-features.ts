@@ -1,4 +1,3 @@
-import type { AuditActor } from "@/audit/audit-writer";
 import type { Guild } from "discord.js";
 import { getFeatureMetadata } from "./feature-metadata";
 import { featureSettings } from "./feature-settings";
@@ -16,16 +15,5 @@ export default class GuildFeatures {
       return true;
     }
     return featureSettings().get(guild.id, `enabled.${`${featureId}` as FeatureId}`);
-  }
-
-  public static async setFeatureEnabled(
-    guild: Guild,
-    featureId: FeatureIds,
-    enabled: boolean,
-    userId: string
-  ): Promise<boolean> {
-    const actor: AuditActor = { guild, userId };
-    await featureSettings().set(guild.id, `enabled.${`${featureId}` as FeatureId}`, enabled, actor);
-    return enabled;
   }
 }

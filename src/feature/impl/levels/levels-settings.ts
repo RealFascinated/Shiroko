@@ -54,9 +54,16 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
       default: [],
       format: ids => ids.map(id => `<#${id}>`).join(", "),
     },
-    { key: "announceChannelId", label: "Announce channel", type: "channel", default: null },
+    {
+      key: "announceChannelId",
+      label: "Announce channel",
+      type: "channel",
+      default: null,
+      tab: "Announcements",
+    },
     {
       key: "announceMode",
+      tab: "Announcements",
       label: "Announce mode",
       description: "Message sends only the text; card adds a level-up card image.",
       type: "choice",
@@ -65,6 +72,7 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
     },
     {
       key: "levelUpMessage",
+      tab: "Announcements",
       label: "Level-up message",
       description: "Announced when a member levels up.",
       type: "string",
@@ -73,6 +81,7 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
     },
     {
       key: "rewards",
+      tab: "Rewards",
       label: "Level rewards",
       description: "Roles granted when a member reaches a level.",
       type: "map",

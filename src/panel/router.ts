@@ -92,6 +92,11 @@ async function dispatch(
     return;
   }
 
+  if (decoded.kind === "tab") {
+    await repaint(panel, context, decoded.path, interaction);
+    return;
+  }
+
   const view = panel.viewFor(config, decoded.viewSegment);
 
   if (decoded.kind === "page") {

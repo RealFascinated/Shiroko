@@ -90,26 +90,32 @@ export default class SettingsPanel extends Panel<SettingsHubConfig> {
   }
 
   public views(config: SettingsHubConfig): readonly PanelView<SettingsHubConfig>[] {
-    return Object.keys(config).map(moduleId => makeView(moduleId));
+    return Object.keys(config).flatMap(moduleId => makeViews(moduleId));
   }
 }
 
+const DEFAULT_TAB = "General";
+
 /**
- * Build one hub view from a module: its label is the module's display
- * name, and its controls are the module's descriptors translated to
- * engine controls.
+ * Build a module's hub views: one per tab, in the order tabs first appear
+ * among its descriptors. All of a module's views share its category, so the
+ * dropdown lists the module once and the tab buttons switch between them
+ * (and are hidden for a module with a single tab). The first tab keeps the
+ * module id as its segment, so opening a module lands on it.
  */
-function makeView(moduleId: string): PanelView<SettingsHubConfig> {
+function makeViews(moduleId: string): PanelView<SettingsHubConfig>[] {
   const module = SettingsManager.get(moduleId);
   if (!module) {
     throw new Error(`Unknown settings module "${moduleId}"`);
   }
-  return {
-    id: moduleId,
-    label: module.displayName,
-    segment: module.id,
-    controls: () => toControls(module, moduleId),
-  };
+  const tabs = [...new Set(module.runtimeDescriptors.map(descriptor => descriptor.tab ?? DEFAULT_TAB))];
+  return tabs.map((tab, index) => ({
+    id: `${moduleId}.${tab}`,
+    label: tab,
+    segment: index === 0 ? moduleId : `${moduleId}.${tab.toLowerCase().replace(/\W+/g, "-")}`,
+    category: { id: moduleId, label: module.displayName },
+    controls: () => toControls(module, moduleId, tab),
+  }));
 }
 
 /**
@@ -118,9 +124,13 @@ function makeView(moduleId: string): PanelView<SettingsHubConfig> {
  * `key` is the full dotted path, so the hub's `updateConfig` can route the
  * write to the right module and leaf.
  */
-function toControls(module: SettingsModule<any>, moduleId: string): PanelControl<SettingsHubConfig>[] {
+function toControls(
+  module: SettingsModule<any>,
+  moduleId: string,
+  tab: string
+): PanelControl<SettingsHubConfig>[] {
   const controls: PanelControl<SettingsHubConfig>[] = [];
-  for (const descriptor of module.runtimeDescriptors) {
+  for (const descriptor of module.runtimeDescriptors.filter(field => (field.tab ?? DEFAULT_TAB) === tab)) {
     collectControls(`${moduleId}.${descriptor.key}`, descriptor, controls);
   }
   return controls;

@@ -97,7 +97,6 @@ import {
 } from "./lib/text";
 import { describeThreadChanges, threadDetailLines } from "./lib/thread-log";
 import { assetChangeCard } from "./lib/user-log";
-import LoggingCommand from "./command/logging/logging.command";
 import type { LogType } from "./log-type";
 import { loggingSettings } from "./logging-settings";
 import { loggingService } from "./logging.service";
@@ -107,7 +106,6 @@ export default class LoggingFeature extends Feature {
     super(FeatureIds.Logging, { name: "Logging", emoji: "📔" });
 
     SettingsManager.register(loggingSettings);
-    this.registerCommand(new LoggingCommand());
 
     this.handleEvent(MemberGuildJoinEvent, "member_join", async event => ({
       tone: LogTone.Positive,

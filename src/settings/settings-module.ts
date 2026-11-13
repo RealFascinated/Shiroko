@@ -101,7 +101,11 @@ export type SettingDescriptor<V> =
  * A keyed spec: the key must exist on `V` and the spec must match `V[K]`.
  */
 export type FieldDescriptor<V> = {
-  [K in keyof V & string]: SettingDescriptor<V[K]> & { key: K };
+  [K in keyof V & string]: SettingDescriptor<V[K]> & {
+    key: K;
+    /** The panel tab this setting appears on; "General" when omitted. */
+    tab?: string;
+  };
 }[keyof V & string];
 
 /**
@@ -157,6 +161,7 @@ export interface SettingsModuleConfig<C> {
  */
 export interface RuntimeFieldDescriptor {
   key: string;
+  tab?: string;
   label: string;
   description?: string;
   type: ScalarSettingType | "group" | "map";
@@ -179,6 +184,7 @@ export interface RuntimeFieldDescriptor {
  */
 interface RawDescriptor {
   key?: PropertyKey;
+  tab?: string;
   type: ScalarSettingType | "group" | "map";
   label: string;
   description?: string;
@@ -397,7 +403,7 @@ async function clearEntry(
  */
 function toRuntimeField(field: unknown): RuntimeFieldDescriptor {
   const raw = field as RawDescriptor;
-  return { ...toRuntimeValue(raw), key: String(raw.key ?? "") };
+  return { ...toRuntimeValue(raw), key: String(raw.key ?? ""), tab: raw.tab };
 }
 
 function toRuntimeValue(descriptor: RawDescriptor): Omit<RuntimeFieldDescriptor, "key"> {

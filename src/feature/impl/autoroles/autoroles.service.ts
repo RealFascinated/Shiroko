@@ -4,37 +4,6 @@ import type { Guild, GuildMember, Role } from "discord.js";
 import { autorolesSettings } from "./autoroles-settings";
 
 export default class AutorolesService {
-  /**
-   * Add a role to the guild's autorole list. Returns `true` if the role
-   * was new, `false` if it was already configured.
-   */
-  public async add(guild: Guild, roleId: string, userId: string): Promise<boolean> {
-    const roleIds = await autorolesSettings.get(guild.id, "roleIds");
-    if (roleIds.includes(roleId)) {
-      return false;
-    }
-    await autorolesSettings.set(guild.id, "roleIds", [...roleIds, roleId], { guild, userId });
-    return true;
-  }
-
-  /**
-   * Remove a role from the guild's autorole list. Returns `true` if a row
-   * was removed, `false` if the role was not configured.
-   */
-  public async remove(guild: Guild, roleId: string, userId: string): Promise<boolean> {
-    const roleIds = await autorolesSettings.get(guild.id, "roleIds");
-    if (!roleIds.includes(roleId)) {
-      return false;
-    }
-    await autorolesSettings.set(
-      guild.id,
-      "roleIds",
-      roleIds.filter(id => id !== roleId),
-      { guild, userId }
-    );
-    return true;
-  }
-
   public async list(guild: Guild): Promise<Role[]> {
     const roleIds = await autorolesSettings.get(guild.id, "roleIds");
     return roleIds.map(id => guild.roles.cache.get(id)).filter((r): r is Role => r !== undefined);
