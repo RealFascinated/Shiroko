@@ -6,7 +6,7 @@ import { ageInYears } from "@/lib/date";
 import { fetchGuildMember } from "@/lib/guild";
 import { loadPage, type Page } from "@/lib/pagination";
 import type { Guild } from "discord.js";
-import { and, eq, lt, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, lt, sql, type SQL } from "drizzle-orm";
 import { birthdaySettings } from "./birthday-settings";
 
 export interface BirthdayRow {
@@ -255,6 +255,18 @@ export default class BirthdayService {
       .from(birthdayWishesSchema)
       .where(eq(birthdayWishesSchema.componentId, componentId));
     return row?.total ?? 1;
+  }
+
+  public async recentWishes(
+    componentId: string,
+    limit: number
+  ): Promise<{ wisherId: string; createdAt: Date }[]> {
+    return db
+      .select({ wisherId: birthdayWishesSchema.wisherId, createdAt: birthdayWishesSchema.createdAt })
+      .from(birthdayWishesSchema)
+      .where(eq(birthdayWishesSchema.componentId, componentId))
+      .orderBy(desc(birthdayWishesSchema.createdAt))
+      .limit(limit);
   }
 
   /**

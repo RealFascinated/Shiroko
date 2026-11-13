@@ -4,6 +4,7 @@ import { FeatureIds } from "@/feature/feature-ids";
 import SettingsManager from "@/settings/index";
 import { birthdaySettings } from "./birthday-settings";
 import BirthdayWishComponent from "./birthday-wish.component";
+import BirthdayWishesListComponent from "./birthday-wish-list.component";
 import BirthdayCommand from "./command/birthday/birthday.command";
 
 export default class BirthdayFeature extends Feature {
@@ -12,6 +13,7 @@ export default class BirthdayFeature extends Feature {
 
     SettingsManager.register(birthdaySettings);
     ComponentManager.register(new BirthdayWishComponent());
+    ComponentManager.register(new BirthdayWishesListComponent());
     this.registerCommand(new BirthdayCommand());
   }
 }

@@ -1,8 +1,13 @@
-import Component, { type ComponentContext, type ComponentType } from "@/component/component";
+import Component, {
+  componentCustomId,
+  type ComponentContext,
+  type ComponentType,
+} from "@/component/component";
 import { baseEmbed } from "@/lib/embed";
 import GlobalUsersManager from "@/user/global-users-manager";
-import { MessageFlags } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
 import { birthdayService } from "./birthday.service";
+import { BIRTHDAY_WISHES_LIST_COMPONENT_ID } from "./birthday-wish-list.component";
 
 export type BirthdayWishPayload = {
   celebrantId: string;
@@ -17,6 +22,25 @@ export function birthdayEmbed({ celebrantId, age }: BirthdayWishPayload, wishes:
   return baseEmbed("birthday")
     .setTitle("🎂 Happy Birthday!")
     .setDescription(`<@${celebrantId}> turns **${age}** today!${wished}`);
+}
+
+/**
+ * The announcement's button row. Both buttons share the wish row, so the list
+ * button reads the same wishes the wish button writes.
+ */
+export function wishRow(rowId: string): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(componentCustomId(BIRTHDAY_WISH_COMPONENT_ID, rowId))
+      .setLabel("Happy Birthday!")
+      .setEmoji("🎂")
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(componentCustomId(BIRTHDAY_WISHES_LIST_COMPONENT_ID, rowId))
+      .setLabel("Recent wishes")
+      .setEmoji("💌")
+      .setStyle(ButtonStyle.Secondary)
+  );
 }
 
 /**
@@ -45,6 +69,6 @@ export default class BirthdayWishComponent extends Component<BirthdayWishPayload
       await interaction.reply({ content: "You already sent your wishes.", flags: MessageFlags.Ephemeral });
       return;
     }
-    await interaction.update({ embeds: [birthdayEmbed(payload, wishes)] });
+    await interaction.update({ embeds: [birthdayEmbed(payload, wishes)], components: [wishRow(row.id)] });
   }
 }

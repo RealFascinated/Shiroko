@@ -1,4 +1,3 @@
-import { componentCustomId } from "@/component/component";
 import Components from "@/component/components";
 import { FeatureIds } from "@/feature/feature-ids";
 import GuildFeatures from "@/feature/guild-features";
@@ -6,21 +5,12 @@ import { todayUtc } from "@/lib/date";
 import { fetchGuildMember } from "@/lib/guild";
 import { outranksBot } from "@/lib/roles";
 import { TimeUnit } from "@/lib/time";
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  type Client,
-  type Guild,
-  type GuildMember,
-  type Message,
-  type SendableChannels,
-} from "discord.js";
+import { type Client, type Guild, type GuildMember, type Message, type SendableChannels } from "discord.js";
 import { birthdaySettings } from "@/feature/impl/birthday/birthday-settings";
 import { birthdayService, type Celebrant } from "@/feature/impl/birthday/birthday.service";
 import {
-  BIRTHDAY_WISH_COMPONENT_ID,
   birthdayEmbed,
+  wishRow,
   type BirthdayWishPayload,
 } from "@/feature/impl/birthday/birthday-wish.component";
 import Job from "../job";
@@ -195,10 +185,5 @@ async function attachWishButton(
     extraData: payload,
     expiresAt: new Date(Date.now() + WISH_WINDOW_MS),
   });
-  const button = new ButtonBuilder()
-    .setCustomId(componentCustomId(BIRTHDAY_WISH_COMPONENT_ID, row.id))
-    .setLabel("Wish them")
-    .setEmoji("🎂")
-    .setStyle(ButtonStyle.Primary);
-  await message.edit({ components: [new ActionRowBuilder<ButtonBuilder>().addComponents(button)] });
+  await message.edit({ components: [wishRow(row.id)] });
 }
