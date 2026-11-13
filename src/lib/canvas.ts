@@ -27,6 +27,24 @@ export const CardColors = {
   rule: "#2e2d35",
 } as const;
 
+// Tried in order for glyphs Geist lacks (fancy unicode names, symbols).
+const FALLBACK_FONTS: string[] = [
+  "NotoSans",
+  "NotoSansMath",
+  "NotoSansSymbols",
+  "NotoSansSymbols2",
+  "NotoSansCherokee",
+  "NotoSansCoptic",
+  "NotoSansArmenian",
+  "NotoSansCanadianAboriginal",
+  "NotoSansRunic",
+  "NotoSansGothic",
+  "NotoSansGujarati",
+  "NotoSansDevanagari",
+];
+
+const FONT_STACK = [CANVAS_FONT, ...FALLBACK_FONTS].map(family => `"${family}"`).join(", ");
+
 const CARD_RADIUS = 16;
 
 let fontsRegistered = false;
@@ -36,6 +54,9 @@ function ensureFonts(): void {
     return;
   }
   GlobalFonts.registerFromPath("assets/fonts/Geist.ttf", CANVAS_FONT);
+  for (const family of FALLBACK_FONTS) {
+    GlobalFonts.registerFromPath(`assets/fonts/${family}-Regular.ttf`, family);
+  }
   fontsRegistered = true;
 }
 
@@ -86,7 +107,7 @@ export default class Canvas {
     weight: CanvasFontWeight = 400
   ): this {
     this.ctx.fillStyle = color;
-    this.ctx.font = `${weight} ${size}px "${CANVAS_FONT}"`;
+    this.ctx.font = `${weight} ${size}px ${FONT_STACK}`;
     this.ctx.fillText(text, x, y);
     return this;
   }
@@ -135,7 +156,7 @@ export default class Canvas {
   }
 
   public measure(text: string, size: number, weight: CanvasFontWeight = 400): number {
-    this.ctx.font = `${weight} ${size}px "${CANVAS_FONT}"`;
+    this.ctx.font = `${weight} ${size}px ${FONT_STACK}`;
     return this.ctx.measureText(text).width;
   }
 
