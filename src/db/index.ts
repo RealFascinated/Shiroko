@@ -8,6 +8,7 @@ import { componentsSchema } from "./schemas/components";
 import { globalUsersSchema } from "./schemas/global-users";
 import { guildBirthdaysSchema } from "./schemas/guild-birthdays";
 import { guildAfkSchema } from "./schemas/guild-afk";
+import { guildMarriagesSchema } from "./schemas/guild-marriages";
 import { guildAuditSchema } from "./schemas/guild-audit";
 import { guildInvitesSchema } from "./schemas/guild-invites";
 import { permissionRolesSchema } from "./schemas/permission-roles";
@@ -36,6 +37,7 @@ export const schema = {
   guildAfk: guildAfkSchema,
   guildBirthdays: guildBirthdaysSchema,
   guildAudit: guildAuditSchema,
+  guildMarriages: guildMarriagesSchema,
   guildUsers: guildUsersSchema,
   permissionRoles: permissionRolesSchema,
   guildSettings: guildSettingsSchema,

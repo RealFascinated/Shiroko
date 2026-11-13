@@ -1,6 +1,7 @@
 import SettingsManager from "@/settings/index";
 import { featureSettings } from "./feature-settings";
 import AfkFeature from "./impl/afk/index";
+import MarriageFeature from "./impl/marriage/index";
 import AutorolesFeature from "./impl/autoroles/index";
 import BirthdayFeature from "./impl/birthday/index";
 import FunFeature from "./impl/fun/index";
@@ -31,5 +32,6 @@ export default function registerFeatures(): void {
   new FunFeature();
   new LoggingFeature();
   new AfkFeature();
+  new MarriageFeature();
   SettingsManager.register(featureSettings());
 }

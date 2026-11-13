@@ -3,6 +3,7 @@ import { userOption } from "@/command/option";
 import { FeatureIds } from "@/feature/feature-ids";
 import GuildFeatures from "@/feature/guild-features";
 import { birthdayService } from "@/feature/impl/birthday/birthday.service";
+import { marriageService } from "@/feature/impl/marriage/marriage.service";
 import { levelsService } from "@/feature/impl/levels/levels.service";
 import { daysUntil, monthName } from "@/lib/date";
 import { discordTimestamp } from "@/lib/time";
@@ -69,9 +70,10 @@ export default class UserInfoCommand extends Command {
       }
 
       if (guild) {
-        const [levelsEnabled, birthdayEnabled] = await Promise.all([
+        const [levelsEnabled, birthdayEnabled, marriageEnabled] = await Promise.all([
           GuildFeatures.isFeatureEnabled(guild, FeatureIds.Levels),
           GuildFeatures.isFeatureEnabled(guild, FeatureIds.Birthday),
+          GuildFeatures.isFeatureEnabled(guild, FeatureIds.Marriage),
         ]);
         if (levelsEnabled) {
           const rank = await levelsService.getRankState(guild.id, target.id);
@@ -85,6 +87,15 @@ export default class UserInfoCommand extends Command {
           lines.push(
             `**Server Rank:** ${rank.guildRank === null ? "Not ranked yet" : `#${rank.guildRank} of ${rank.totalTracked}`}`
           );
+        }
+        if (marriageEnabled) {
+          const marriage = await marriageService.getMarriage(guild.id, target.id);
+          if (marriage) {
+            lines.push("");
+            lines.push("**💍 Marriage**");
+            lines.push(`**Married To:** <@${marriage.partnerId}>`);
+            lines.push(`**Since:** ${discordTimestamp(marriage.marriedAt)}`);
+          }
         }
         if (birthdayEnabled) {
           const birthday = await birthdayService.getBirthday(guild.id, target.id);

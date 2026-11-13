@@ -337,6 +337,13 @@
       "when": 1794259157329,
       "tag": "0047_media_superseded_and_afk_user_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794588438951,
+      "tag": "0048_guild_marriages",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,7 @@ export enum FeatureIds {
   Stats = "stats",
   Welcomer = "welcomer",
   Logging = "logs",
+  Marriage = "marriage",
 }
 
 /**
