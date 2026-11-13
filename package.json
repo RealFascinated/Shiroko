@@ -7,7 +7,7 @@
     "@types/bun": "^1.4.4",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",
-    "prettier": "^3.9.10",
+    "prettier": "^3.10.1",
     "typescript": "7.0.2"
   },
   "scripts": {
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
-    "@napi-rs/canvas": "^1.1.0",
+    "@napi-rs/canvas": "^1.1.1",
     "@t3-oss/env-core": "^0.13.11",
     "arktype": "^2.2.9",
     "bufferutil": "^4.2.0",
