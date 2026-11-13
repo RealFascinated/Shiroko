@@ -1,6 +1,7 @@
 import { fetchGuildMember } from "@/lib/guild";
+import { unassignableReason } from "@/lib/roles";
 import { formatDuration, parseDuration } from "@/lib/time";
-import Panel, { type PanelAccess, type PanelControl, type PanelView } from "@/panel/panel";
+import Panel, { type MapControl, type PanelAccess, type PanelControl, type PanelView } from "@/panel/panel";
 import Permissions, { PermissionFlags } from "@/permission/permissions";
 import SettingsManager from "@/settings/index";
 import type SettingsModule from "@/settings/settings-module";
@@ -23,8 +24,8 @@ type SettingsHubConfig = Record<string, Record<string, unknown>>;
  * controls. Reads and writes go through each module's own
  * `SettingsModule`, so storage and per-guild caching are unchanged.
  *
- * Maps are not editable here: their keys are dynamic, so a map's view
- * shows a note pointing at the feature's own command instead of controls.
+ * A map whose entries hold a role is edited with an Add dialog and a
+ * remove select; a map without a role field is rejected when its view is built.
  */
 export default class SettingsPanel extends Panel<SettingsHubConfig> {
   public readonly segment: string = "settings";
@@ -66,7 +67,26 @@ export default class SettingsPanel extends Panel<SettingsHubConfig> {
     if (!module) {
       return;
     }
-    await module.set(guild.id, key.slice(dot + 1) as never, value as never, { guild, userId });
+    const path = key.slice(dot + 1);
+    const map = module.runtimeDescriptors.find(
+      descriptor => descriptor.type === "map" && path.startsWith(`${descriptor.key}.`)
+    );
+    if (!map) {
+      await module.set(guild.id, path as never, value as never, { guild, userId });
+      return;
+    }
+    const entryKey = path.slice(map.key.length + 1);
+    if (value === null) {
+      await module.removeEntry(guild.id, map.key as never, entryKey, { guild, userId });
+      return;
+    }
+    await module.setEntry(
+      guild.id,
+      map.key as never,
+      entryKey,
+      { ...(map.entry!.default as object), [roleField(map).key]: value } as never,
+      { guild, userId }
+    );
   }
 
   public views(config: SettingsHubConfig): readonly PanelView<SettingsHubConfig>[] {
@@ -89,14 +109,12 @@ function makeView(moduleId: string): PanelView<SettingsHubConfig> {
     label: module.displayName,
     segment: module.id,
     controls: () => toControls(module, moduleId),
-    summary: () => mapSummaries(module),
   };
 }
 
 /**
  * Translate a module's runtime descriptors into the engine's control kinds.
- * Groups recurse into their fields; maps are skipped (a map's keys are
- * dynamic, so it is edited by the feature's own command). Each control's
+ * Groups recurse into their fields; a map becomes one map control. Each control's
  * `key` is the full dotted path, so the hub's `updateConfig` can route the
  * write to the right module and leaf.
  */
@@ -120,17 +138,37 @@ function collectControls(
     }
     return;
   }
-  if (descriptor.type === "map") {
-    return;
-  }
-  controls.push(controlFor(key, descriptor, group));
+  controls.push(descriptor.type === "map" ? mapControl(key, descriptor) : controlFor(key, descriptor, group));
 }
 
-/** A read-only note for each map setting, naming where it is edited. */
-function mapSummaries(module: SettingsModule<any>): string[] {
-  return module.runtimeDescriptors
-    .filter(descriptor => descriptor.type === "map")
-    .map(descriptor => `-# Edit **${descriptor.label}** with the feature's own command.`);
+/** The role field of a map's entry, which the Add dialog's role picker fills. */
+function roleField(map: RuntimeFieldDescriptor): RuntimeFieldDescriptor {
+  const field = map.entry?.fields?.find(candidate => candidate.type === "role");
+  if (!field) {
+    throw new Error(`Map "${map.key}" has no role field, so the settings panel cannot edit it`);
+  }
+  return field;
+}
+
+function mapControl(key: string, descriptor: RuntimeFieldDescriptor): MapControl<SettingsHubConfig> {
+  const field = roleField(descriptor);
+  const noun = descriptor.entry!.label.toLowerCase();
+  return {
+    kind: "map",
+    key,
+    label: descriptor.label,
+    description: descriptor.description,
+    keyLabel: descriptor.keyLabel ?? "Key",
+    describe: value => {
+      const roleId = (value as Record<string, string | null>)[field.key];
+      return roleId ? `<@&${roleId}>` : "*(no role)*";
+    },
+    validateKey: input => descriptor.validateKey?.(input) ?? null,
+    validateRole: (roleId, _config, context) => {
+      const role = context.guild.roles.cache.get(roleId);
+      return role ? unassignableReason(role, `a ${noun}`) : "That role no longer exists.";
+    },
+  };
 }
 
 function controlFor(

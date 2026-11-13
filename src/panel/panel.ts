@@ -106,7 +106,29 @@ export interface DialogControl<C> {
   placeholders?: Pick<PlaceholderExecutor, "catalog">;
 }
 
-export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogControl<C>;
+/**
+ * A map of entries keyed by text, each holding a role: the entries are
+ * listed, an Add button opens a dialog for a key and a role, and a select
+ * removes one. The panel is asked to write `<key>.<entryKey>` with the
+ * role id, or `null` to remove the entry.
+ */
+export interface MapControl<C> {
+  kind: "map";
+  /** Dotted path to the map in the config. */
+  key: string;
+  label: string;
+  description?: string;
+  /** What an entry's key is called, e.g. "Level". */
+  keyLabel: string;
+  /** How an entry's value reads in the list. */
+  describe(value: unknown): string;
+  /** Validate the typed key; return an error message, or `null` when valid. */
+  validateKey?(input: string, config: C, context: PanelContext): string | null;
+  /** Validate the chosen role id; return an error message, or `null` when valid. */
+  validateRole?(roleId: string, config: C, context: PanelContext): string | null;
+}
+
+export type PanelControl<C> = ToggleControl<C> | ChoiceControl<C> | DialogControl<C> | MapControl<C>;
 
 /**
  * A read-only block rendered below a view's controls.
@@ -162,7 +184,7 @@ export const PANEL_PREFIX = "panel";
 export interface PanelCustomId {
   segment: string;
   viewSegment: string;
-  kind: "root" | "toggle" | "choice" | "dialog" | "placeholders" | "page";
+  kind: "root" | "toggle" | "choice" | "dialog" | "map" | "map-remove" | "placeholders" | "page";
   /** The dotted config path the component edits; the view switcher carries none. */
   path: string | null;
 }
@@ -201,6 +223,8 @@ export function parsePanelCustomId(customId: string): PanelCustomId | null {
     (kind !== "toggle" &&
       kind !== "choice" &&
       kind !== "dialog" &&
+      kind !== "map" &&
+      kind !== "map-remove" &&
       kind !== "placeholders" &&
       kind !== "page")
   ) {

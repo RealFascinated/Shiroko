@@ -27,9 +27,7 @@ export default class SyncRewardsCommand extends Command {
       await ctx.reply(
         ephemeralErrorReply(
           commandName,
-          errorEmbed(commandName).setDescription(
-            "No role rewards are configured. Add one with `/levels reward-add`."
-          )
+          errorEmbed(commandName).setDescription("No role rewards are configured. Add one in `/settings`.")
         )
       );
       return;

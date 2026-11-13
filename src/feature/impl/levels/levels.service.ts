@@ -154,20 +154,6 @@ export default class LevelsService {
     return { xp, level: levelForXp(xp) };
   }
 
-  public async setRewardRole(guild: Guild, level: number, roleId: string, userId: string): Promise<void> {
-    await levelsSettings.setEntry(
-      guild.id,
-      "rewards",
-      String(level),
-      { type: "Role", roleId },
-      { guild, userId }
-    );
-  }
-
-  public async removeReward(guild: Guild, level: number, userId: string): Promise<void> {
-    await levelsSettings.removeEntry(guild.id, "rewards", String(level), { guild, userId });
-  }
-
   public async rewards(guildId: string): Promise<RewardRow[]> {
     const entries = await levelsSettings.entries(guildId, "rewards");
     return Object.entries(entries)

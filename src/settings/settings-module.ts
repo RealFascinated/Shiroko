@@ -85,7 +85,17 @@ export type SettingDescriptor<V> =
       default: Groupable<V>;
       fields: ReadonlyArray<FieldDescriptor<Groupable<V>>>;
     }
-  | { type: "map"; label: string; default: V; entry: SettingDescriptor<MapEntry<V>> };
+  | {
+      type: "map";
+      label: string;
+      description?: string;
+      default: V;
+      entry: SettingDescriptor<MapEntry<V>>;
+      /** What an entry's key is called in the panel, e.g. "Level". */
+      keyLabel?: string;
+      /** Return an error message for an invalid entry key, or null. */
+      validateKey?(key: string): string | null;
+    };
 
 /**
  * A keyed spec: the key must exist on `V` and the spec must match `V[K]`.
@@ -159,6 +169,8 @@ export interface RuntimeFieldDescriptor {
   placeholders?: Pick<PlaceholderExecutor, "catalog">;
   fields?: readonly RuntimeFieldDescriptor[];
   entry?: RuntimeFieldDescriptor;
+  keyLabel?: string;
+  validateKey?(key: string): string | null;
 }
 
 /**
@@ -179,6 +191,8 @@ interface RawDescriptor {
   placeholders?: Pick<PlaceholderExecutor, "catalog">;
   fields?: readonly unknown[];
   entry?: unknown;
+  keyLabel?: string;
+  validateKey?(key: string): string | null;
 }
 
 /**
@@ -399,8 +413,11 @@ function toRuntimeValue(descriptor: RawDescriptor): Omit<RuntimeFieldDescriptor,
     return {
       type: "map",
       label: descriptor.label,
+      description: descriptor.description,
       default: descriptor.default,
       entry: toRuntimeField(descriptor.entry),
+      keyLabel: descriptor.keyLabel,
+      validateKey: descriptor.validateKey,
     };
   }
   return {

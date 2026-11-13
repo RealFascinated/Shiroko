@@ -11,12 +11,20 @@ import type Panel from "./panel";
 import {
   parsePanelCustomId,
   type DialogControl,
+  type MapControl,
   type PanelContext,
   type PanelCustomId,
   type PanelView,
 } from "./panel";
 import { getPath } from "./path";
-import { panelDialog, readDialogValue, renderPanel, renderPlaceholders } from "./render";
+import {
+  panelDialog,
+  panelMapDialog,
+  readDialogValue,
+  readMapDialog,
+  renderPanel,
+  renderPlaceholders,
+} from "./render";
 
 type PanelInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
 
@@ -102,10 +110,22 @@ async function dispatch(
     }
     return;
   }
+  if (decoded.kind === "map" || decoded.kind === "map-remove") {
+    const map = view
+      .controls(config, context)
+      .find(
+        (candidate): candidate is MapControl<any> =>
+          candidate.kind === "map" && candidate.key === decoded.path
+      );
+    if (map) {
+      await dispatchMap(panel, context, view, map, interaction, config);
+    }
+    return;
+  }
   const control = view
     .controls(config, context)
     .find(candidate => candidate.kind === decoded.kind && candidate.key === decoded.path);
-  if (!control) {
+  if (!control || control.kind === "map") {
     return;
   }
 
@@ -139,6 +159,53 @@ async function dispatch(
   }
   await panel.updateConfig(context.guild, view, control.key, next, context.user.id);
   await repaint(panel, context, view.segment, interaction, control.key);
+}
+
+/**
+ * A map control's three interactions: the Add button opens its dialog, the
+ * dialog's submit writes `<map>.<key>` with the chosen role, and the remove
+ * select writes `null` to the picked entry.
+ */
+async function dispatchMap(
+  panel: Panel<any>,
+  context: PanelContext,
+  view: PanelView<any>,
+  control: MapControl<any>,
+  interaction: PanelInteraction,
+  config: unknown
+): Promise<void> {
+  let entryKey: string | undefined;
+  let roleId: string | null = null;
+  if (interaction.isButton()) {
+    await interaction.showModal(panelMapDialog(panel, view, control));
+    return;
+  }
+  if (interaction.isStringSelectMenu()) {
+    entryKey = interaction.values[0];
+  } else if (interaction.isModalSubmit()) {
+    const submitted = readMapDialog(interaction);
+    entryKey = submitted.key;
+    roleId = submitted.roleId;
+    const problem =
+      control.validateKey?.(entryKey, config, context) ??
+      (roleId === null ? "Choose a role." : control.validateRole?.(roleId, config, context));
+    if (problem) {
+      await deny(interaction, problem);
+      return;
+    }
+  }
+  if (entryKey === undefined) {
+    return;
+  }
+  await panel.updateConfig(context.guild, view, `${control.key}.${entryKey}`, roleId, context.user.id);
+  if (interaction.isModalSubmit()) {
+    if (interaction.message) {
+      await interaction.deferUpdate();
+      await interaction.message.edit(await renderPanel(panel, context, view.segment));
+    }
+    return;
+  }
+  await repaint(panel, context, view.segment, interaction);
 }
 
 async function submitDialog(

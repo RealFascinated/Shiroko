@@ -28,6 +28,7 @@ import {
   panelCustomId,
   type ChoiceControl,
   type DialogControl,
+  type MapControl,
   type PanelContext,
   type PanelControl,
   type PanelView,
@@ -40,6 +41,12 @@ const ROLE_LIST_MAX = 25;
 
 /** The modal input's field id, read back on submit. */
 export const DIALOG_VALUE = "value";
+
+/** The key field's id in a map's add dialog; its role picker uses `DIALOG_VALUE`. */
+const MAP_KEY = "key";
+
+/** Discord's cap on options in a select menu. */
+const SELECT_OPTIONS_MAX = 25;
 
 /** Buttons per action row, Discord's cap. */
 const BUTTONS_PER_ROW = 5;
@@ -91,7 +98,11 @@ export const UNSET_VALUE = "*Not set*";
  * formatter. Text without a formatter is shown as code, so a template's
  * markdown and tokens read literally rather than rendering.
  */
-export function displayValue<C>(control: PanelControl<C>, config: C, context: PanelContext): string {
+export function displayValue<C>(
+  control: Exclude<PanelControl<C>, MapControl<C>>,
+  config: C,
+  context: PanelContext
+): string {
   const raw = getPath(config, control.key);
   if (control.kind === "toggle") {
     return control.state(raw === true, config, context);
@@ -170,6 +181,10 @@ function addControls<C extends object>(
       container.addActionRowComponents(choiceRow(panel, view, control, config, context));
       continue;
     }
+    if (control.kind === "map") {
+      addMap(container, panel, view, control, config);
+      continue;
+    }
     if (control.kind === "toggle" && control.group !== undefined) {
       const group = groups.find(candidate => candidate.toggles[0] === control);
       if (group) {
@@ -204,6 +219,57 @@ function addControls<C extends object>(
       )
     );
   }
+}
+
+/**
+ * A map's entries as a list with an Add button, plus a select to remove one
+ * when there are any. The select is capped at Discord's 25 options.
+ */
+function addMap<C extends object>(
+  container: ContainerBuilder,
+  panel: Panel<C>,
+  view: PanelView<C>,
+  control: MapControl<C>,
+  config: C
+): void {
+  const entries = Object.entries((getPath(config, control.key) as Record<string, unknown> | undefined) ?? {});
+  const lines =
+    entries.length === 0
+      ? UNSET_VALUE
+      : entries
+          .map(([key, value]) => `${control.keyLabel} **${key}**: ${control.describe(value)}`)
+          .join("\n");
+  container.addSectionComponents(
+    new SectionBuilder()
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(controlText(control.label, lines, control.description))
+      )
+      .setButtonAccessory(
+        new ButtonBuilder()
+          .setCustomId(panelCustomId(panel.segment, view.segment, "map", control.key))
+          .setLabel("Add")
+          .setStyle(ButtonStyle.Secondary)
+      )
+  );
+  if (entries.length === 0) {
+    return;
+  }
+  container.addActionRowComponents(
+    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(panelCustomId(panel.segment, view.segment, "map-remove", control.key))
+        .setPlaceholder(`Remove a ${control.keyLabel.toLowerCase()}`)
+        .setMinValues(1)
+        .setMaxValues(1)
+        .addOptions(
+          entries
+            .slice(0, SELECT_OPTIONS_MAX)
+            .map(([key]) =>
+              new StringSelectMenuOptionBuilder().setLabel(`${control.keyLabel} ${key}`).setValue(key)
+            )
+        )
+    )
+  );
 }
 
 function controlText(label: string, value: string | null, description: string | undefined): string {
@@ -526,6 +592,45 @@ export async function panelDialog<C extends object>(
   }
   modal.addLabelComponents(label.setTextInputComponent(textInput(control, current)));
   return modal;
+}
+
+/** The dialog a map's Add button opens: a key to type and a role to pick. */
+export function panelMapDialog<C extends object>(
+  panel: Panel<C>,
+  view: PanelView<C>,
+  control: MapControl<C>
+): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId(panelCustomId(panel.segment, view.segment, "map", control.key))
+    .setTitle(`Add ${control.keyLabel.toLowerCase()}`.slice(0, 45))
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel(control.keyLabel.slice(0, 45))
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId(MAP_KEY)
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMaxLength(32)
+        ),
+      new LabelBuilder()
+        .setLabel("Role")
+        .setRoleSelectMenuComponent(
+          new RoleSelectMenuBuilder()
+            .setCustomId(DIALOG_VALUE)
+            .setPlaceholder("Choose a role")
+            .setMinValues(1)
+            .setMaxValues(1)
+        )
+    );
+}
+
+/** Read a map dialog's submitted key and role id. */
+export function readMapDialog(interaction: ModalSubmitInteraction): { key: string; roleId: string | null } {
+  const fields = interaction.fields.fields;
+  const key = (fields.get(MAP_KEY) as { value?: string } | undefined)?.value ?? "";
+  const roles = (fields.get(DIALOG_VALUE) as { values?: readonly string[] } | undefined)?.values;
+  return { key: key.trim(), roleId: roles?.[0] ?? null };
 }
 
 function textInput<C>(control: DialogControl<C>, current: unknown): TextInputBuilder {

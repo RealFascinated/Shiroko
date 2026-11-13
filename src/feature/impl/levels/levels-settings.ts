@@ -74,8 +74,11 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
     {
       key: "rewards",
       label: "Level rewards",
+      description: "Roles granted when a member reaches a level.",
       type: "map",
       default: {},
+      keyLabel: "Level",
+      validateKey: key => (/^[1-9]\d{0,5}$/.test(key) ? null : "Level must be a whole number of at least 1."),
       entry: {
         type: "group",
         label: "Reward",
