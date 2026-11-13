@@ -87,24 +87,28 @@ async function announceLevelUp(event: LevelUpEvent): Promise<void> {
     console.error(`Could not resolve user ${event.userId} for the level-up announcement`);
     return;
   }
-  const [globalUser, template] = await Promise.all([
+  const [globalUser, template, mode] = await Promise.all([
     GlobalUsersManager.getUser(user),
     levelsSettings.get(guild.id, "levelUpMessage"),
+    levelsSettings.get(guild.id, "announceMode"),
   ]);
   const description = await levelUpPlaceholders.replace(
     { globalUser, guild, level: event.newLevel, xp: event.xp },
     template
   );
-  const card = await renderLevelUpCard({
-    name: user.displayName,
-    avatarUrl: user.displayAvatarURL({ size: 256, extension: "png" }),
-    prevLevel: event.prevLevel,
-    newLevel: event.newLevel,
-  });
+  const card =
+    mode === "card"
+      ? await renderLevelUpCard({
+          name: user.displayName,
+          avatarUrl: user.displayAvatarURL({ size: 256, extension: "png" }),
+          prevLevel: event.prevLevel,
+          newLevel: event.newLevel,
+        })
+      : null;
   try {
     await channel.send({
       content: description,
-      files: [{ attachment: card, name: "level-up.png" }],
+      files: card ? [{ attachment: card, name: "level-up.png" }] : [],
     });
   } catch (error) {
     console.error(`Failed to announce level-up for ${event.userId}:`, error);

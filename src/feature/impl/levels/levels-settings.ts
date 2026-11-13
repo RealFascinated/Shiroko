@@ -13,6 +13,7 @@ export interface LevelsSettingsData {
   messageCooldownMs: number;
   ignoredChannelIds: string[];
   announceChannelId: string | null;
+  announceMode: string;
   levelUpMessage: string;
   rewards: Record<number, LevelReward>;
 }
@@ -54,6 +55,14 @@ export const levelsSettings = new SettingsModule<LevelsSettingsData>({
       format: ids => ids.map(id => `<#${id}>`).join(", "),
     },
     { key: "announceChannelId", label: "Announce channel", type: "channel", default: null },
+    {
+      key: "announceMode",
+      label: "Announce mode",
+      description: "Message sends only the text; card adds a level-up card image.",
+      type: "choice",
+      default: "card",
+      choices: { message: "Message", card: "Card" },
+    },
     {
       key: "levelUpMessage",
       label: "Level-up message",
