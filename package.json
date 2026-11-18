@@ -20,7 +20,7 @@
     "@discordjs/voice": "^0.19.2",
     "@napi-rs/canvas": "^1.1.1",
     "@t3-oss/env-core": "^0.13.11",
-    "arktype": "^2.2.9",
+    "arktype": "^2.2.10",
     "bufferutil": "^4.2.0",
     "discord-hybrid-sharding": "^3.0.1",
     "discord.js": "^14.28.1",
