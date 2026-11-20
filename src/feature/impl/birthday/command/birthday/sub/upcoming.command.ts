@@ -16,7 +16,7 @@ export default class UpcomingCommand extends Command {
 
   protected override async onExecuteSlash({ ctx, commandName }: ExecuteContext) {
     const guild = ctx.guild!;
-    const memberIds = new Set(guild.members.cache.keys());
+    const memberIds = new Set((await guild.members.fetch()).keys());
     const title = `🎂 Upcoming Birthdays: ${guild.name}`;
     const render = (page: Page<UpcomingBirthday>) => {
       const lines = page.rows.map(entry => {

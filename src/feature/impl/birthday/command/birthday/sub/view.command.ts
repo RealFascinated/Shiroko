@@ -1,6 +1,7 @@
 import Command, { type ExecuteContext } from "@/command/command";
 import { userOption } from "@/command/option";
 import { birthdayService } from "@/feature/impl/birthday/birthday.service";
+import { fetchGuildMember } from "@/lib/guild";
 import { daysUntil, monthName, todayUtc } from "@/lib/date";
 import { baseEmbed } from "@/lib/embed";
 import { ordinal, pluralise } from "@/lib/format";
@@ -23,7 +24,9 @@ export default class ViewCommand extends Command {
     const guild = ctx.guild!;
     const target = args.user("user") ?? user.discordUser;
     const isSelf = target.id === user.id;
-    const birthday = await birthdayService.getBirthday(guild.id, target.id);
+    const birthday = (await fetchGuildMember(guild, target.id))
+      ? await birthdayService.getBirthday(guild.id, target.id)
+      : null;
     const embed = baseEmbed(commandName).setTitle(`🎂 ${target.displayName}'s Birthday`);
 
     if (!birthday) {
